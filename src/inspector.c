@@ -1,5 +1,5 @@
 #include "inspector.h"
-#include "render.h"   // GROUND_Y, WORLD_AREA_H
+#include "render.h"   // GROUND_Y, WORLD_AREA_H, SPRITE_SCALE
 #include "assets.h"   // SPRITE_FRAME_SIZE
 #include "raylib.h"
 #include <math.h>
@@ -102,7 +102,7 @@ bool inspector_update(Inspector *ins, Agent *agents, int agentCount) {
 
     // Agent sprite hit-test (only in world area)
     if (m.y <= WORLD_AREA_H) {
-        float spriteDisp = SPRITE_FRAME_SIZE * 2.0f;
+        float spriteDisp = SPRITE_FRAME_SIZE * SPRITE_SCALE;
         float agentY = (float)GROUND_Y - spriteDisp / 2.0f; // vertical center of sprite
         float hitR   = spriteDisp / 2.0f;
         for (int i = 0; i < agentCount; i++) {
@@ -155,7 +155,7 @@ void inspector_render(const Inspector *ins, const Agent *agents) {
     const Agent *a = &agents[ins->selectedId];
 
     // Highlight ring around selected agent (centered on sprite)
-    float spriteDisp = SPRITE_FRAME_SIZE * 2.0f; // matches SPRITE_DISP in render.c
+    float spriteDisp = SPRITE_FRAME_SIZE * SPRITE_SCALE;
     float cy = (float)GROUND_Y - spriteDisp / 2.0f;
     DrawCircleLines((int)a->x, (int)cy, (int)(spriteDisp / 2.0f) + 3, WHITE);
 

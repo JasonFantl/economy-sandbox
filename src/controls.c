@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 
 // Panel geometry (top-left of world area, below the legend)
 #define PNL_X   10

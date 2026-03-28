@@ -11,6 +11,7 @@
 #define WORLD_WIDTH   1160.0f
 #define GROUND_Y      390
 #define WORLD_AREA_H  450
+#define SPRITE_SCALE  2.0f   // display scale: 32px sprite cell → 64px on screen
 #define PLOT_MARGIN_L  40
 #define PLOT_MARGIN_R  30
 #define PLOT_MARGIN_T  20

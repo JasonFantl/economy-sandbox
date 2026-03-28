@@ -2,7 +2,6 @@
 #include "assets.h"
 #include "raylib.h"
 #include <math.h>
-#include <string.h>
 
 void agents_pick_new_target(Agent *agent, int agentCount, float worldWidth) {
     if (GetRandomValue(0, 1) == 0) {
@@ -25,8 +24,8 @@ void agents_init(Agent *agents, int count, float worldWidth) {
         agents[i].tradeFlash            = 0.0f;
         agents[i].timeSinceLastTrade    = 0.0f;
         agents[i].maxTimeSinceLastTrade = 5.0f + (float)GetRandomValue(0, 50) * 0.1f;
-        agents[i].spriteType            = GetRandomValue(0, 9);
-        agents[i].animFrame             = GetRandomValue(0, 5); // stagger so not all in sync
+        agents[i].spriteType            = GetRandomValue(0, SPRITE_TYPE_COUNT - 1);
+        agents[i].animFrame             = GetRandomValue(0, SPRITE_WALK_FRAMES - 1); // stagger so not all in sync
         agents[i].animTimer             = 0.125f;
         agents[i].facingRight           = 1;
         agents_pick_new_target(&agents[i], count, worldWidth);

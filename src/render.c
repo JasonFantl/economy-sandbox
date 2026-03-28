@@ -1,6 +1,5 @@
 #include "render.h"
 #include "raylib.h"
-#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -8,48 +7,37 @@
 // World
 // ---------------------------------------------------------------------------
 
-// Sprite display scale (32px cell → 64px on screen)
-#define SPRITE_SCALE 2.0f
 #define SPRITE_DISP  (SPRITE_FRAME_SIZE * SPRITE_SCALE)  // 64px
 
 // ---- Village decorations ---------------------------------------------------
 
 typedef struct {
-    Rectangle src;    // source rect in village tile sheet
-    float     x;      // screen x centre
-    float     scale;
-} Decor;
+    int   houseIdx;   // index into assets->houses[]
+    float x;          // screen x centre
+    float scale;
+} HouseDecor;
 
-// Buildings drawn behind agents; trees drawn in front (foreground depth)
-static const Decor BUILDINGS[] = {
-    {{  6, 216, 162, 168},  80, 0.60f},  // red-roof house
-    {{195,  24, 218, 168}, 270, 0.58f},  // wide double house
-    {{427,  24, 106, 168}, 450, 0.62f},  // shop/inn
-    {{ 10,  24, 162, 168}, 620, 0.60f},  // blue house
-    {{555, 233, 161, 151}, 800, 0.62f},  // tall house variant
-    {{746,  62,  76, 130}, 940, 0.68f},  // small tower
-    {{423, 216, 106, 168},1060, 0.62f},  // shop variant
-    {{559,  41, 161, 151},1170, 0.60f},  // tall house
+// Houses drawn behind agents
+static const HouseDecor HOUSES[] = {
+    {0,   80, 3.5f},
+    {2,  220, 3.5f},
+    {4,  360, 3.5f},
+    {1,  500, 3.5f},
+    {5,  640, 3.5f},
+    {3,  780, 3.5f},
+    {0,  920, 3.5f},
+    {2, 1060, 3.5f},
+    {4, 1180, 3.5f},
 };
-static const int BUILDING_COUNT = 8;
+static const int HOUSE_DECOR_COUNT = 9;
 
-static const Decor TREES[] = {
-    {{423, 438, 84, 106},  30, 0.72f},
-    {{519, 438, 84, 106}, 185, 0.72f},
-    {{615, 438, 84, 106}, 370, 0.72f},
-    {{ 34, 451, 60, 116}, 545, 0.72f},  // shrubs
-    {{711, 438, 84, 106}, 710, 0.72f},
-    {{423, 438, 84, 106}, 880, 0.72f},
-    {{615, 438, 84, 106},1030, 0.72f},
-    {{519, 438, 84, 106},1155, 0.72f},
-};
-static const int TREE_COUNT = 8;
-
-static void draw_decor(const Decor *d, Texture2D sheet) {
-    float dw = d->src.width  * d->scale;
-    float dh = d->src.height * d->scale;
-    Rectangle dst = {d->x - dw / 2.0f, (float)GROUND_Y - dh, dw, dh};
-    DrawTexturePro(sheet, d->src, dst, (Vector2){0, 0}, 0.0f, WHITE);
+static void draw_house(const HouseDecor *h, const Assets *assets) {
+    Texture2D tex = assets->houses[h->houseIdx];
+    float dw = (float)tex.width  * h->scale;
+    float dh = (float)tex.height * h->scale;
+    Rectangle src = {0, 0, (float)tex.width, (float)tex.height};
+    Rectangle dst = {h->x - dw / 2.0f, (float)GROUND_Y - dh, dw, dh};
+    DrawTexturePro(tex, src, dst, (Vector2){0, 0}, 0.0f, WHITE);
 }
 
 static void draw_agent(const Agent *a, const Assets *assets) {
@@ -99,17 +87,13 @@ void render_world(const Agent *agents, int count, bool paused, int simSteps,
         (Vector2){0, 0}, 0.0f, WHITE
     );
 
-    // Buildings (behind agents)
-    for (int i = 0; i < BUILDING_COUNT; i++)
-        draw_decor(&BUILDINGS[i], assets->village);
+    // Houses (behind agents)
+    for (int i = 0; i < HOUSE_DECOR_COUNT; i++)
+        draw_house(&HOUSES[i], assets);
 
     // Agents (mid-ground)
     for (int i = 0; i < count; i++)
         draw_agent(&agents[i], assets);
-
-    // Trees (foreground — drawn last so they overlap agents for depth)
-    for (int i = 0; i < TREE_COUNT; i++)
-        draw_decor(&TREES[i], assets->village);
 
     // Separator line between world and plot
     DrawRectangle(0, WORLD_AREA_H, SCREEN_W, 2, DARKGRAY);
