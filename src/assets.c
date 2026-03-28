@@ -21,6 +21,10 @@ void assets_load(Assets *a) {
     a->background = LoadTexture(BG_PATH);
     SetTextureFilter(a->background, TEXTURE_FILTER_POINT);
 
+    a->village = LoadTexture(
+        "src/assets/Village/Village/Set1_Ourdoor_Decoration.png");
+    SetTextureFilter(a->village, TEXTURE_FILTER_POINT);
+
     for (int i = 0; i < SPRITE_TYPE_COUNT; i++) {
         a->sprites[i] = LoadTexture(SPRITE_PATHS[i]);
         SetTextureFilter(a->sprites[i], TEXTURE_FILTER_POINT);
@@ -29,6 +33,7 @@ void assets_load(Assets *a) {
 
 void assets_unload(Assets *a) {
     UnloadTexture(a->background);
+    UnloadTexture(a->village);
     for (int i = 0; i < SPRITE_TYPE_COUNT; i++) {
         UnloadTexture(a->sprites[i]);
     }

@@ -11,6 +11,7 @@
 typedef struct {
     Texture2D background;
     Texture2D sprites[SPRITE_TYPE_COUNT];
+    Texture2D village;   // Set1_Ourdoor_Decoration tile sheet
 } Assets;
 
 void assets_load(Assets *a);
