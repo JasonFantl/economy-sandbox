@@ -13,7 +13,7 @@ int market_trade(Agent *a, Agent *b) {
     } else if (!aIsBuyer && bIsBuyer) {
         buyer = b; seller = a;
     } else {
-        // Both same type: unmatched — adjust beliefs to encourage future trades
+        // Same type: unmatched — nudge beliefs to encourage future trades
         if (aIsBuyer) {
             a->expectedMarketValue += BELIEF_VOLATILITY;
             b->expectedMarketValue += BELIEF_VOLATILITY;
@@ -27,11 +27,11 @@ int market_trade(Agent *a, Agent *b) {
     }
 
     if (buyer->expectedMarketValue >= seller->expectedMarketValue) {
-        // Successful transaction: push toward better deal next time
+        // Successful: each pushes toward a better deal next time
         buyer->expectedMarketValue  -= BELIEF_VOLATILITY;
         seller->expectedMarketValue += BELIEF_VOLATILITY;
     } else {
-        // Failed transaction: make better offers next time
+        // Failed: each makes a better offer next time
         buyer->expectedMarketValue  += BELIEF_VOLATILITY;
         seller->expectedMarketValue -= BELIEF_VOLATILITY;
     }
@@ -41,25 +41,25 @@ int market_trade(Agent *a, Agent *b) {
     return 1;
 }
 
-void price_history_record(PriceHistory *ph, const Agent *agents, int count) {
-    float sum = 0.0f;
+void avh_record(AgentValueHistory *avh, const Agent *agents, int count) {
+    avh->agentCount = count;
     for (int i = 0; i < count; i++) {
-        sum += agents[i].expectedMarketValue;
+        avh->data[i][avh->head] = agents[i].expectedMarketValue;
     }
-    float avg = sum / (float)count;
-
-    ph->values[ph->head] = avg;
-    ph->head = (ph->head + 1) % PRICE_HISTORY_SIZE;
-    if (ph->count < PRICE_HISTORY_SIZE) {
-        ph->count++;
-    }
+    avh->head = (avh->head + 1) % PRICE_HISTORY_SIZE;
+    if (avh->count < PRICE_HISTORY_SIZE) avh->count++;
 }
 
-float price_history_get(const PriceHistory *ph, int i) {
-    // index 0 = oldest, count-1 = newest
-    int oldest = (ph->count < PRICE_HISTORY_SIZE)
-                 ? 0
-                 : ph->head; // head points to oldest when full
-    int idx = (oldest + i) % PRICE_HISTORY_SIZE;
-    return ph->values[idx];
+float avh_get(const AgentValueHistory *avh, int agentIdx, int sampleIdx) {
+    int oldest = (avh->count < PRICE_HISTORY_SIZE) ? 0 : avh->head;
+    int idx    = (oldest + sampleIdx) % PRICE_HISTORY_SIZE;
+    return avh->data[agentIdx][idx];
+}
+
+float avh_avg(const AgentValueHistory *avh, int sampleIdx) {
+    float sum = 0.0f;
+    for (int i = 0; i < avh->agentCount; i++) {
+        sum += avh_get(avh, i, sampleIdx);
+    }
+    return (avh->agentCount > 0) ? sum / (float)avh->agentCount : 0.0f;
 }

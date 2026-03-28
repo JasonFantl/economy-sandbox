@@ -17,6 +17,6 @@
 #define PANEL_GAP      30
 
 void render_world(const Agent *agents, int count, bool paused, float timeScale);
-void render_plot(const PriceHistory *ph, const Agent *agents, int agentCount);
+void render_plot(const AgentValueHistory *avh, const Agent *agents, int agentCount);
 
 #endif
