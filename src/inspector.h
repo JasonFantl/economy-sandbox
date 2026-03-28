@@ -5,8 +5,8 @@
 #include <stdbool.h>
 
 typedef enum {
-    EDIT_NONE           = -1,
-    EDIT_PERSONAL_VALUE =  0,
+    EDIT_NONE        = -1,
+    EDIT_BASE_VALUE  =  0,  // basePersonalValue (S)
     EDIT_EXPECTED_VALUE =  1,
 } EditField;
 

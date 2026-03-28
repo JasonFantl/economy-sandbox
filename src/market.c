@@ -13,19 +13,29 @@ void market_gossip(Agent *a, Agent *b, float belief_factor) {
 }
 
 int market_trade(Agent *buyer, Agent *seller) {
-    if (buyer->expectedMarketValue >= seller->expectedMarketValue) {
-        // Successful transaction: each seeks a better deal next time
-        buyer->expectedMarketValue  -= BELIEF_VOLATILITY;
-        seller->expectedMarketValue += BELIEF_VOLATILITY;
-        buyer->timeSinceLastTrade    = 0.0f;
-        seller->timeSinceLastTrade   = 0.0f;
-        buyer->tradeFlash  = 0.4f;
-        seller->tradeFlash = 0.4f;
-        return 1;
-    }
-    // Prices incompatible: no immediate adjustment.
-    // The idle timer in agents_update will handle it.
-    return 0;
+    float price = seller->expectedMarketValue;
+
+    // Check feasibility: seller has goods, buyer can afford and is willing
+    if (seller->goods <= 0) return 0;
+    if (buyer->money < price) return 0;
+    if (buyer->expectedMarketValue < price) return 0;
+
+    // Transfer goods and money at seller's asking price
+    buyer->money  -= price;
+    seller->money += price;
+    buyer->goods++;
+    seller->goods--;
+
+    // Update beliefs: each party seeks a better deal next time
+    buyer->expectedMarketValue  -= BELIEF_VOLATILITY;
+    seller->expectedMarketValue += BELIEF_VOLATILITY;
+    if (buyer->expectedMarketValue < 0.1f) buyer->expectedMarketValue = 0.1f;
+
+    buyer->timeSinceLastTrade  = 0.0f;
+    seller->timeSinceLastTrade = 0.0f;
+    buyer->tradeFlash  = 0.4f;
+    seller->tradeFlash = 0.4f;
+    return 1;
 }
 
 void avh_record(AgentValueHistory *avh, const Agent *agents, int count) {
