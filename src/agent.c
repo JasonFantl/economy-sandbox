@@ -1,6 +1,7 @@
 #include "agent.h"
 #include "raylib.h"
 #include <math.h>
+#include <string.h>
 
 void agents_pick_new_target(Agent *agent, int agentCount, float worldWidth) {
     if (GetRandomValue(0, 1) == 0) {
@@ -52,5 +53,19 @@ void agents_update(Agent *agents, int count, float dt) {
                 else         a->expectedMarketValue -= BELIEF_VOLATILITY;
             }
         }
+    }
+}
+
+void agents_influence(Agent *agents, int count, int n, float delta) {
+    if (n > count) n = count;
+    // Partial Fisher-Yates: pick n distinct agents without replacement
+    int indices[MAX_AGENTS];
+    for (int i = 0; i < count; i++) indices[i] = i;
+    for (int i = 0; i < n; i++) {
+        int j   = i + GetRandomValue(0, count - 1 - i);
+        int tmp = indices[i]; indices[i] = indices[j]; indices[j] = tmp;
+        float *pv = &agents[indices[i]].personalValue;
+        *pv += delta;
+        if (*pv < 1.0f) *pv = 1.0f;
     }
 }

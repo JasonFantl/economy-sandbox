@@ -3,6 +3,7 @@
 #include "src/market.h"
 #include "src/render.h"
 #include "src/inspector.h"
+#include "src/controls.h"
 #include <math.h>
 #include <stdbool.h>
 
@@ -23,7 +24,7 @@ static void simulation_step(Agent *agents, int count, float dt) {
             Agent *b = &agents[a->targetId];
             if (fabsf(a->x - b->x) < AGENT_RADIUS * 2.0f) {
                 // Gossip on every encounter
-                market_gossip(a, b, 0.01);
+                market_gossip(a, b, 0.5);
 
                 // Trade only if one is a buyer and the other is a seller
                 int aIsBuyer = (a->personalValue >= a->expectedMarketValue);
@@ -49,11 +50,13 @@ static void simulation_step(Agent *agents, int count, float dt) {
 }
 
 static void render_frame(const Agent *agents, int count, bool paused,
-                          int simSteps, const Inspector *ins) {
+                          int simSteps, const Inspector *ins,
+                          const InfluencePanel *inf) {
     BeginDrawing();
     ClearBackground(BLACK);
     render_world(agents, count, paused, simSteps);
     render_plot(&avh, agents, count);
+    influence_panel_render(inf);
     inspector_render(ins, agents);
     DrawFPS(4, 4);
     EndDrawing();
@@ -68,10 +71,12 @@ int main(void) {
     Agent agents[NUM_AGENTS];
     agents_init(agents, NUM_AGENTS, WORLD_WIDTH);
 
-    bool      paused    = false;
-    int       simSteps  = 1;
-    Inspector inspector;
+    bool          paused    = false;
+    int           simSteps  = 1;
+    Inspector     inspector;
+    InfluencePanel influence;
     inspector_init(&inspector);
+    influence_panel_init(&influence);
 
     while (!WindowShouldClose()) {
         // Input: simulation controls
@@ -84,8 +89,9 @@ int main(void) {
             }
         }
 
-        // Input: inspector (handles clicks + keyboard for editing)
-        inspector_update(&inspector, agents, NUM_AGENTS);
+        // Input: UI panels (influence panel checked first; inspector gets remaining clicks)
+        bool consumed = influence_panel_update(&influence, agents, NUM_AGENTS);
+        if (!consumed) inspector_update(&inspector, agents, NUM_AGENTS);
 
         // Update
         if (!paused) {
@@ -96,7 +102,7 @@ int main(void) {
         }
 
         // Render
-        render_frame(agents, NUM_AGENTS, paused, simSteps, &inspector);
+        render_frame(agents, NUM_AGENTS, paused, simSteps, &inspector, &influence);
     }
 
     CloseWindow();

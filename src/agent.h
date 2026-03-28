@@ -24,5 +24,7 @@ typedef struct {
 void agents_init(Agent *agents, int count, float worldWidth);
 void agents_update(Agent *agents, int count, float dt);
 void agents_pick_new_target(Agent *agent, int agentCount, float worldWidth);
+// Shift personalValue of n randomly chosen agents by delta
+void agents_influence(Agent *agents, int count, int n, float delta);
 
 #endif
