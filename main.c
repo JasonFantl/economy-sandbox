@@ -3,9 +3,10 @@
 #include "src/market.h"
 #include "src/render.h"
 #include <math.h>
+#include <stdbool.h>
 
 #define NUM_AGENTS 120
-#define PRICE_RECORD_INTERVAL 0.3f  // seconds between price samples
+#define PRICE_RECORD_INTERVAL 0.25f  // simulation seconds between price samples
 
 int main(void) {
     SetRandomSeed(42);
@@ -20,13 +21,26 @@ int main(void) {
     PriceHistory priceHistory = {0};
     float priceTimer = 0.0f;
 
+    bool  paused    = false;
+    float timeScale = 1.0f;  // simulation speed multiplier
+
     while (!WindowShouldClose()) {
-        float dt = GetFrameTime();
+        // --- Input ---
+        if (IsKeyPressed(KEY_SPACE)) {
+            paused = !paused;
+        }
+        if (IsKeyPressed(KEY_F)) {
+            // Cycle: 1x → 4x → 8x → 1x
+            if (timeScale < 2.0f)       timeScale = 4.0f;
+            else if (timeScale < 6.0f)  timeScale = 8.0f;
+            else                        timeScale = 1.0f;
+        }
+
+        float dt = paused ? 0.0f : GetFrameTime() * timeScale;
 
         // --- Update ---
         agents_update(agents, NUM_AGENTS, dt);
 
-        // Check if any agent reached its target → attempt trade, pick new target
         for (int i = 0; i < NUM_AGENTS; i++) {
             Agent *a = &agents[i];
             Agent *b = &agents[a->targetId];
@@ -37,7 +51,6 @@ int main(void) {
             }
         }
 
-        // Record price history at intervals
         priceTimer += dt;
         if (priceTimer >= PRICE_RECORD_INTERVAL) {
             price_history_record(&priceHistory, agents, NUM_AGENTS);
@@ -48,10 +61,10 @@ int main(void) {
         BeginDrawing();
         ClearBackground(BLACK);
 
-        render_world(agents, NUM_AGENTS);
+        render_world(agents, NUM_AGENTS, paused, timeScale);
         render_plot(&priceHistory, agents, NUM_AGENTS);
 
-        DrawFPS(SCREEN_W - 80, 4);
+        DrawFPS(4, 4);
         EndDrawing();
     }
 

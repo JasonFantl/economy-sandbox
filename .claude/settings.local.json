@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pkg-config --libs --cflags raylib)",
+      "Read(//usr/**)",
+      "Read(//usr/local/**)",
+      "Bash(ldconfig -p)",
+      "Bash(dnf list:*)",
+      "Bash(apt list:*)",
+      "Bash(gcc --version)",
+      "Bash(cc --version)",
+      "Bash(make:*)",
+      "WebFetch(domain:jasonfantl.com)",
+      "Bash(git init:*)",
+      "Bash(.gitignore:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git config:*)"
+    ]
+  }
+}
