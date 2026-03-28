@@ -16,7 +16,7 @@
 #define PLOT_MARGIN_B  30
 #define PANEL_GAP      30
 
-void render_world(const Agent *agents, int count, bool paused, float timeScale);
+void render_world(const Agent *agents, int count, bool paused, int simSteps);
 void render_plot(const AgentValueHistory *avh, const Agent *agents, int agentCount);
 
 #endif

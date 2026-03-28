@@ -27,7 +27,7 @@ static void draw_house(float x, float w, float h) {
                   (Color){200,220,255,255});
 }
 
-void render_world(const Agent *agents, int count, bool paused, float timeScale) {
+void render_world(const Agent *agents, int count, bool paused, int simSteps) {
     DrawRectangle(0, 0, SCREEN_W, WORLD_AREA_H, (Color){135,185,220,255});
 
     for (int i = 0; i < HOUSE_COUNT; i++)
@@ -60,10 +60,10 @@ void render_world(const Agent *agents, int count, bool paused, float timeScale) 
     // Speed indicator
     const char *speedStr;
     Color speedCol;
-    if (paused)              { speedStr = "PAUSED";    speedCol = RED;    }
-    else if (timeScale >= 8) { speedStr = "Speed: 8x"; speedCol = ORANGE; }
-    else if (timeScale >= 4) { speedStr = "Speed: 4x"; speedCol = YELLOW; }
-    else                     { speedStr = "Speed: 1x"; speedCol = WHITE;  }
+    if (paused)            { speedStr = "PAUSED";    speedCol = RED;    }
+    else if (simSteps >= 8) { speedStr = "Speed: 8x"; speedCol = ORANGE; }
+    else if (simSteps >= 4) { speedStr = "Speed: 4x"; speedCol = YELLOW; }
+    else                   { speedStr = "Speed: 1x"; speedCol = WHITE;  }
     DrawText(speedStr, SCREEN_W - 110, 6, 16, speedCol);
     DrawText("[SPACE] pause  [F] speed", SCREEN_W - 188, 26, 12,
              (Color){40,40,40,255});
