@@ -3,6 +3,7 @@
 
 #include "agent.h"
 #include "market.h"
+#include "assets.h"
 #include <stdbool.h>
 
 #define SCREEN_W      1200
@@ -16,7 +17,8 @@
 #define PLOT_MARGIN_B  30
 #define PANEL_GAP      30
 
-void render_world(const Agent *agents, int count, bool paused, int simSteps);
+void render_world(const Agent *agents, int count, bool paused, int simSteps,
+                  const Assets *assets);
 void render_plot(const AgentValueHistory *avh, const Agent *agents, int agentCount);
 
 #endif

@@ -4,6 +4,7 @@
 #include "src/render.h"
 #include "src/inspector.h"
 #include "src/controls.h"
+#include "src/assets.h"
 #include <math.h>
 #include <stdbool.h>
 
@@ -51,10 +52,10 @@ static void simulation_step(Agent *agents, int count, float dt) {
 
 static void render_frame(const Agent *agents, int count, bool paused,
                           int simSteps, const Inspector *ins,
-                          const InfluencePanel *inf) {
+                          const InfluencePanel *inf, const Assets *assets) {
     BeginDrawing();
     ClearBackground(BLACK);
-    render_world(agents, count, paused, simSteps);
+    render_world(agents, count, paused, simSteps, assets);
     render_plot(&avh, agents, count);
     influence_panel_render(inf);
     inspector_render(ins, agents);
@@ -75,8 +76,10 @@ int main(void) {
     int           simSteps  = 1;
     Inspector     inspector;
     InfluencePanel influence;
+    Assets        assets;
     inspector_init(&inspector);
     influence_panel_init(&influence);
+    assets_load(&assets);
 
     while (!WindowShouldClose()) {
         // Input: simulation controls
@@ -102,9 +105,10 @@ int main(void) {
         }
 
         // Render
-        render_frame(agents, NUM_AGENTS, paused, simSteps, &inspector, &influence);
+        render_frame(agents, NUM_AGENTS, paused, simSteps, &inspector, &influence, &assets);
     }
 
+    assets_unload(&assets);
     CloseWindow();
     return 0;
 }

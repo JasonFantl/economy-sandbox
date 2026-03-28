@@ -17,8 +17,13 @@ typedef struct {
     float      targetX;
     TargetType targetType;
     float      tradeFlash;
-    float      timeSinceLastTrade;     // sim-seconds since last successful trade
-    float      maxTimeSinceLastTrade;  // threshold before EMV is adjusted
+    float      timeSinceLastTrade;
+    float      maxTimeSinceLastTrade;
+    // Rendering
+    int        spriteType;   // index into Assets.sprites[]
+    int        animFrame;    // current column in the walk row (0..5)
+    float      animTimer;    // seconds until next frame
+    int        facingRight;  // 1 = right, 0 = left
 } Agent;
 
 void agents_init(Agent *agents, int count, float worldWidth);

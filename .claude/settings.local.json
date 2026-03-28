@@ -19,7 +19,10 @@
       "WebSearch",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:api.github.com)"
+      "WebFetch(domain:api.github.com)",
+      "Bash(python3 -c \":*)",
+      "Bash(identify \"/home/jasonfantl/Documents/Projects/C/economy-sandbox/src/assets/Nature Landscapes Free Pixel Art/nature_2/\"*.png \"/home/jasonfantl/Documents/Projects/C/economy-sandbox/src/assets/MinifolksVillagers/Outline/\"*.png)",
+      "Bash(file \"/home/jasonfantl/Documents/Projects/C/economy-sandbox/src/assets/Nature Landscapes Free Pixel Art/nature_2/\"*.png)"
     ]
   }
 }

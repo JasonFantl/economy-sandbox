@@ -8,64 +8,83 @@
 // World
 // ---------------------------------------------------------------------------
 
-static const float houses[][3] = {
-    {  60, 48, 55}, { 130, 36, 45}, { 200, 52, 65}, { 290, 40, 50},
-    { 380, 44, 60}, { 460, 38, 48}, { 540, 56, 70}, { 640, 42, 55},
-    { 730, 36, 44}, { 810, 50, 62}, { 910, 40, 52}, {1000, 46, 58},
-    {1080, 38, 47}, {1140, 44, 53},
-};
-static const int HOUSE_COUNT = 14;
+// Sprite display scale (32px cell → 64px on screen)
+#define SPRITE_SCALE 2.0f
+#define SPRITE_DISP  (SPRITE_FRAME_SIZE * SPRITE_SCALE)  // 64px
 
-static void draw_house(float x, float w, float h) {
-    DrawRectangle((int)(x - w/2), GROUND_Y - (int)h, (int)w, (int)h,
-                  (Color){160,160,160,255});
-    Vector2 p1 = {x,             (float)(GROUND_Y - h - 18)};
-    Vector2 p2 = {x - w/2 - 4,  (float)(GROUND_Y - h)};
-    Vector2 p3 = {x + w/2 + 4,  (float)(GROUND_Y - h)};
-    DrawTriangle(p1, p2, p3, (Color){120,60,40,255});
-    DrawRectangle((int)(x - 7), GROUND_Y - (int)(h * 0.65f), 14, 12,
-                  (Color){200,220,255,255});
+static void draw_agent(const Agent *a, const Assets *assets) {
+    // Source rect — negative width flips horizontally (east-facing)
+    float fw = a->facingRight
+               ? (float)SPRITE_FRAME_SIZE
+               : -(float)SPRITE_FRAME_SIZE;
+    float fx = a->facingRight
+               ? (float)(a->animFrame * SPRITE_FRAME_SIZE)
+               : (float)((a->animFrame + 1) * SPRITE_FRAME_SIZE); // flip origin
+
+    Rectangle src = {
+        fx,
+        (float)(SPRITE_WALK_ROW * SPRITE_FRAME_SIZE),
+        fw,
+        (float)SPRITE_FRAME_SIZE
+    };
+
+    // Destination: bottom of sprite sits on GROUND_Y, centered on agent.x
+    Rectangle dst = {
+        a->x - SPRITE_DISP / 2.0f,
+        (float)GROUND_Y - SPRITE_DISP,
+        SPRITE_DISP,
+        SPRITE_DISP
+    };
+
+    // Tint: yellow flash when trading, otherwise white (no tint)
+    Color tint = (a->tradeFlash > 0.0f) ? YELLOW : WHITE;
+    DrawTexturePro(assets->sprites[a->spriteType], src, dst,
+                   (Vector2){0, 0}, 0.0f, tint);
+
+    // Small status dot at agent feet (buyer=green, seller=red)
+    Color dot = (a->personalValue > a->expectedMarketValue)
+                ? (Color){60, 210, 90, 200}
+                : (Color){220, 70, 70, 200};
+    DrawCircle((int)a->x, GROUND_Y + 3, 3, dot);
 }
 
-void render_world(const Agent *agents, int count, bool paused, int simSteps) {
-    DrawRectangle(0, 0, SCREEN_W, WORLD_AREA_H, (Color){135,185,220,255});
+void render_world(const Agent *agents, int count, bool paused, int simSteps,
+                  const Assets *assets) {
+    // Background stretched to fill world area
+    DrawTexturePro(
+        assets->background,
+        (Rectangle){0, 0, (float)assets->background.width,
+                          (float)assets->background.height},
+        (Rectangle){0, 0, (float)SCREEN_W, (float)WORLD_AREA_H},
+        (Vector2){0, 0}, 0.0f, WHITE
+    );
 
-    for (int i = 0; i < HOUSE_COUNT; i++)
-        draw_house(houses[i][0], houses[i][1], houses[i][2]);
-
-    DrawRectangle(0, GROUND_Y, SCREEN_W, WORLD_AREA_H - GROUND_Y,
-                  (Color){80,140,60,255});
-    DrawRectangle(0, GROUND_Y, SCREEN_W, 4, (Color){100,70,30,255});
+    // Separator line between world and plot
     DrawRectangle(0, WORLD_AREA_H, SCREEN_W, 2, DARKGRAY);
 
+    // Agents (back-to-front doesn't matter for 1D, but sort could be added later)
     for (int i = 0; i < count; i++) {
-        const Agent *a = &agents[i];
-        float cy = (float)(GROUND_Y - (int)AGENT_RADIUS);
-        Color col;
-        if (a->tradeFlash > 0.0f)                           col = YELLOW;
-        else if (a->personalValue > a->expectedMarketValue) col = (Color){60,200,80,255};
-        else                                                 col = (Color){220,70,70,255};
-        DrawCircle((int)a->x, (int)cy, AGENT_RADIUS, col);
-        DrawCircleLines((int)a->x, (int)cy, AGENT_RADIUS, BLACK);
+        draw_agent(&agents[i], assets);
     }
 
-    // Legend
-    DrawCircle(20, 15, 6, (Color){60,200,80,255});
-    DrawText("Buyer",   30, 9, 14, BLACK);
-    DrawCircle(90, 15, 6, (Color){220,70,70,255});
-    DrawText("Seller", 100, 9, 14, BLACK);
-    DrawCircle(165, 15, 6, YELLOW);
-    DrawText("Trading", 175, 9, 14, BLACK);
+    // Legend (semi-transparent backing so it reads over any background)
+    DrawRectangle(0, 0, 270, 28, (Color){0, 0, 0, 100});
+    DrawCircle(10, 14, 5, (Color){60,210,90,255});
+    DrawText("Buyer",   20, 7, 14, WHITE);
+    DrawCircle(75, 14, 5, (Color){220,70,70,255});
+    DrawText("Seller",  85, 7, 14, WHITE);
+    DrawCircle(145, 14, 5, YELLOW);
+    DrawText("Trading", 155, 7, 14, WHITE);
 
     // Speed indicator
     char speedBuf[32];
     Color speedCol;
-    if (paused)            { snprintf(speedBuf, sizeof(speedBuf), "PAUSED");         speedCol = RED;    }
+    if (paused)            { snprintf(speedBuf, sizeof(speedBuf), "PAUSED");               speedCol = RED;    }
     else if (simSteps > 1) { snprintf(speedBuf, sizeof(speedBuf), "Speed: %dx", simSteps); speedCol = ORANGE; }
-    else                   { snprintf(speedBuf, sizeof(speedBuf), "Speed: 1x");      speedCol = WHITE;  }
+    else                   { snprintf(speedBuf, sizeof(speedBuf), "Speed: 1x");            speedCol = WHITE;  }
+    DrawRectangle(SCREEN_W - 200, 0, 200, 42, (Color){0, 0, 0, 100});
     DrawText(speedBuf, SCREEN_W - 110, 6, 16, speedCol);
-    DrawText("[SPACE] pause  [F] speed", SCREEN_W - 188, 26, 12,
-             (Color){40,40,40,255});
+    DrawText("[SPACE] pause  [F] speed", SCREEN_W - 188, 26, 12, (Color){200,200,200,255});
 }
 
 // ---------------------------------------------------------------------------
