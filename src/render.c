@@ -58,13 +58,12 @@ void render_world(const Agent *agents, int count, bool paused, int simSteps) {
     DrawText("Trading", 175, 9, 14, BLACK);
 
     // Speed indicator
-    const char *speedStr;
+    char speedBuf[32];
     Color speedCol;
-    if (paused)            { speedStr = "PAUSED";    speedCol = RED;    }
-    else if (simSteps >= 8) { speedStr = "Speed: 8x"; speedCol = ORANGE; }
-    else if (simSteps >= 4) { speedStr = "Speed: 4x"; speedCol = YELLOW; }
-    else                   { speedStr = "Speed: 1x"; speedCol = WHITE;  }
-    DrawText(speedStr, SCREEN_W - 110, 6, 16, speedCol);
+    if (paused)            { snprintf(speedBuf, sizeof(speedBuf), "PAUSED");         speedCol = RED;    }
+    else if (simSteps > 1) { snprintf(speedBuf, sizeof(speedBuf), "Speed: %dx", simSteps); speedCol = ORANGE; }
+    else                   { snprintf(speedBuf, sizeof(speedBuf), "Speed: 1x");      speedCol = WHITE;  }
+    DrawText(speedBuf, SCREEN_W - 110, 6, 16, speedCol);
     DrawText("[SPACE] pause  [F] speed", SCREEN_W - 188, 26, 12,
              (Color){40,40,40,255});
 }

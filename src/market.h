@@ -15,7 +15,7 @@ typedef struct {
 
 // Gossip: agents nudge their EMVs toward each other on meeting.
 // Called on every agent encounter, regardless of buyer/seller status.
-void market_gossip(Agent *a, Agent *b);
+void market_gossip(Agent *a, Agent *b, float belief_factor);
 
 // Trade: attempt a transaction between a buyer and a seller.
 // Caller is responsible for ensuring a is buyer, b is seller.

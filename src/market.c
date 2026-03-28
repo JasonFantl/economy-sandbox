@@ -1,15 +1,15 @@
 #include "market.h"
 
-void market_gossip(Agent *a, Agent *b) {
+void market_gossip(Agent *a, Agent *b, float belief_factor) {
     // Each agent nudges their EMV toward the other's (snapshot before mutating)
     float aEMV = a->expectedMarketValue;
     float bEMV = b->expectedMarketValue;
 
-    if (bEMV > aEMV) a->expectedMarketValue += BELIEF_VOLATILITY;
-    else if (bEMV < aEMV) a->expectedMarketValue -= BELIEF_VOLATILITY;
+    if (bEMV > aEMV) a->expectedMarketValue += BELIEF_VOLATILITY * belief_factor;
+    else if (bEMV < aEMV) a->expectedMarketValue -= BELIEF_VOLATILITY * belief_factor;
 
-    if (aEMV > bEMV) b->expectedMarketValue += BELIEF_VOLATILITY;
-    else if (aEMV < bEMV) b->expectedMarketValue -= BELIEF_VOLATILITY;
+    if (aEMV > bEMV) b->expectedMarketValue += BELIEF_VOLATILITY * belief_factor;
+    else if (aEMV < bEMV) b->expectedMarketValue -= BELIEF_VOLATILITY * belief_factor;
 }
 
 int market_trade(Agent *buyer, Agent *seller) {

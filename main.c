@@ -2,6 +2,7 @@
 #include "src/agent.h"
 #include "src/market.h"
 #include "src/render.h"
+#include "src/inspector.h"
 #include <math.h>
 #include <stdbool.h>
 
@@ -22,10 +23,10 @@ static void simulation_step(Agent *agents, int count, float dt) {
             Agent *b = &agents[a->targetId];
             if (fabsf(a->x - b->x) < AGENT_RADIUS * 2.0f) {
                 // Gossip on every encounter
-                market_gossip(a, b);
+                market_gossip(a, b, 0.01);
 
                 // Trade only if one is a buyer and the other is a seller
-                int aIsBuyer = (a->personalValue > a->expectedMarketValue);
+                int aIsBuyer = (a->personalValue >= a->expectedMarketValue);
                 int bIsBuyer = (b->personalValue > b->expectedMarketValue);
                 if (aIsBuyer && !bIsBuyer)       market_trade(a, b);
                 else if (!aIsBuyer && bIsBuyer)  market_trade(b, a);
@@ -48,11 +49,12 @@ static void simulation_step(Agent *agents, int count, float dt) {
 }
 
 static void render_frame(const Agent *agents, int count, bool paused,
-                          int simSteps) {
+                          int simSteps, const Inspector *ins) {
     BeginDrawing();
     ClearBackground(BLACK);
     render_world(agents, count, paused, simSteps);
     render_plot(&avh, agents, count);
+    inspector_render(ins, agents);
     DrawFPS(4, 4);
     EndDrawing();
 }
@@ -66,17 +68,24 @@ int main(void) {
     Agent agents[NUM_AGENTS];
     agents_init(agents, NUM_AGENTS, WORLD_WIDTH);
 
-    bool paused   = false;
-    int  simSteps = 1;  // update calls per frame (1 = normal, 4 = fast, 8 = faster)
+    bool      paused    = false;
+    int       simSteps  = 1;
+    Inspector inspector;
+    inspector_init(&inspector);
 
     while (!WindowShouldClose()) {
-        // Input
+        // Input: simulation controls
         if (IsKeyPressed(KEY_SPACE)) paused = !paused;
         if (IsKeyPressed(KEY_F)) {
-            if      (simSteps == 1) simSteps = 4;
-            else if (simSteps == 4) simSteps = 8;
-            else                    simSteps = 1;
+            if (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT)) {
+                if (simSteps > 1) simSteps /= 2;
+            } else {
+                simSteps *= 2;
+            }
         }
+
+        // Input: inspector (handles clicks + keyboard for editing)
+        inspector_update(&inspector, agents, NUM_AGENTS);
 
         // Update
         if (!paused) {
@@ -87,7 +96,7 @@ int main(void) {
         }
 
         // Render
-        render_frame(agents, NUM_AGENTS, paused, simSteps);
+        render_frame(agents, NUM_AGENTS, paused, simSteps, &inspector);
     }
 
     CloseWindow();
