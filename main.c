@@ -21,7 +21,15 @@ static void simulation_step(Agent *agents, int count, float dt) {
         if (a->targetType == TARGET_AGENT) {
             Agent *b = &agents[a->targetId];
             if (fabsf(a->x - b->x) < AGENT_RADIUS * 2.0f) {
-                market_trade(a, b);
+                // Gossip on every encounter
+                market_gossip(a, b);
+
+                // Trade only if one is a buyer and the other is a seller
+                int aIsBuyer = (a->personalValue > a->expectedMarketValue);
+                int bIsBuyer = (b->personalValue > b->expectedMarketValue);
+                if (aIsBuyer && !bIsBuyer)       market_trade(a, b);
+                else if (!aIsBuyer && bIsBuyer)  market_trade(b, a);
+
                 agents_pick_new_target(a, count, WORLD_WIDTH);
                 agents_pick_new_target(b, count, WORLD_WIDTH);
             }

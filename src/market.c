@@ -1,44 +1,31 @@
 #include "market.h"
-#include <stddef.h>
 
-int market_trade(Agent *a, Agent *b) {
-    int aIsBuyer = (a->personalValue > a->expectedMarketValue);
-    int bIsBuyer = (b->personalValue > b->expectedMarketValue);
+void market_gossip(Agent *a, Agent *b) {
+    // Each agent nudges their EMV toward the other's (snapshot before mutating)
+    float aEMV = a->expectedMarketValue;
+    float bEMV = b->expectedMarketValue;
 
-    Agent *buyer  = NULL;
-    Agent *seller = NULL;
+    if (bEMV > aEMV) a->expectedMarketValue += BELIEF_VOLATILITY;
+    else if (bEMV < aEMV) a->expectedMarketValue -= BELIEF_VOLATILITY;
 
-    if (aIsBuyer && !bIsBuyer) {
-        buyer = a; seller = b;
-    } else if (!aIsBuyer && bIsBuyer) {
-        buyer = b; seller = a;
-    } else {
-        // Same type: unmatched — nudge beliefs to encourage future trades
-        if (aIsBuyer) {
-            a->expectedMarketValue += BELIEF_VOLATILITY;
-            b->expectedMarketValue += BELIEF_VOLATILITY;
-        } else {
-            a->expectedMarketValue -= BELIEF_VOLATILITY;
-            b->expectedMarketValue -= BELIEF_VOLATILITY;
-        }
-        a->tradeFlash = 0.2f;
-        b->tradeFlash = 0.2f;
-        return 0;
-    }
+    if (aEMV > bEMV) b->expectedMarketValue += BELIEF_VOLATILITY;
+    else if (aEMV < bEMV) b->expectedMarketValue -= BELIEF_VOLATILITY;
+}
 
+int market_trade(Agent *buyer, Agent *seller) {
     if (buyer->expectedMarketValue >= seller->expectedMarketValue) {
-        // Successful: each pushes toward a better deal next time
+        // Successful transaction: each seeks a better deal next time
         buyer->expectedMarketValue  -= BELIEF_VOLATILITY;
         seller->expectedMarketValue += BELIEF_VOLATILITY;
-    } else {
-        // Failed: each makes a better offer next time
-        buyer->expectedMarketValue  += BELIEF_VOLATILITY;
-        seller->expectedMarketValue -= BELIEF_VOLATILITY;
+        buyer->timeSinceLastTrade    = 0.0f;
+        seller->timeSinceLastTrade   = 0.0f;
+        buyer->tradeFlash  = 0.4f;
+        seller->tradeFlash = 0.4f;
+        return 1;
     }
-
-    a->tradeFlash = 0.4f;
-    b->tradeFlash = 0.4f;
-    return 1;
+    // Prices incompatible: no immediate adjustment.
+    // The idle timer in agents_update will handle it.
+    return 0;
 }
 
 void avh_record(AgentValueHistory *avh, const Agent *agents, int count) {
