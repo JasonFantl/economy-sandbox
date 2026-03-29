@@ -18,8 +18,19 @@
 #define PLOT_MARGIN_B  30
 #define PANEL_GAP      30
 
+typedef enum {
+    PLOT_WEALTH      = 0,  // money vs goods scatter
+    PLOT_EMV_HISTORY = 1,  // expected market values over time
+    PLOT_COUNT       = 2
+} PlotType;
+
 void render_world(const Agent *agents, int count, bool paused, int simSteps,
                   const Assets *assets);
-void render_plot(const AgentValueHistory *avh, const Agent *agents, int agentCount);
+void render_plot(const AgentValueHistory *avh, const Agent *agents, int agentCount,
+                 PlotType leftPlot, PlotType rightPlot);
+
+// Check for clicks on the panel header strips; cycle the plot type if hit.
+// Returns true if a click was consumed.
+bool plot_cycle_click(PlotType *left, PlotType *right);
 
 #endif

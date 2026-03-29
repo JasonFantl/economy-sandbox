@@ -133,8 +133,7 @@ static Color agent_color(float basePersonalValue, unsigned char alpha) {
 }
 
 static void draw_axes_y(int px, int py, int pw, int ph,
-                        float yMax, float refLine, const char *title) {
-    DrawText(title, px, WORLD_AREA_H + 4, 13, (Color){200,200,200,255});
+                        float yMax, float refLine) {
     DrawLine(px, py, px, py + ph, LIGHTGRAY);
     DrawLine(px, py + ph, px + pw, py + ph, LIGHTGRAY);
     for (int step = 0; step <= 4; step++) {
@@ -162,15 +161,12 @@ static void draw_wealth_panel(const Agent *agents, int count,
     float maxMoney = 1.0f;
     int   maxGoods = 1;
     for (int i = 0; i < count; i++) {
-        if (agents[i].money        > maxMoney) maxMoney = agents[i].money;
-        if (agents[i].goods        > maxGoods) maxGoods = agents[i].goods;
+        if (agents[i].money > maxMoney) maxMoney = agents[i].money;
+        if (agents[i].goods > maxGoods) maxGoods = agents[i].goods;
     }
     // Round up to nearest 50 / 5
     maxMoney = (float)(((int)(maxMoney / 50) + 1) * 50);
     if (maxGoods % 5 != 0) maxGoods = (maxGoods / 5 + 1) * 5;
-
-    DrawText("Money vs Goods (resource distribution)",
-             px, WORLD_AREA_H + 4, 13, (Color){200,200,200,255});
 
     // Axes
     DrawLine(px, py,       px,       py + ph, LIGHTGRAY);
@@ -226,8 +222,7 @@ static void draw_timeseries_panel(const AgentValueHistory *avh,
                                    const Agent *agents,
                                    int px, int py, int pw, int ph,
                                    float equilibrium) {
-    draw_axes_y(px, py, pw, ph, 100.0f, equilibrium,
-                "Expected Market Values (each agent, over time)");
+    draw_axes_y(px, py, pw, ph, 100.0f, equilibrium);
 
     if (avh->count < 2) return;
 
@@ -271,27 +266,91 @@ static void draw_timeseries_panel(const AgentValueHistory *avh,
 // Top-level
 // ---------------------------------------------------------------------------
 
+static const char *plot_title(PlotType t) {
+    switch (t) {
+        case PLOT_WEALTH:      return "Money vs Goods";
+        case PLOT_EMV_HISTORY: return "Market Value History";
+        default:               return "";
+    }
+}
+
+// Draw the clickable header strip for one panel.
+static void draw_panel_strip(int px, int py_strip, int pw, PlotType t) {
+    Vector2 mouse = GetMousePosition();
+    bool hover = mouse.x >= px && mouse.x <= px + pw &&
+                 mouse.y >= py_strip && mouse.y <= py_strip + 16;
+
+    Color bg  = hover ? (Color){50, 65, 95, 230} : (Color){28, 38, 58, 210};
+    Color bdr = hover ? (Color){100,130,180,255}  : (Color){ 55, 72,100,200};
+    DrawRectangle(px, py_strip, pw, 16, bg);
+    DrawRectangleLines(px, py_strip, pw, 16, bdr);
+
+    char label[64];
+    snprintf(label, sizeof(label), "< %s >", plot_title(t));
+    int tw = MeasureText(label, 12);
+    DrawText(label, px + (pw - tw) / 2, py_strip + 2, 12,
+             hover ? WHITE : (Color){180,190,210,255});
+}
+
+static void draw_panel(PlotType t, const AgentValueHistory *avh,
+                       const Agent *agents, int agentCount,
+                       int px, int py, int pw, int ph, float equilibrium) {
+    switch (t) {
+        case PLOT_WEALTH:
+            draw_wealth_panel(agents, agentCount, px, py, pw, ph);
+            break;
+        case PLOT_EMV_HISTORY:
+            draw_timeseries_panel(avh, agents, px, py, pw, ph, equilibrium);
+            break;
+        default: break;
+    }
+}
+
 void render_plot(const AgentValueHistory *avh, const Agent *agents,
-                 int agentCount) {
+                 int agentCount, PlotType leftPlot, PlotType rightPlot) {
     DrawRectangle(0, WORLD_AREA_H + 2, SCREEN_W, SCREEN_H - WORLD_AREA_H - 2,
                   (Color){20,20,30,255});
 
-    int py      = WORLD_AREA_H + PLOT_MARGIN_T + 15;
-    int pheight = SCREEN_H - WORLD_AREA_H - PLOT_MARGIN_T - PLOT_MARGIN_B - 15;
-    int half    = (SCREEN_W - PLOT_MARGIN_L - PLOT_MARGIN_R - PANEL_GAP) / 2;
+    int half     = (SCREEN_W - PLOT_MARGIN_L - PLOT_MARGIN_R - PANEL_GAP) / 2;
     int px_left  = PLOT_MARGIN_L;
     int px_right = PLOT_MARGIN_L + half + PANEL_GAP;
+    int strip_y  = WORLD_AREA_H + 2;
+    int py       = strip_y + 16 + PLOT_MARGIN_T;
+    int pheight  = SCREEN_H - py - PLOT_MARGIN_B;
 
-    // Equilibrium reference: average basePersonalValue (theoretical long-run price)
     float pvSum = 0.0f;
     for (int i = 0; i < agentCount; i++) pvSum += agents[i].basePersonalValue;
     float equilibrium = pvSum / (float)agentCount;
 
-    draw_wealth_panel(agents, agentCount, px_left, py, half, pheight);
+    draw_panel_strip(px_left,  strip_y, half, leftPlot);
+    draw_panel_strip(px_right, strip_y, half, rightPlot);
 
     DrawLine(px_right - PANEL_GAP/2, WORLD_AREA_H + 4,
              px_right - PANEL_GAP/2, SCREEN_H - 4,
              (Color){60,60,70,255});
 
-    draw_timeseries_panel(avh, agents, px_right, py, half, pheight, equilibrium);
+    draw_panel(leftPlot,  avh, agents, agentCount, px_left,  py, half, pheight, equilibrium);
+    draw_panel(rightPlot, avh, agents, agentCount, px_right, py, half, pheight, equilibrium);
+}
+
+bool plot_cycle_click(PlotType *left, PlotType *right) {
+    if (!IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) return false;
+    Vector2 m = GetMousePosition();
+
+    int half     = (SCREEN_W - PLOT_MARGIN_L - PLOT_MARGIN_R - PANEL_GAP) / 2;
+    int px_left  = PLOT_MARGIN_L;
+    int px_right = PLOT_MARGIN_L + half + PANEL_GAP;
+    int strip_y  = WORLD_AREA_H + 2;
+
+    if (m.y >= strip_y && m.y <= strip_y + 16) {
+        if (m.x >= px_left && m.x <= px_left + half) {
+            *left = (*left + 1) % PLOT_COUNT;
+            return true;
+        }
+        if (m.x >= px_right && m.x <= px_right + half) {
+            *right = (*right + 1) % PLOT_COUNT;
+            return true;
+        }
+    }
+    return false;
 }

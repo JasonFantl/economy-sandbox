@@ -50,11 +50,12 @@ static void simulation_step(Agent *agents, int count, float dt) {
 
 static void render_frame(const Agent *agents, int count, bool paused,
                           int simSteps, const Inspector *ins,
-                          const InfluencePanel *inf, const Assets *assets) {
+                          const InfluencePanel *inf, const Assets *assets,
+                          PlotType leftPlot, PlotType rightPlot) {
     BeginDrawing();
     ClearBackground(BLACK);
     render_world(agents, count, paused, simSteps, assets);
-    render_plot(&avh, agents, count);
+    render_plot(&avh, agents, count, leftPlot, rightPlot);
     influence_panel_render(inf);
     inspector_render(ins, agents);
     DrawFPS(4, 4);
@@ -72,6 +73,8 @@ int main(void) {
 
     bool          paused    = false;
     int           simSteps  = 1;
+    PlotType      leftPlot  = PLOT_WEALTH;
+    PlotType      rightPlot = PLOT_EMV_HISTORY;
     Inspector     inspector;
     InfluencePanel influence;
     Assets        assets;
@@ -90,8 +93,9 @@ int main(void) {
             }
         }
 
-        // Input: UI panels (influence panel checked first; inspector gets remaining clicks)
-        bool consumed = influence_panel_update(&influence, agents, NUM_AGENTS);
+        // Input: UI panels (plot strips → influence panel → inspector, in z-order)
+        bool consumed = plot_cycle_click(&leftPlot, &rightPlot);
+        if (!consumed) consumed = influence_panel_update(&influence, agents, NUM_AGENTS);
         if (!consumed) inspector_update(&inspector, agents, NUM_AGENTS);
 
         // Update
@@ -103,7 +107,8 @@ int main(void) {
         }
 
         // Render
-        render_frame(agents, NUM_AGENTS, paused, simSteps, &inspector, &influence, &assets);
+        render_frame(agents, NUM_AGENTS, paused, simSteps, &inspector, &influence, &assets,
+                     leftPlot, rightPlot);
     }
 
     assets_unload(&assets);
