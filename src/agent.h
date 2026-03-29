@@ -15,6 +15,10 @@ typedef enum { MARKET_WOOD = 0, MARKET_CHAIR = 1, MARKET_COUNT = 2 } MarketId;
 typedef enum { ACTION_LEISURE = 0, ACTION_CHOP = 1, ACTION_BUILD = 2 } AgentAction;
 typedef enum { TARGET_AGENT = 0, TARGET_POS = 1 } TargetType;
 
+// ---------------------------------------------------------------------------
+// Economic building blocks
+// ---------------------------------------------------------------------------
+
 // Per-market economy state
 typedef struct {
     int    goods;
@@ -34,29 +38,54 @@ typedef struct {
     float  idleTime;      // seconds spent idle; resets on productive action
 } LeisureState;
 
+// ---------------------------------------------------------------------------
+// Agent sub-structs — one per concern
+// ---------------------------------------------------------------------------
+
+// World/movement state
 typedef struct {
-    int          id;
-    float        x;
+    int        id;
+    float      x;
+    int        targetId;
+    float      targetX;
+    TargetType targetType;
+} AgentBody;
+
+// Economic decision-making state
+typedef struct {
     float        money;
     AgentMarket  markets[MARKET_COUNT];
     LeisureState leisure;
     AgentAction  lastAction;
     float        alpha;              // Nerlove belief update speed [0,1]
     float        actionTimer;        // time until next production decision
-    float        productionInterval; // seconds between production actions
-    // Movement target
-    int          targetId;
-    float        targetX;
-    TargetType   targetType;
-    // Visual
-    float        tradeFlash;
-    int          spriteType;
-    int          animFrame;
-    float        animTimer;
-    int          facingRight;
+    float        productionInterval; // seconds between production decisions
+} AgentEcon;
+
+// Rendering / animation state
+typedef struct {
+    float tradeFlash;
+    int   spriteType;
+    int   animFrame;
+    float animTimer;
+    int   facingRight;
+} AgentSprite;
+
+// ---------------------------------------------------------------------------
+// Agent — composed of the three sub-structs
+// ---------------------------------------------------------------------------
+
+typedef struct {
+    AgentBody   body;
+    AgentEcon   econ;
+    AgentSprite sprite;
 } Agent;
 
-#define AGENT_MKT(a, mid) (&(a)->markets[mid])
+#define AGENT_MKT(a, mid) (&(a)->econ.markets[mid])
+
+// ---------------------------------------------------------------------------
+// Inline utility / value functions
+// ---------------------------------------------------------------------------
 
 // Marginal utility of buying one more unit of this good (diminishing returns)
 static inline float market_potential_value(const AgentMarket *m) {
@@ -91,14 +120,18 @@ static inline int market_is_seller(const AgentMarket *m, float money) {
     return market_current_value(m) < m->expectedMarketValue * utility_per_dollar(money);
 }
 
+// ---------------------------------------------------------------------------
+// Function declarations
+// ---------------------------------------------------------------------------
+
+// agent.c — world/body orchestration
 void agents_init(Agent *agents, int count, float worldWidth);
 void agents_update(Agent *agents, int count, float dt);
 void agents_pick_new_target(Agent *agent, int agentCount, float worldWidth);
-// Shift basePersonalValue of n randomly chosen agents in market mid by delta
+
+// econ.c — economic logic
 void agents_influence(Agent *agents, int count, int n, float delta, MarketId mid);
-// Add delta money to n randomly chosen agents
 void agents_give_money(Agent *agents, int count, int n, float delta);
-// Add delta goods to n randomly chosen agents in market mid
 void agents_give_goods(Agent *agents, int count, int n, int delta, MarketId mid);
 
 #endif

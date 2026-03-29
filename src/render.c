@@ -45,20 +45,20 @@ static void draw_house(const HouseDecor *h, const Assets *assets) {
 }
 
 static void draw_agent(const Agent *a, const Assets *assets) {
-    float fw = a->facingRight ? (float)SPRITE_FRAME_SIZE : -(float)SPRITE_FRAME_SIZE;
-    float fx = a->facingRight ? (float)(a->animFrame*SPRITE_FRAME_SIZE)
-                              : (float)((a->animFrame+1)*SPRITE_FRAME_SIZE);
+    float fw = a->sprite.facingRight ? (float)SPRITE_FRAME_SIZE : -(float)SPRITE_FRAME_SIZE;
+    float fx = a->sprite.facingRight ? (float)(a->sprite.animFrame*SPRITE_FRAME_SIZE)
+                                     : (float)((a->sprite.animFrame+1)*SPRITE_FRAME_SIZE);
     Rectangle src = {fx,(float)(SPRITE_WALK_ROW*SPRITE_FRAME_SIZE),fw,(float)SPRITE_FRAME_SIZE};
-    Rectangle dst = {a->x-SPRITE_DISP/2.0f,(float)GROUND_Y-SPRITE_DISP,SPRITE_DISP,SPRITE_DISP};
-    DrawTexturePro(assets->sprites[a->spriteType], src, dst,
-                   (Vector2){0,0}, 0.0f, (a->tradeFlash>0.0f)?YELLOW:WHITE);
+    Rectangle dst = {a->body.x-SPRITE_DISP/2.0f,(float)GROUND_Y-SPRITE_DISP,SPRITE_DISP,SPRITE_DISP};
+    DrawTexturePro(assets->sprites[a->sprite.spriteType], src, dst,
+                   (Vector2){0,0}, 0.0f, (a->sprite.tradeFlash>0.0f)?YELLOW:WHITE);
 
     Color dot;
-    if      (a->tradeFlash > 0.0f)         dot = YELLOW;
-    else if (a->lastAction == ACTION_CHOP)  dot = (Color){160,100, 40,220};
-    else if (a->lastAction == ACTION_BUILD) dot = (Color){220,140, 60,220};
-    else                                    dot = (Color){150,150,150,180};
-    DrawCircle((int)a->x, GROUND_Y+3, 3, dot);
+    if      (a->sprite.tradeFlash > 0.0f)          dot = YELLOW;
+    else if (a->econ.lastAction == ACTION_CHOP)     dot = (Color){160,100, 40,220};
+    else if (a->econ.lastAction == ACTION_BUILD)    dot = (Color){220,140, 60,220};
+    else                                            dot = (Color){150,150,150,180};
+    DrawCircle((int)a->body.x, GROUND_Y+3, 3, dot);
 }
 
 void render_world(const Agent *agents, int count, bool paused, int simSteps,
@@ -156,8 +156,8 @@ static void draw_wealth_panel(const Agent *agents, int count, int marketId,
 
     float dynMoney=1.0f; int dynGoods=1;
     for (int i=0;i<count;i++) {
-        if (agents[i].money>dynMoney) dynMoney=agents[i].money;
-        if (agents[i].markets[marketId].goods>dynGoods) dynGoods=agents[i].markets[marketId].goods;
+        if (agents[i].econ.money>dynMoney) dynMoney=agents[i].econ.money;
+        if (agents[i].econ.markets[marketId].goods>dynGoods) dynGoods=agents[i].econ.markets[marketId].goods;
     }
     dynMoney=(float)(((int)(dynMoney/50)+1)*50);
     if (dynGoods%5!=0) dynGoods=(dynGoods/5+1)*5;
@@ -187,14 +187,14 @@ static void draw_wealth_panel(const Agent *agents, int count, int marketId,
     DrawText("goods →",px+pw-52,py+ph+6,11,LIGHTGRAY);
 
     for (int i=0;i<count;i++) {
-        float gx=(float)agents[i].markets[marketId].goods/(float)maxGoods;
-        float gy=agents[i].money/maxMoney;
+        float gx=(float)agents[i].econ.markets[marketId].goods/(float)maxGoods;
+        float gy=agents[i].econ.money/maxMoney;
         // Skip dots outside plot bounds (no line to draw to edge for scatter)
         if (gx < 0.0f || gx > 1.0f || gy < 0.0f || gy > 1.0f) continue;
         int sx=px+(int)(gx*(float)pw), sy=py+ph-(int)(gy*(float)ph);
-        AgentAction act=agents[i].lastAction;
+        AgentAction act=agents[i].econ.lastAction;
         Color col;
-        if      (agents[i].tradeFlash>0.0f) col=YELLOW;
+        if      (agents[i].sprite.tradeFlash>0.0f) col=YELLOW;
         else if (act==ACTION_CHOP)          col=(Color){160,100, 40,220};
         else if (act==ACTION_BUILD)         col=(Color){220,140, 60,220};
         else                                col=(Color){150,150,150,180};
@@ -209,8 +209,8 @@ static void draw_wealth_panel(const Agent *agents, int count, int marketId,
 static const Agent *s_sort_agents   = NULL;
 static int          s_sort_marketId = 0;
 static int cmp_by_base_value(const void *a, const void *b) {
-    float fa=s_sort_agents[*(const int*)a].markets[s_sort_marketId].basePersonalValue;
-    float fb=s_sort_agents[*(const int*)b].markets[s_sort_marketId].basePersonalValue;
+    float fa=s_sort_agents[*(const int*)a].econ.markets[s_sort_marketId].basePersonalValue;
+    float fb=s_sort_agents[*(const int*)b].econ.markets[s_sort_marketId].basePersonalValue;
     return (fa>fb)-(fa<fb);
 }
 
@@ -219,7 +219,7 @@ static void draw_agent_panel(const Agent *agents, int count, int marketId,
     PlotBounds *b=&g_bounds[PLOT_AGENT_VALUES][marketId];
     float rawMax=1.0f;
     for (int i=0;i<count;i++) {
-        const AgentMarket *m=&agents[i].markets[marketId];
+        const AgentMarket *m=&agents[i].econ.markets[marketId];
         float v=m->basePersonalValue;
         if (m->expectedMarketValue>v) v=m->expectedMarketValue;
         if (v>rawMax) rawMax=v;
@@ -235,7 +235,7 @@ static void draw_agent_panel(const Agent *agents, int count, int marketId,
     float xStep=(float)pw/(float)(count-1);
     for (int rank=0;rank<count;rank++) {
         const Agent      *a=&agents[indices[rank]];
-        const AgentMarket *m=&a->markets[marketId];
+        const AgentMarket *m=&a->econ.markets[marketId];
         int x=px+(int)((float)rank*xStep);
         float sellPrice=market_current_value(m), buyPrice=market_potential_value(m);
         float base=m->basePersonalValue, emv=m->expectedMarketValue;
@@ -261,10 +261,10 @@ static void draw_agent_panel(const Agent *agents, int count, int marketId,
         if (y_base>=py && y_base<=py+ph) DrawCircle(x,y_base,3,(Color){ 80,140,255,220});
         if (y_sell>=py && y_sell<=py+ph) DrawCircle(x,y_sell,2,(Color){255,160, 60,200});
         if (y_buy >=py && y_buy <=py+ph) DrawCircle(x,y_buy, 2,(Color){ 80,220,220,200});
-        Color emvCol=(a->tradeFlash>0.0f)?YELLOW
-                    :(market_is_buyer(m, a->money) ?(Color){ 60,210, 90,220}
-                     :market_is_seller(m, a->money)?(Color){220, 70, 70,220}
-                                                    :(Color){150,150,150,200});
+        Color emvCol=(a->sprite.tradeFlash>0.0f)?YELLOW
+                    :(market_is_buyer(m, a->econ.money) ?(Color){ 60,210, 90,220}
+                     :market_is_seller(m, a->econ.money)?(Color){220, 70, 70,220}
+                                                         :(Color){150,150,150,200});
         if (y_emv>=py && y_emv<=py+ph) DrawCircle(x,y_emv,3,emvCol);
     }
 
@@ -288,7 +288,7 @@ static void draw_timeseries_panel(const AgentValueHistory *avh,
     float rawMax=1.0f;
     for (int s=0;s<avh->count;s++) { float v=avh_avg(avh,s); if(v>rawMax) rawMax=v; }
     for (int ag=0;ag<avh->agentCount;ag++) {
-        float v=agents[ag].markets[marketId].basePersonalValue;
+        float v=agents[ag].econ.markets[marketId].basePersonalValue;
         if (v>rawMax) rawMax=v;
     }
     float yMax=(b->yMax>0.0f)?b->yMax:compute_ymax(rawMax);
@@ -314,7 +314,7 @@ static void draw_timeseries_panel(const AgentValueHistory *avh,
         }
     }
     for (int ag=0;ag<avh->agentCount;ag++) {
-        Color col=emv_color(agents[ag].markets[marketId].basePersonalValue,55);
+        Color col=emv_color(agents[ag].econ.markets[marketId].basePersonalValue,55);
         for (int s=1;s<avh->count;s++) {
             float v0=avh_get(avh,ag,s-1), v1=avh_get(avh,ag,s);
             draw_line_yclip(px+(int)((float)(s-1)*xScale),py+ph-(int)(v0/yMax*(float)ph),
@@ -538,7 +538,7 @@ void render_plot(const AgentValueHistory avh[MARKET_COUNT],
 
         float eq=0.0f;
         for (int i=0;i<agentCount;i++)
-            eq+=agents[i].markets[panels[pi].marketId].basePersonalValue;
+            eq+=agents[i].econ.markets[panels[pi].marketId].basePersonalValue;
         eq/=(float)agentCount;
 
         draw_plot_strip  (ppx, strip_y,          half, panels[pi].plotType);

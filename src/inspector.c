@@ -45,10 +45,10 @@ static void start_edit(Inspector *ins, EditField field, const Agent *a) {
     ins->editField = field;
     float val = 0.0f;
     switch (field) {
-        case EDIT_WOOD_S:    val = a->markets[MARKET_WOOD].basePersonalValue;  break;
-        case EDIT_WOOD_EMV:  val = a->markets[MARKET_WOOD].expectedMarketValue; break;
-        case EDIT_CHAIR_S:   val = a->markets[MARKET_CHAIR].basePersonalValue; break;
-        case EDIT_CHAIR_EMV: val = a->markets[MARKET_CHAIR].expectedMarketValue; break;
+        case EDIT_WOOD_S:    val = a->econ.markets[MARKET_WOOD].basePersonalValue;   break;
+        case EDIT_WOOD_EMV:  val = a->econ.markets[MARKET_WOOD].expectedMarketValue; break;
+        case EDIT_CHAIR_S:   val = a->econ.markets[MARKET_CHAIR].basePersonalValue;  break;
+        case EDIT_CHAIR_EMV: val = a->econ.markets[MARKET_CHAIR].expectedMarketValue; break;
         default: break;
     }
     snprintf(ins->inputBuf, sizeof(ins->inputBuf), "%.2f", val);
@@ -61,10 +61,10 @@ static void apply_edit(Inspector *ins, Agent *agents) {
     if (val < 0.1f) val = 0.1f;
     Agent *a = &agents[ins->selectedId];
     switch (ins->editField) {
-        case EDIT_WOOD_S:    a->markets[MARKET_WOOD].basePersonalValue   = val; break;
-        case EDIT_WOOD_EMV:  a->markets[MARKET_WOOD].expectedMarketValue = val; break;
-        case EDIT_CHAIR_S:   a->markets[MARKET_CHAIR].basePersonalValue  = val; break;
-        case EDIT_CHAIR_EMV: a->markets[MARKET_CHAIR].expectedMarketValue = val; break;
+        case EDIT_WOOD_S:    a->econ.markets[MARKET_WOOD].basePersonalValue   = val; break;
+        case EDIT_WOOD_EMV:  a->econ.markets[MARKET_WOOD].expectedMarketValue = val; break;
+        case EDIT_CHAIR_S:   a->econ.markets[MARKET_CHAIR].basePersonalValue  = val; break;
+        case EDIT_CHAIR_EMV: a->econ.markets[MARKET_CHAIR].expectedMarketValue = val; break;
         default: break;
     }
     ins->editField = EDIT_NONE;
@@ -125,7 +125,7 @@ bool inspector_update(Inspector *ins, Agent *agents, int agentCount) {
         float agentY = (float)GROUND_Y - spriteDisp / 2.0f;
         float hitR   = spriteDisp / 2.0f;
         for (int i = 0; i < agentCount; i++) {
-            float dx = m.x - agents[i].x;
+            float dx = m.x - agents[i].body.x;
             float dy = m.y - agentY;
             if (dx*dx + dy*dy <= hitR * hitR) {
                 if (ins->selectedId == i) {
@@ -190,7 +190,7 @@ void inspector_render(const Inspector *ins, const Agent *agents) {
     // Highlight ring around selected agent
     float spriteDisp = SPRITE_FRAME_SIZE * SPRITE_SCALE;
     float cy = (float)GROUND_Y - spriteDisp / 2.0f;
-    DrawCircleLines((int)a->x, (int)cy, (int)(spriteDisp / 2.0f) + 3, WHITE);
+    DrawCircleLines((int)a->body.x, (int)cy, (int)(spriteDisp / 2.0f) + 3, WHITE);
 
     // Panel shadow + background
     DrawRectangle(INS_X + 3, INS_Y + 3, INS_W, INS_H, (Color){0, 0, 0, 120});
@@ -200,19 +200,19 @@ void inspector_render(const Inspector *ins, const Agent *agents) {
     // Header
     DrawRectangle(INS_X, INS_Y, INS_W, HDR_H, (Color){28, 48, 78, 255});
     char title[32];
-    snprintf(title, sizeof(title), "Agent #%d", a->id);
+    snprintf(title, sizeof(title), "Agent #%d", a->body.id);
     DrawText(title, INS_X + 8, INS_Y + 7, 15, WHITE);
     DrawText("[X]", INS_X + INS_W - 30, INS_Y + 7, 14, (Color){200, 80, 80, 255});
 
     char buf[48];
 
     // ID + last action
-    snprintf(buf, sizeof(buf), "%d", a->id);
+    snprintf(buf, sizeof(buf), "%d", a->body.id);
     draw_row(ROW_Y_ID, "Agent ID", buf, false, false, LIGHTGRAY);
 
     const char *actName;
     Color actCol;
-    switch (a->lastAction) {
+    switch (a->econ.lastAction) {
         case ACTION_CHOP:    actName = "Chopping";  actCol = (Color){160, 100,  40, 255}; break;
         case ACTION_BUILD:   actName = "Building";  actCol = (Color){220, 140,  60, 255}; break;
         default:             actName = "Leisure";   actCol = (Color){150, 150, 150, 255}; break;
@@ -227,7 +227,7 @@ void inspector_render(const Inspector *ins, const Agent *agents) {
     // ---- Wood market section ----
     draw_market_section_header(ROW_Y_WOOD_HDR, "WOOD MARKET", (Color){160, 100, 40, 255});
 
-    const AgentMarket *mw = &a->markets[MARKET_WOOD];
+    const AgentMarket *mw = &a->econ.markets[MARKET_WOOD];
     snprintf(buf, sizeof(buf), "%d", mw->goods);
     draw_row(ROW_Y_WOOD_GOODS, "Goods", buf, false, false, (Color){200, 160, 80, 255});
 
@@ -254,7 +254,7 @@ void inspector_render(const Inspector *ins, const Agent *agents) {
     DrawRectangle(INS_X, ROW_Y_CHAIR_HDR - SEP_H, INS_W, SEP_H, (Color){40, 60, 80, 255});
     draw_market_section_header(ROW_Y_CHAIR_HDR, "CHAIR MARKET", (Color){200, 140, 60, 255});
 
-    const AgentMarket *mc = &a->markets[MARKET_CHAIR];
+    const AgentMarket *mc = &a->econ.markets[MARKET_CHAIR];
     snprintf(buf, sizeof(buf), "%d", mc->goods);
     draw_row(ROW_Y_CHAIR_GOODS, "Goods", buf, false, false, (Color){200, 160, 80, 255});
 
@@ -279,15 +279,15 @@ void inspector_render(const Inspector *ins, const Agent *agents) {
     // ---- Shared stats ----
     DrawRectangle(INS_X, ROW_Y_MONEY - SEP_H, INS_W, SEP_H, (Color){40, 60, 80, 255});
 
-    snprintf(buf, sizeof(buf), "%.2f", a->money);
+    snprintf(buf, sizeof(buf), "%.2f", a->econ.money);
     draw_row(ROW_Y_MONEY, "Money", buf, false, false, (Color){255, 215, 0, 255});
 
-    snprintf(buf, sizeof(buf), "%.2f", leisure_value(&a->leisure));
+    snprintf(buf, sizeof(buf), "%.2f", leisure_value(&a->econ.leisure));
     draw_row(ROW_Y_LEISURE, "Leisure Value", buf, false, false, (Color){150, 150, 150, 255});
 
-    if (a->targetType == TARGET_AGENT)
-        snprintf(buf, sizeof(buf), "Agent #%d", a->targetId);
+    if (a->body.targetType == TARGET_AGENT)
+        snprintf(buf, sizeof(buf), "Agent #%d", a->body.targetId);
     else
-        snprintf(buf, sizeof(buf), "Pos %.0fpx", a->targetX);
+        snprintf(buf, sizeof(buf), "Pos %.0fpx", a->body.targetX);
     draw_row(ROW_Y_TARGET, "Target", buf, false, false, LIGHTGRAY);
 }

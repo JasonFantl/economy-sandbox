@@ -23,16 +23,16 @@ static void simulation_step(Agent *agents, int count, float dt) {
 
     for (int i = 0; i < count; i++) {
         Agent *a = &agents[i];
-        if (a->targetType == TARGET_AGENT) {
-            Agent *b = &agents[a->targetId];
-            if (fabsf(a->x - b->x) < AGENT_RADIUS * 2.0f) {
+        if (a->body.targetType == TARGET_AGENT) {
+            Agent *b = &agents[a->body.targetId];
+            if (fabsf(a->body.x - b->body.x) < AGENT_RADIUS * 2.0f) {
                 // Gossip and trade for every market on each encounter
                 for (int mid = 0; mid < MARKET_COUNT; mid++) {
                     MarketId m = (MarketId)mid;
                     market_gossip(a, b, m);
-                    if (market_is_buyer(AGENT_MKT(a, m), a->money) && market_is_seller(AGENT_MKT(b, m), b->money))
+                    if (market_is_buyer(AGENT_MKT(a, m), a->econ.money) && market_is_seller(AGENT_MKT(b, m), b->econ.money))
                         market_trade(a, b, m);
-                    else if (market_is_buyer(AGENT_MKT(b, m), b->money) && market_is_seller(AGENT_MKT(a, m), a->money))
+                    else if (market_is_buyer(AGENT_MKT(b, m), b->econ.money) && market_is_seller(AGENT_MKT(a, m), a->econ.money))
                         market_trade(b, a, m);
                 }
 
@@ -40,7 +40,7 @@ static void simulation_step(Agent *agents, int count, float dt) {
                 agents_pick_new_target(b, count, WORLD_WIDTH);
             }
         } else {
-            if (fabsf(a->x - a->targetX) < AGENT_RADIUS * 2.0f) {
+            if (fabsf(a->body.x - a->body.targetX) < AGENT_RADIUS * 2.0f) {
                 agents_pick_new_target(a, count, WORLD_WIDTH);
             }
         }
