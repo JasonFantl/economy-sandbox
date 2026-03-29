@@ -40,9 +40,16 @@ int market_trade(Agent *buyer, Agent *seller) {
 
 void avh_record(AgentValueHistory *avh, const Agent *agents, int count) {
     avh->agentCount = count;
-    for (int i = 0; i < count; i++) {
+    for (int i = 0; i < count; i++)
         avh->data[i][avh->head] = agents[i].expectedMarketValue;
-    }
+    avh->head = (avh->head + 1) % PRICE_HISTORY_SIZE;
+    if (avh->count < PRICE_HISTORY_SIZE) avh->count++;
+}
+
+void avh_record_personal(AgentValueHistory *avh, const Agent *agents, int count) {
+    avh->agentCount = count;
+    for (int i = 0; i < count; i++)
+        avh->data[i][avh->head] = agent_potential_value(&agents[i]);
     avh->head = (avh->head + 1) % PRICE_HISTORY_SIZE;
     if (avh->count < PRICE_HISTORY_SIZE) avh->count++;
 }

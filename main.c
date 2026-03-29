@@ -11,8 +11,9 @@
 #define NUM_AGENTS            120
 #define PRICE_RECORD_INTERVAL 0.25f  // simulation-seconds between samples
 
-// 320KB history array — static so it lives in BSS, not the stack
-static AgentValueHistory avh = {0};
+// History arrays — static so they live in BSS, not the stack
+static AgentValueHistory avh = {0};  // expected market value
+static AgentValueHistory pvh = {0};  // potential (personal) value
 
 static float priceTimer = 0.0f;
 
@@ -44,6 +45,7 @@ static void simulation_step(Agent *agents, int count, float dt) {
     priceTimer += dt;
     if (priceTimer >= PRICE_RECORD_INTERVAL) {
         avh_record(&avh, agents, NUM_AGENTS);
+        avh_record_personal(&pvh, agents, NUM_AGENTS);
         priceTimer = 0.0f;
     }
 }
@@ -55,7 +57,7 @@ static void render_frame(const Agent *agents, int count, bool paused,
     BeginDrawing();
     ClearBackground(BLACK);
     render_world(agents, count, paused, simSteps, assets);
-    render_plot(&avh, agents, count, leftPlot, rightPlot);
+    render_plot(&avh, &pvh, agents, count, leftPlot, rightPlot);
     influence_panel_render(inf);
     inspector_render(ins, agents);
     DrawFPS(4, 4);

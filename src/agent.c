@@ -19,7 +19,7 @@ void agents_init(Agent *agents, int count, float worldWidth) {
     for (int i = 0; i < count; i++) {
         agents[i].id                    = i;
         agents[i].x                     = (float)GetRandomValue(20, (int)worldWidth - 20);
-        agents[i].money                 = (float)GetRandomValue(50, 150);
+        agents[i].money                 = (float)GetRandomValue(300, 700);
         agents[i].goods                 = GetRandomValue(0, 10);
         agents[i].basePersonalValue     = (float)GetRandomValue(20, 80);
         agents[i].halfValueAt           = 15.0f;

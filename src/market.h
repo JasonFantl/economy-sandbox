@@ -22,7 +22,10 @@ void market_gossip(Agent *a, Agent *b, float belief_factor);
 // Resets idle timers on success. Returns 1 if transaction occurred.
 int market_trade(Agent *buyer, Agent *seller);
 
+// Record expectedMarketValue for each agent
 void  avh_record(AgentValueHistory *avh, const Agent *agents, int count);
+// Record agent_potential_value() for each agent
+void  avh_record_personal(AgentValueHistory *avh, const Agent *agents, int count);
 float avh_get(const AgentValueHistory *avh, int agentIdx, int sampleIdx);
 float avh_avg(const AgentValueHistory *avh, int sampleIdx);
 

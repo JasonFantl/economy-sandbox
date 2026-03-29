@@ -19,14 +19,17 @@
 #define PANEL_GAP      30
 
 typedef enum {
-    PLOT_WEALTH      = 0,  // money vs goods scatter
-    PLOT_EMV_HISTORY = 1,  // expected market values over time
-    PLOT_COUNT       = 2
+    PLOT_WEALTH        = 0,  // money vs goods scatter
+    PLOT_AGENT_VALUES  = 1,  // agents sorted by base value, dots for PV and EMV
+    PLOT_EMV_HISTORY   = 2,  // EMV and personal value over time
+    PLOT_COUNT         = 3
 } PlotType;
 
 void render_world(const Agent *agents, int count, bool paused, int simSteps,
                   const Assets *assets);
-void render_plot(const AgentValueHistory *avh, const Agent *agents, int agentCount,
+// avh = expected market value history; pvh = potential value history
+void render_plot(const AgentValueHistory *avh, const AgentValueHistory *pvh,
+                 const Agent *agents, int agentCount,
                  PlotType leftPlot, PlotType rightPlot);
 
 // Check for clicks on the panel header strips; cycle the plot type if hit.

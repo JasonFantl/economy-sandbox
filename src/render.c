@@ -12,8 +12,8 @@
 // ---- Village decorations ---------------------------------------------------
 
 typedef struct {
-    int   houseIdx;   // index into assets->houses[]
-    float x;          // screen x centre
+    int   houseIdx;
+    float x;
     float scale;
 } HouseDecor;
 
@@ -40,7 +40,6 @@ static void draw_house(const HouseDecor *h, const Assets *assets) {
 }
 
 static void draw_agent(const Agent *a, const Assets *assets) {
-    // Source rect — negative width flips horizontally (east-facing)
     float fw = a->facingRight
                ? (float)SPRITE_FRAME_SIZE
                : -(float)SPRITE_FRAME_SIZE;
@@ -48,30 +47,20 @@ static void draw_agent(const Agent *a, const Assets *assets) {
                ? (float)(a->animFrame * SPRITE_FRAME_SIZE)
                : (float)((a->animFrame + 1) * SPRITE_FRAME_SIZE);
 
-    Rectangle src = {
-        fx,
-        (float)(SPRITE_WALK_ROW * SPRITE_FRAME_SIZE),
-        fw,
-        (float)SPRITE_FRAME_SIZE
-    };
-
-    Rectangle dst = {
-        a->x - SPRITE_DISP / 2.0f,
-        (float)GROUND_Y - SPRITE_DISP,
-        SPRITE_DISP,
-        SPRITE_DISP
-    };
+    Rectangle src = {fx, (float)(SPRITE_WALK_ROW * SPRITE_FRAME_SIZE),
+                     fw, (float)SPRITE_FRAME_SIZE};
+    Rectangle dst = {a->x - SPRITE_DISP / 2.0f, (float)GROUND_Y - SPRITE_DISP,
+                     SPRITE_DISP, SPRITE_DISP};
 
     Color tint = (a->tradeFlash > 0.0f) ? YELLOW : WHITE;
     DrawTexturePro(assets->sprites[a->spriteType], src, dst,
                    (Vector2){0, 0}, 0.0f, tint);
 
-    // Status dot at agent feet
     Color dot;
-    if (a->tradeFlash > 0.0f)        dot = YELLOW;
-    else if (agent_is_buyer(a))       dot = (Color){60,  210,  90, 200};
-    else if (agent_is_seller(a))      dot = (Color){220,  70,  70, 200};
-    else                              dot = (Color){150, 150, 150, 180};
+    if (a->tradeFlash > 0.0f)   dot = YELLOW;
+    else if (agent_is_buyer(a))  dot = (Color){ 60, 210,  90, 200};
+    else if (agent_is_seller(a)) dot = (Color){220,  70,  70, 200};
+    else                         dot = (Color){150, 150, 150, 180};
     DrawCircle((int)a->x, GROUND_Y + 3, 3, dot);
 }
 
@@ -120,7 +109,7 @@ void render_world(const Agent *agents, int count, bool paused, int simSteps,
 // ---------------------------------------------------------------------------
 
 // Map basePersonalValue [20,80] to a blue→red color
-static Color agent_color(float basePersonalValue, unsigned char alpha) {
+static Color emv_color(float basePersonalValue, unsigned char alpha) {
     float t = (basePersonalValue - 20.0f) / 60.0f;
     if (t < 0.0f) t = 0.0f;
     if (t > 1.0f) t = 1.0f;
@@ -152,27 +141,23 @@ static void draw_axes_y(int px, int py, int pw, int ph,
 }
 
 // ---------------------------------------------------------------------------
-// Left panel: money vs goods scatter (resource distribution)
+// PLOT_WEALTH: money vs goods scatter
 // ---------------------------------------------------------------------------
 
 static void draw_wealth_panel(const Agent *agents, int count,
                                int px, int py, int pw, int ph) {
-    // Compute dynamic axis ranges
     float maxMoney = 1.0f;
     int   maxGoods = 1;
     for (int i = 0; i < count; i++) {
         if (agents[i].money > maxMoney) maxMoney = agents[i].money;
         if (agents[i].goods > maxGoods) maxGoods = agents[i].goods;
     }
-    // Round up to nearest 50 / 5
     maxMoney = (float)(((int)(maxMoney / 50) + 1) * 50);
     if (maxGoods % 5 != 0) maxGoods = (maxGoods / 5 + 1) * 5;
 
-    // Axes
-    DrawLine(px, py,       px,       py + ph, LIGHTGRAY);
-    DrawLine(px, py + ph,  px + pw,  py + ph, LIGHTGRAY);
+    DrawLine(px, py,      px,      py + ph, LIGHTGRAY);
+    DrawLine(px, py + ph, px + pw, py + ph, LIGHTGRAY);
 
-    // Y-axis (money) gridlines
     for (int step = 0; step <= 4; step++) {
         float v = maxMoney * (float)step / 4.0f;
         int y = py + ph - (int)((float)step / 4.0f * (float)ph);
@@ -181,8 +166,6 @@ static void draw_wealth_panel(const Agent *agents, int count,
         DrawText(buf, px - 28, y - 7, 11, LIGHTGRAY);
         DrawLine(px, y, px + pw, y, (Color){50,50,60,255});
     }
-
-    // X-axis (goods) gridlines
     for (int step = 0; step <= 4; step++) {
         int gv = maxGoods * step / 4;
         int x = px + (int)((float)step / 4.0f * (float)pw);
@@ -191,12 +174,9 @@ static void draw_wealth_panel(const Agent *agents, int count,
         DrawText(buf, x - 5, py + ph + 6, 11, LIGHTGRAY);
         DrawLine(x, py, x, py + ph, (Color){50,50,60,255});
     }
-
-    // Axis labels
-    DrawText("$", px - 12, py - 2, 13, LIGHTGRAY);
+    DrawText("$",       px - 12, py - 2,     13, LIGHTGRAY);
     DrawText("goods →", px + pw - 52, py + ph + 6, 11, LIGHTGRAY);
 
-    // Agent dots
     for (int i = 0; i < count; i++) {
         float gx = (float)agents[i].goods / (float)maxGoods;
         float gy = agents[i].money        / maxMoney;
@@ -204,7 +184,6 @@ static void draw_wealth_panel(const Agent *agents, int count,
         if (gy > 1.0f) gy = 1.0f;
         int sx = px + (int)(gx * (float)pw);
         int sy = py + ph - (int)(gy * (float)ph);
-
         Color col;
         if (agents[i].tradeFlash > 0.0f)     col = YELLOW;
         else if (agent_is_buyer(&agents[i]))  col = (Color){ 60, 210,  90, 200};
@@ -215,10 +194,58 @@ static void draw_wealth_panel(const Agent *agents, int count,
 }
 
 // ---------------------------------------------------------------------------
-// Right panel: per-agent expected value over time
+// PLOT_AGENT_VALUES: agents sorted by base personal value
+// ---------------------------------------------------------------------------
+
+static const Agent *s_sort_agents = NULL;
+static int cmp_by_base_value(const void *a, const void *b) {
+    float fa = s_sort_agents[*(const int *)a].basePersonalValue;
+    float fb = s_sort_agents[*(const int *)b].basePersonalValue;
+    return (fa > fb) - (fa < fb);
+}
+
+static void draw_agent_panel(const Agent *agents, int count,
+                              int px, int py, int pw, int ph,
+                              float equilibrium) {
+    draw_axes_y(px, py, pw, ph, 100.0f, equilibrium);
+
+    int indices[MAX_AGENTS];
+    for (int i = 0; i < count; i++) indices[i] = i;
+    s_sort_agents = agents;
+    qsort(indices, (size_t)count, sizeof(int), cmp_by_base_value);
+
+    float xStep = (float)pw / (float)(count - 1);
+    for (int rank = 0; rank < count; rank++) {
+        const Agent *a = &agents[indices[rank]];
+        int x      = px + (int)((float)rank * xStep);
+        float pv   = a->basePersonalValue;
+        float emv  = a->expectedMarketValue;
+        int y_pv   = py + ph - (int)(pv  / 100.0f * (float)ph);
+        int y_emv  = py + ph - (int)(emv / 100.0f * (float)ph);
+
+        DrawLine(x, y_pv, x, y_emv, (Color){100,100,100,160});
+        DrawCircle(x, y_pv, 3, (Color){80, 140, 255, 220});  // blue = base personal value
+
+        Color emvCol = (a->tradeFlash > 0.0f)
+                       ? YELLOW
+                       : (agent_is_buyer(a) ? (Color){60,210,90,220}
+                                            : (Color){220,70,70,220});
+        DrawCircle(x, y_emv, 3, emvCol);
+    }
+
+    int lx = px + pw - 140, ly = py + 5;
+    DrawCircle(lx, ly + 4,  3, (Color){80,140,255,220});
+    DrawText("Base value",   lx + 7, ly - 1,  11, (Color){80,140,255,220});
+    DrawCircle(lx, ly + 18, 3, (Color){60,210,90,220});
+    DrawText("Exp. mkt val", lx + 7, ly + 13, 11, (Color){60,210,90,220});
+}
+
+// ---------------------------------------------------------------------------
+// PLOT_EMV_HISTORY: EMV and potential value over time
 // ---------------------------------------------------------------------------
 
 static void draw_timeseries_panel(const AgentValueHistory *avh,
+                                   const AgentValueHistory *pvh,
                                    const Agent *agents,
                                    int px, int py, int pw, int ph,
                                    float equilibrium) {
@@ -226,24 +253,48 @@ static void draw_timeseries_panel(const AgentValueHistory *avh,
 
     if (avh->count < 2) return;
 
-    // One thin line per agent, colored by basePersonalValue
+    float xScale = (float)pw / (float)(PRICE_HISTORY_SIZE - 1);
+
+    // Personal value lines (green, drawn first so EMV lines sit on top)
+    if (pvh->count >= 2) {
+        for (int ag = 0; ag < pvh->agentCount; ag++) {
+            Color col = {50, 180, 100, 30};
+            for (int s = 1; s < pvh->count; s++) {
+                float v0 = avh_get(pvh, ag, s - 1);
+                float v1 = avh_get(pvh, ag, s);
+                int x0 = px + (int)((float)(s-1) * xScale);
+                int x1 = px + (int)((float)s     * xScale);
+                int y0 = py + ph - (int)(v0 / 100.0f * (float)ph);
+                int y1 = py + ph - (int)(v1 / 100.0f * (float)ph);
+                DrawLine(x0, y0, x1, y1, col);
+            }
+        }
+        // Personal value average (bright green)
+        for (int s = 1; s < pvh->count; s++) {
+            float v0 = avh_avg(pvh, s - 1);
+            float v1 = avh_avg(pvh, s);
+            int x0 = px + (int)((float)(s-1) * xScale);
+            int x1 = px + (int)((float)s     * xScale);
+            int y0 = py + ph - (int)(v0 / 100.0f * (float)ph);
+            int y1 = py + ph - (int)(v1 / 100.0f * (float)ph);
+            DrawLine(x0, y0, x1, y1, (Color){80, 230, 130, 230});
+        }
+    }
+
+    // EMV lines (blue→red by base personal value)
     for (int ag = 0; ag < avh->agentCount; ag++) {
-        Color col = agent_color(agents[ag].basePersonalValue, 55);
-        float xScale = (float)pw / (float)(PRICE_HISTORY_SIZE - 1);
+        Color col = emv_color(agents[ag].basePersonalValue, 55);
         for (int s = 1; s < avh->count; s++) {
             float v0 = avh_get(avh, ag, s - 1);
             float v1 = avh_get(avh, ag, s);
-            float t0 = (float)(s - 1) * xScale;
-            float t1 = (float)s       * xScale;
-            int x0 = px + (int)t0, x1 = px + (int)t1;
+            int x0 = px + (int)((float)(s-1) * xScale);
+            int x1 = px + (int)((float)s     * xScale);
             int y0 = py + ph - (int)(v0 / 100.0f * (float)ph);
             int y1 = py + ph - (int)(v1 / 100.0f * (float)ph);
             DrawLine(x0, y0, x1, y1, col);
         }
     }
-
-    // Average line on top (bright white)
-    float xScale = (float)pw / (float)(PRICE_HISTORY_SIZE - 1);
+    // EMV average (white)
     for (int s = 1; s < avh->count; s++) {
         float v0 = avh_avg(avh, s - 1);
         float v1 = avh_avg(avh, s);
@@ -254,12 +305,16 @@ static void draw_timeseries_panel(const AgentValueHistory *avh,
         DrawLine(x0, y0, x1, y1, WHITE);
     }
 
-    // Legend
-    int lx = px + pw - 95, ly = py + 5;
-    DrawLine(lx, ly + 4, lx + 18, ly + 4, agent_color(50.0f, 180));
-    DrawText("Agent",   lx + 22, ly - 1,  11, (Color){200,200,200,255});
-    DrawLine(lx, ly + 18, lx + 18, ly + 18, WHITE);
-    DrawText("Average", lx + 22, ly + 13, 11, WHITE);
+    // Legend (2 columns)
+    int lx = px + pw - 200, ly = py + 5;
+    DrawLine(lx,       ly + 4,  lx + 14,  ly + 4,  emv_color(50.0f, 200));
+    DrawText("EMV/agent",    lx + 18, ly - 1,  11, (Color){200,200,200,255});
+    DrawLine(lx + 100, ly + 4,  lx + 114, ly + 4,  (Color){50,180,100,200});
+    DrawText("PV/agent",     lx + 118, ly - 1,  11, (Color){80,210,130,255});
+    DrawLine(lx,       ly + 17, lx + 14,  ly + 17, WHITE);
+    DrawText("EMV avg",      lx + 18, ly + 12, 11, WHITE);
+    DrawLine(lx + 100, ly + 17, lx + 114, ly + 17, (Color){80,230,130,230});
+    DrawText("PV avg",       lx + 118, ly + 12, 11, (Color){80,230,130,255});
 }
 
 // ---------------------------------------------------------------------------
@@ -268,13 +323,13 @@ static void draw_timeseries_panel(const AgentValueHistory *avh,
 
 static const char *plot_title(PlotType t) {
     switch (t) {
-        case PLOT_WEALTH:      return "Money vs Goods";
-        case PLOT_EMV_HISTORY: return "Market Value History";
-        default:               return "";
+        case PLOT_WEALTH:       return "Money vs Goods";
+        case PLOT_AGENT_VALUES: return "Agent Values";
+        case PLOT_EMV_HISTORY:  return "Value History";
+        default:                return "";
     }
 }
 
-// Draw the clickable header strip for one panel.
 static void draw_panel_strip(int px, int py_strip, int pw, PlotType t) {
     Vector2 mouse = GetMousePosition();
     bool hover = mouse.x >= px && mouse.x <= px + pw &&
@@ -292,22 +347,27 @@ static void draw_panel_strip(int px, int py_strip, int pw, PlotType t) {
              hover ? WHITE : (Color){180,190,210,255});
 }
 
-static void draw_panel(PlotType t, const AgentValueHistory *avh,
+static void draw_panel(PlotType t,
+                       const AgentValueHistory *avh, const AgentValueHistory *pvh,
                        const Agent *agents, int agentCount,
                        int px, int py, int pw, int ph, float equilibrium) {
     switch (t) {
         case PLOT_WEALTH:
             draw_wealth_panel(agents, agentCount, px, py, pw, ph);
             break;
+        case PLOT_AGENT_VALUES:
+            draw_agent_panel(agents, agentCount, px, py, pw, ph, equilibrium);
+            break;
         case PLOT_EMV_HISTORY:
-            draw_timeseries_panel(avh, agents, px, py, pw, ph, equilibrium);
+            draw_timeseries_panel(avh, pvh, agents, px, py, pw, ph, equilibrium);
             break;
         default: break;
     }
 }
 
-void render_plot(const AgentValueHistory *avh, const Agent *agents,
-                 int agentCount, PlotType leftPlot, PlotType rightPlot) {
+void render_plot(const AgentValueHistory *avh, const AgentValueHistory *pvh,
+                 const Agent *agents, int agentCount,
+                 PlotType leftPlot, PlotType rightPlot) {
     DrawRectangle(0, WORLD_AREA_H + 2, SCREEN_W, SCREEN_H - WORLD_AREA_H - 2,
                   (Color){20,20,30,255});
 
@@ -329,8 +389,8 @@ void render_plot(const AgentValueHistory *avh, const Agent *agents,
              px_right - PANEL_GAP/2, SCREEN_H - 4,
              (Color){60,60,70,255});
 
-    draw_panel(leftPlot,  avh, agents, agentCount, px_left,  py, half, pheight, equilibrium);
-    draw_panel(rightPlot, avh, agents, agentCount, px_right, py, half, pheight, equilibrium);
+    draw_panel(leftPlot,  avh, pvh, agents, agentCount, px_left,  py, half, pheight, equilibrium);
+    draw_panel(rightPlot, avh, pvh, agents, agentCount, px_right, py, half, pheight, equilibrium);
 }
 
 bool plot_cycle_click(PlotType *left, PlotType *right) {
