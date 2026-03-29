@@ -9,11 +9,12 @@
 #include <stdbool.h>
 
 #define NUM_AGENTS            120
-#define PRICE_RECORD_INTERVAL 0.25f  // simulation-seconds between samples
+#define PRICE_RECORD_INTERVAL 0.25f
 
-// History arrays — static so they live in BSS, not the stack
-static AgentValueHistory avh = {0};  // expected market value
-static AgentValueHistory pvh = {0};  // potential (personal) value
+// History arrays indexed by market — static so they live in BSS, not the stack
+static AgentValueHistory avh[MARKET_COUNT];
+static AgentValueHistory pvh[MARKET_COUNT];
+static AgentValueHistory gvh[MARKET_COUNT];
 
 static float priceTimer = 0.0f;
 
@@ -25,12 +26,15 @@ static void simulation_step(Agent *agents, int count, float dt) {
         if (a->targetType == TARGET_AGENT) {
             Agent *b = &agents[a->targetId];
             if (fabsf(a->x - b->x) < AGENT_RADIUS * 2.0f) {
-                // Gossip on every encounter
-                market_gossip(a, b, 0.5);
-
-                // Trade only if one is a buyer and the other is a seller
-                if (agent_is_buyer(a) && agent_is_seller(b))       market_trade(a, b);
-                else if (agent_is_buyer(b) && agent_is_seller(a))  market_trade(b, a);
+                // Gossip and trade for every market on each encounter
+                for (int mid = 0; mid < MARKET_COUNT; mid++) {
+                    MarketId m = (MarketId)mid;
+                    market_gossip(a, b, m);
+                    if (market_is_buyer(AGENT_MKT(a, m), a->money) && market_is_seller(AGENT_MKT(b, m), b->money))
+                        market_trade(a, b, m);
+                    else if (market_is_buyer(AGENT_MKT(b, m), b->money) && market_is_seller(AGENT_MKT(a, m), a->money))
+                        market_trade(b, a, m);
+                }
 
                 agents_pick_new_target(a, count, WORLD_WIDTH);
                 agents_pick_new_target(b, count, WORLD_WIDTH);
@@ -44,21 +48,27 @@ static void simulation_step(Agent *agents, int count, float dt) {
 
     priceTimer += dt;
     if (priceTimer >= PRICE_RECORD_INTERVAL) {
-        avh_record(&avh, agents, NUM_AGENTS);
-        avh_record_personal(&pvh, agents, NUM_AGENTS);
+        for (int mid = 0; mid < MARKET_COUNT; mid++) {
+            MarketId m = (MarketId)mid;
+            avh_record(&avh[mid], agents, NUM_AGENTS, m);
+            avh_record_personal(&pvh[mid], agents, NUM_AGENTS, m);
+            avh_record_goods(&gvh[mid], agents, NUM_AGENTS, m);
+        }
         priceTimer = 0.0f;
     }
 }
 
 static void render_frame(const Agent *agents, int count, bool paused,
                           int simSteps, const Inspector *ins,
-                          const InfluencePanel *inf, const Assets *assets,
-                          PlotType leftPlot, PlotType rightPlot) {
+                          const InfluencePanel *inf, const BreakRatePanel *br,
+                          const Assets *assets,
+                          PanelState panels[NUM_PANELS]) {
     BeginDrawing();
     ClearBackground(BLACK);
     render_world(agents, count, paused, simSteps, assets);
-    render_plot(&avh, &pvh, agents, count, leftPlot, rightPlot);
+    render_plot(avh, pvh, gvh, agents, count, panels);
     influence_panel_render(inf);
+    break_rate_panel_render(br);
     inspector_render(ins, agents);
     DrawFPS(4, 4);
     EndDrawing();
@@ -73,19 +83,25 @@ int main(void) {
     Agent agents[NUM_AGENTS];
     agents_init(agents, NUM_AGENTS, WORLD_WIDTH);
 
-    bool          paused    = false;
-    int           simSteps  = 1;
-    PlotType      leftPlot  = PLOT_WEALTH;
-    PlotType      rightPlot = PLOT_EMV_HISTORY;
-    Inspector     inspector;
+    bool       paused   = false;
+    int        simSteps = 1;
+    PanelState panels[NUM_PANELS] = {
+        { PLOT_WEALTH,       MARKET_WOOD  },   // top-left
+        { PLOT_EMV_HISTORY,  MARKET_WOOD  },   // top-right
+        { PLOT_AGENT_VALUES, MARKET_WOOD  },   // bottom-left
+        { PLOT_EMV_HISTORY,  MARKET_CHAIR },   // bottom-right
+    };
+    Inspector      inspector;
     InfluencePanel influence;
-    Assets        assets;
+    BreakRatePanel breakRates;
+    Assets         assets;
     inspector_init(&inspector);
     influence_panel_init(&influence);
+    break_rate_panel_init(&breakRates);
     assets_load(&assets);
 
     while (!WindowShouldClose()) {
-        // Input: simulation controls
+        // Simulation speed controls
         if (IsKeyPressed(KEY_SPACE)) paused = !paused;
         if (IsKeyPressed(KEY_F)) {
             if (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT)) {
@@ -95,9 +111,11 @@ int main(void) {
             }
         }
 
-        // Input: UI panels (plot strips → influence panel → inspector, in z-order)
-        bool consumed = plot_cycle_click(&leftPlot, &rightPlot);
+        // UI input (plot strips → influence panel → inspector, in z-order)
+        panel_handle_bounds_keyboard();
+        bool consumed = panel_handle_click(panels);
         if (!consumed) consumed = influence_panel_update(&influence, agents, NUM_AGENTS);
+        if (!consumed) consumed = break_rate_panel_update(&breakRates);
         if (!consumed) inspector_update(&inspector, agents, NUM_AGENTS);
 
         // Update
@@ -108,9 +126,8 @@ int main(void) {
             }
         }
 
-        // Render
-        render_frame(agents, NUM_AGENTS, paused, simSteps, &inspector, &influence, &assets,
-                     leftPlot, rightPlot);
+        render_frame(agents, NUM_AGENTS, paused, simSteps, &inspector, &influence, &breakRates, &assets,
+                     panels);
     }
 
     assets_unload(&assets);

@@ -1,35 +1,41 @@
 #include "inspector.h"
-#include "render.h"   // GROUND_Y, WORLD_AREA_H, SPRITE_SCALE
-#include "assets.h"   // SPRITE_FRAME_SIZE
+#include "render.h"
+#include "assets.h"
 #include "raylib.h"
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
-// Panel geometry (fixed position, top-right of world area)
+// Panel geometry
 #define INS_X    840
-#define INS_Y     40
+#define INS_Y     30
 #define INS_W    330
 #define HDR_H     28
-#define ROW_H     26
+#define ROW_H     22
+#define MKT_HDR_H 14
 #define SEP_H      4
 #define PAD        6
-// Rows: ID, Status, [sep], Base Val, Exp Mkt Val, [sep], Money, Goods, Buy Price, [sep], Idle Timer, Target
-#define INS_H    (HDR_H + 2*PAD + 12*ROW_H + 3*SEP_H)
 
-#define ROW_Y_ID       (INS_Y + HDR_H + PAD)
-#define ROW_Y_STATUS   (ROW_Y_ID       + ROW_H)
-#define ROW_Y_BASEVAL  (ROW_Y_STATUS   + ROW_H + SEP_H)
-#define ROW_Y_EMV      (ROW_Y_BASEVAL  + ROW_H)
-#define ROW_Y_MONEY    (ROW_Y_EMV      + ROW_H + SEP_H)
-#define ROW_Y_GOODS    (ROW_Y_MONEY    + ROW_H)
-#define ROW_Y_BUYPRICE (ROW_Y_GOODS    + ROW_H)
-#define ROW_Y_SELLPRICE (ROW_Y_BUYPRICE + ROW_H)
-#define ROW_Y_TIMER    (ROW_Y_SELLPRICE + ROW_H + SEP_H)
-#define ROW_Y_TARGET   (ROW_Y_TIMER    + ROW_H)
+// Row Y positions
+#define ROW_Y_FIRST      (INS_Y + HDR_H + PAD)
+#define ROW_Y_ID         ROW_Y_FIRST
+#define ROW_Y_ACTION     (ROW_Y_ID      + ROW_H)
+#define ROW_Y_WOOD_HDR   (ROW_Y_ACTION  + ROW_H + SEP_H)
+#define ROW_Y_WOOD_GOODS (ROW_Y_WOOD_HDR   + MKT_HDR_H)
+#define ROW_Y_WOOD_S     (ROW_Y_WOOD_GOODS + ROW_H)
+#define ROW_Y_WOOD_EMV   (ROW_Y_WOOD_S     + ROW_H)
+#define ROW_Y_WOOD_PRICES (ROW_Y_WOOD_EMV  + ROW_H)
+#define ROW_Y_CHAIR_HDR  (ROW_Y_WOOD_PRICES + ROW_H + SEP_H)
+#define ROW_Y_CHAIR_GOODS (ROW_Y_CHAIR_HDR  + MKT_HDR_H)
+#define ROW_Y_CHAIR_S    (ROW_Y_CHAIR_GOODS + ROW_H)
+#define ROW_Y_CHAIR_EMV  (ROW_Y_CHAIR_S     + ROW_H)
+#define ROW_Y_CHAIR_PRICES (ROW_Y_CHAIR_EMV + ROW_H)
+#define ROW_Y_MONEY      (ROW_Y_CHAIR_PRICES + ROW_H + SEP_H)
+#define ROW_Y_LEISURE    (ROW_Y_MONEY   + ROW_H)
+#define ROW_Y_TARGET     (ROW_Y_LEISURE + ROW_H)
 
-// ---- helpers ---------------------------------------------------------------
+#define INS_H (HDR_H + 2*PAD + 2*ROW_H + SEP_H + MKT_HDR_H + 4*ROW_H + SEP_H + MKT_HDR_H + 4*ROW_H + SEP_H + 3*ROW_H)
 
 static bool in_rect(float mx, float my, int rx, int ry, int rw, int rh) {
     return mx >= rx && mx <= rx + rw && my >= ry && my <= ry + rh;
@@ -37,8 +43,14 @@ static bool in_rect(float mx, float my, int rx, int ry, int rw, int rh) {
 
 static void start_edit(Inspector *ins, EditField field, const Agent *a) {
     ins->editField = field;
-    float val = (field == EDIT_BASE_VALUE) ? a->basePersonalValue
-                                           : a->expectedMarketValue;
+    float val = 0.0f;
+    switch (field) {
+        case EDIT_WOOD_S:    val = a->markets[MARKET_WOOD].basePersonalValue;  break;
+        case EDIT_WOOD_EMV:  val = a->markets[MARKET_WOOD].expectedMarketValue; break;
+        case EDIT_CHAIR_S:   val = a->markets[MARKET_CHAIR].basePersonalValue; break;
+        case EDIT_CHAIR_EMV: val = a->markets[MARKET_CHAIR].expectedMarketValue; break;
+        default: break;
+    }
     snprintf(ins->inputBuf, sizeof(ins->inputBuf), "%.2f", val);
     ins->inputLen = (int)strlen(ins->inputBuf);
 }
@@ -47,14 +59,16 @@ static void apply_edit(Inspector *ins, Agent *agents) {
     if (ins->editField == EDIT_NONE || ins->selectedId < 0) return;
     float val = (float)atof(ins->inputBuf);
     if (val < 0.1f) val = 0.1f;
-    if (ins->editField == EDIT_BASE_VALUE)
-        agents[ins->selectedId].basePersonalValue = val;
-    else
-        agents[ins->selectedId].expectedMarketValue = val;
+    Agent *a = &agents[ins->selectedId];
+    switch (ins->editField) {
+        case EDIT_WOOD_S:    a->markets[MARKET_WOOD].basePersonalValue   = val; break;
+        case EDIT_WOOD_EMV:  a->markets[MARKET_WOOD].expectedMarketValue = val; break;
+        case EDIT_CHAIR_S:   a->markets[MARKET_CHAIR].basePersonalValue  = val; break;
+        case EDIT_CHAIR_EMV: a->markets[MARKET_CHAIR].expectedMarketValue = val; break;
+        default: break;
+    }
     ins->editField = EDIT_NONE;
 }
-
-// ---- public API ------------------------------------------------------------
 
 void inspector_init(Inspector *ins) {
     ins->selectedId  = -1;
@@ -64,7 +78,6 @@ void inspector_init(Inspector *ins) {
 }
 
 bool inspector_update(Inspector *ins, Agent *agents, int agentCount) {
-    // Keyboard input while editing
     if (ins->editField != EDIT_NONE) {
         int ch;
         while ((ch = GetCharPressed()) != 0) {
@@ -85,7 +98,6 @@ bool inspector_update(Inspector *ins, Agent *agents, int agentCount) {
     if (!IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) return false;
     Vector2 m = GetMousePosition();
 
-    // Panel interactions
     if (ins->selectedId >= 0 && in_rect(m.x, m.y, INS_X, INS_Y, INS_W, INS_H)) {
         // Close button
         if (in_rect(m.x, m.y, INS_X + INS_W - 24, INS_Y + 4, 20, 22)) {
@@ -94,10 +106,14 @@ bool inspector_update(Inspector *ins, Agent *agents, int agentCount) {
             return true;
         }
         // Editable rows
-        if (in_rect(m.x, m.y, INS_X, ROW_Y_BASEVAL, INS_W, ROW_H))
-            start_edit(ins, EDIT_BASE_VALUE, &agents[ins->selectedId]);
-        else if (in_rect(m.x, m.y, INS_X, ROW_Y_EMV, INS_W, ROW_H))
-            start_edit(ins, EDIT_EXPECTED_VALUE, &agents[ins->selectedId]);
+        if      (in_rect(m.x, m.y, INS_X, ROW_Y_WOOD_S,    INS_W, ROW_H))
+            start_edit(ins, EDIT_WOOD_S,    &agents[ins->selectedId]);
+        else if (in_rect(m.x, m.y, INS_X, ROW_Y_WOOD_EMV,  INS_W, ROW_H))
+            start_edit(ins, EDIT_WOOD_EMV,  &agents[ins->selectedId]);
+        else if (in_rect(m.x, m.y, INS_X, ROW_Y_CHAIR_S,   INS_W, ROW_H))
+            start_edit(ins, EDIT_CHAIR_S,   &agents[ins->selectedId]);
+        else if (in_rect(m.x, m.y, INS_X, ROW_Y_CHAIR_EMV, INS_W, ROW_H))
+            start_edit(ins, EDIT_CHAIR_EMV, &agents[ins->selectedId]);
         else
             ins->editField = EDIT_NONE;
         return true;
@@ -129,7 +145,7 @@ bool inspector_update(Inspector *ins, Agent *agents, int agentCount) {
     return false;
 }
 
-// ---- rendering -------------------------------------------------------------
+// ---- rendering helpers -----------------------------------------------------
 
 static void draw_row(int y, const char *label, const char *value,
                      bool editable, bool editing, Color valueColor) {
@@ -139,17 +155,32 @@ static void draw_row(int y, const char *label, const char *value,
     DrawRectangle(INS_X, y, INS_W, ROW_H - 1, bg);
     if (editable && !editing)
         DrawRectangleLines(INS_X, y, INS_W, ROW_H - 1, (Color){70, 95, 115, 255});
-
-    DrawText(label, INS_X + 8, y + 6, 13, (Color){170, 175, 185, 255});
-
+    DrawText(label, INS_X + 8, y + 5, 12, (Color){170, 175, 185, 255});
     if (editing) {
         bool cursor = (int)(GetTime() * 2) % 2 == 0;
         char display[36];
         snprintf(display, sizeof(display), "%s%s", value, cursor ? "|" : " ");
-        DrawText(display, INS_X + INS_W - MeasureText(display, 13) - 8, y + 6, 13, WHITE);
+        DrawText(display, INS_X + INS_W - MeasureText(display, 12) - 8, y + 5, 12, WHITE);
     } else {
-        DrawText(value, INS_X + INS_W - MeasureText(value, 13) - 8, y + 6, 13, valueColor);
+        DrawText(value, INS_X + INS_W - MeasureText(value, 12) - 8, y + 5, 12, valueColor);
     }
+}
+
+// Draw a split row: left label+value and right label+value in the same row
+static void draw_split_row(int y, const char *labelL, const char *valL, Color colL,
+                                   const char *labelR, const char *valR, Color colR) {
+    DrawRectangle(INS_X, y, INS_W, ROW_H - 1, (Color){22, 30, 40, 255});
+    int mid = INS_X + INS_W / 2;
+    DrawText(labelL, INS_X + 8,  y + 5, 12, (Color){170, 175, 185, 255});
+    DrawText(valL,   mid - MeasureText(valL, 12) - 6, y + 5, 12, colL);
+    DrawText(labelR, mid + 6,    y + 5, 12, (Color){170, 175, 185, 255});
+    DrawText(valR,   INS_X + INS_W - MeasureText(valR, 12) - 8, y + 5, 12, colR);
+}
+
+static void draw_market_section_header(int y, const char *title, Color col) {
+    DrawRectangle(INS_X, y, INS_W, MKT_HDR_H, (Color){28, 38, 55, 255});
+    DrawRectangleLines(INS_X, y, INS_W, MKT_HDR_H, (Color){55, 72, 100, 200});
+    DrawText(title, INS_X + 8, y + 2, 11, col);
 }
 
 void inspector_render(const Inspector *ins, const Agent *agents) {
@@ -175,59 +206,84 @@ void inspector_render(const Inspector *ins, const Agent *agents) {
 
     char buf[48];
 
-    // ID + status
+    // ID + last action
     snprintf(buf, sizeof(buf), "%d", a->id);
     draw_row(ROW_Y_ID, "Agent ID", buf, false, false, LIGHTGRAY);
 
-    const char *status;
-    Color statusCol;
-    if      (agent_is_buyer(a))  { status = "Buyer";   statusCol = (Color){ 60, 210,  90, 255}; }
-    else if (agent_is_seller(a)) { status = "Seller";  statusCol = (Color){220,  70,  70, 255}; }
-    else                         { status = "Neutral"; statusCol = (Color){150, 150, 150, 255}; }
-    draw_row(ROW_Y_STATUS, "Status", status, false, false, statusCol);
+    const char *actName;
+    Color actCol;
+    switch (a->lastAction) {
+        case ACTION_CHOP:    actName = "Chopping";  actCol = (Color){160, 100,  40, 255}; break;
+        case ACTION_BUILD:   actName = "Building";  actCol = (Color){220, 140,  60, 255}; break;
+        default:             actName = "Leisure";   actCol = (Color){150, 150, 150, 255}; break;
+    }
+    draw_row(ROW_Y_ACTION, "Last Action", actName, false, false, actCol);
 
     // Separator + edit hint
-    DrawRectangle(INS_X, ROW_Y_BASEVAL - SEP_H, INS_W, SEP_H, (Color){40, 60, 80, 255});
-    DrawText("click value to edit", INS_X + INS_W - 118, ROW_Y_BASEVAL - SEP_H + 1,
+    DrawRectangle(INS_X, ROW_Y_WOOD_HDR - SEP_H, INS_W, SEP_H, (Color){40, 60, 80, 255});
+    DrawText("click S/EMV to edit", INS_X + INS_W - 124, ROW_Y_WOOD_HDR - SEP_H + 1,
              10, (Color){90, 110, 130, 255});
 
-    // Editable: base personal value (S)
-    snprintf(buf, sizeof(buf), "%.2f", a->basePersonalValue);
-    draw_row(ROW_Y_BASEVAL, "Base Value (S)",
-             ins->editField == EDIT_BASE_VALUE ? ins->inputBuf : buf,
-             true, ins->editField == EDIT_BASE_VALUE,
+    // ---- Wood market section ----
+    draw_market_section_header(ROW_Y_WOOD_HDR, "WOOD MARKET", (Color){160, 100, 40, 255});
+
+    const AgentMarket *mw = &a->markets[MARKET_WOOD];
+    snprintf(buf, sizeof(buf), "%d", mw->goods);
+    draw_row(ROW_Y_WOOD_GOODS, "Goods", buf, false, false, (Color){200, 160, 80, 255});
+
+    snprintf(buf, sizeof(buf), "%.2f", mw->basePersonalValue);
+    draw_row(ROW_Y_WOOD_S, "Base Value (S)",
+             ins->editField == EDIT_WOOD_S ? ins->inputBuf : buf,
+             true, ins->editField == EDIT_WOOD_S,
              (Color){80, 140, 255, 255});
 
-    // Editable: expected market value
-    snprintf(buf, sizeof(buf), "%.2f", a->expectedMarketValue);
-    draw_row(ROW_Y_EMV, "Exp. Mkt. Value",
-             ins->editField == EDIT_EXPECTED_VALUE ? ins->inputBuf : buf,
-             true, ins->editField == EDIT_EXPECTED_VALUE,
+    snprintf(buf, sizeof(buf), "%.2f", mw->expectedMarketValue);
+    draw_row(ROW_Y_WOOD_EMV, "Exp. Mkt. Value",
+             ins->editField == EDIT_WOOD_EMV ? ins->inputBuf : buf,
+             true, ins->editField == EDIT_WOOD_EMV,
              (Color){60, 210, 90, 255});
 
-    // Separator
+    char buyBuf[24], sellBuf[24];
+    snprintf(buyBuf,  sizeof(buyBuf),  "%.2f", market_potential_value(mw));
+    snprintf(sellBuf, sizeof(sellBuf), "%.2f", market_current_value(mw));
+    draw_split_row(ROW_Y_WOOD_PRICES,
+                   "Buy:", buyBuf,  (Color){ 80, 200, 240, 255},
+                   "Sell:", sellBuf, (Color){240, 160,  80, 255});
+
+    // ---- Chair market section ----
+    DrawRectangle(INS_X, ROW_Y_CHAIR_HDR - SEP_H, INS_W, SEP_H, (Color){40, 60, 80, 255});
+    draw_market_section_header(ROW_Y_CHAIR_HDR, "CHAIR MARKET", (Color){200, 140, 60, 255});
+
+    const AgentMarket *mc = &a->markets[MARKET_CHAIR];
+    snprintf(buf, sizeof(buf), "%d", mc->goods);
+    draw_row(ROW_Y_CHAIR_GOODS, "Goods", buf, false, false, (Color){200, 160, 80, 255});
+
+    snprintf(buf, sizeof(buf), "%.2f", mc->basePersonalValue);
+    draw_row(ROW_Y_CHAIR_S, "Base Value (S)",
+             ins->editField == EDIT_CHAIR_S ? ins->inputBuf : buf,
+             true, ins->editField == EDIT_CHAIR_S,
+             (Color){80, 140, 255, 255});
+
+    snprintf(buf, sizeof(buf), "%.2f", mc->expectedMarketValue);
+    draw_row(ROW_Y_CHAIR_EMV, "Exp. Mkt. Value",
+             ins->editField == EDIT_CHAIR_EMV ? ins->inputBuf : buf,
+             true, ins->editField == EDIT_CHAIR_EMV,
+             (Color){60, 210, 90, 255});
+
+    snprintf(buyBuf,  sizeof(buyBuf),  "%.2f", market_potential_value(mc));
+    snprintf(sellBuf, sizeof(sellBuf), "%.2f", market_current_value(mc));
+    draw_split_row(ROW_Y_CHAIR_PRICES,
+                   "Buy:", buyBuf,  (Color){ 80, 200, 240, 255},
+                   "Sell:", sellBuf, (Color){240, 160,  80, 255});
+
+    // ---- Shared stats ----
     DrawRectangle(INS_X, ROW_Y_MONEY - SEP_H, INS_W, SEP_H, (Color){40, 60, 80, 255});
 
-    // Money and goods
     snprintf(buf, sizeof(buf), "%.2f", a->money);
     draw_row(ROW_Y_MONEY, "Money", buf, false, false, (Color){255, 215, 0, 255});
 
-    snprintf(buf, sizeof(buf), "%d", a->goods);
-    draw_row(ROW_Y_GOODS, "Goods", buf, false, false, (Color){200, 160, 80, 255});
-
-    // Computed values (read-only)
-    snprintf(buf, sizeof(buf), "%.2f", agent_potential_value(a));
-    draw_row(ROW_Y_BUYPRICE, "Buy Price", buf, false, false, (Color){ 80, 200, 240, 255});
-
-    snprintf(buf, sizeof(buf), "%.2f", (a->goods > 0) ? agent_current_value(a) : 0.0f);
-    draw_row(ROW_Y_SELLPRICE, "Sell Price", buf, false, false, (Color){240, 160,  80, 255});
-
-    // Separator
-    DrawRectangle(INS_X, ROW_Y_TIMER - SEP_H, INS_W, SEP_H, (Color){40, 60, 80, 255});
-
-    snprintf(buf, sizeof(buf), "%.1f / %.1fs", a->timeSinceLastTrade,
-             a->maxTimeSinceLastTrade);
-    draw_row(ROW_Y_TIMER, "Idle Timer", buf, false, false, (Color){210, 185, 90, 255});
+    snprintf(buf, sizeof(buf), "%.2f", leisure_value(&a->leisure));
+    draw_row(ROW_Y_LEISURE, "Leisure Value", buf, false, false, (Color){150, 150, 150, 255});
 
     if (a->targetType == TARGET_AGENT)
         snprintf(buf, sizeof(buf), "Agent #%d", a->targetId);

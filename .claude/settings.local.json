@@ -23,7 +23,10 @@
       "Bash(python3 -c \":*)",
       "Bash(identify \"/home/jasonfantl/Documents/Projects/C/economy-sandbox/src/assets/Nature Landscapes Free Pixel Art/nature_2/\"*.png \"/home/jasonfantl/Documents/Projects/C/economy-sandbox/src/assets/MinifolksVillagers/Outline/\"*.png)",
       "Bash(file \"/home/jasonfantl/Documents/Projects/C/economy-sandbox/src/assets/Nature Landscapes Free Pixel Art/nature_2/\"*.png)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(timeout 3 ./game)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(curl -s \"https://jasonfantl.com/posts/Simulated-Economy-\\(4\\)/\")"
     ]
   }
 }

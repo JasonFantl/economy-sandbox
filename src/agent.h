@@ -1,67 +1,104 @@
 #ifndef AGENT_H
 #define AGENT_H
 
-#define MAX_AGENTS    200
-#define AGENT_RADIUS  5.0f
-#define AGENT_SPEED   120.0f
-#define BELIEF_VOLATILITY 0.5f
+#define MAX_AGENTS        200
+#define AGENT_RADIUS        5.0f
+#define AGENT_SPEED         120.0f
+#define WOOD_PER_CHAIR      4
+#define MONEY_UTILITY_BASE  1000.0f  // utility value of $1 when money→0
 
+// Per-unit, per-second break probabilities (editable at runtime)
+extern float g_wood_break_prob;
+extern float g_chair_break_prob;
+
+typedef enum { MARKET_WOOD = 0, MARKET_CHAIR = 1, MARKET_COUNT = 2 } MarketId;
+typedef enum { ACTION_LEISURE = 0, ACTION_CHOP = 1, ACTION_BUILD = 2 } AgentAction;
 typedef enum { TARGET_AGENT = 0, TARGET_POS = 1 } TargetType;
 
+// Per-market economy state
 typedef struct {
-    int        id;
-    float      x;
-    // Economy
-    float      money;
-    int        goods;
-    float      basePersonalValue;  // S: marginal utility of the first unit
-    float      halfValueAt;        // D: goods owned when marginal value halves
-    float      expectedMarketValue;
-    float      timeSinceLastTrade;
-    float      maxTimeSinceLastTrade;
+    int    goods;
+    float  basePersonalValue;
+    float  minValue;      // floor: value never drops below this
+    float  halfValueAt;
+    float  expectedMarketValue;
+    float  timeSinceLastTrade;
+    float  maxTimeSinceLastTrade;
+} AgentMarket;
+
+// Leisure preference state (value diminishes with consecutive idle time)
+typedef struct {
+    float  basePersonalValue;
+    float  minValue;      // floor: minimum leisure value even after long idle streaks
+    float  halfValueAt;   // seconds of idling until value is halfway between base and min
+    float  idleTime;      // seconds spent idle; resets on productive action
+} LeisureState;
+
+typedef struct {
+    int          id;
+    float        x;
+    float        money;
+    AgentMarket  markets[MARKET_COUNT];
+    LeisureState leisure;
+    AgentAction  lastAction;
+    float        alpha;              // Nerlove belief update speed [0,1]
+    float        actionTimer;        // time until next production decision
+    float        productionInterval; // seconds between production actions
     // Movement target
-    int        targetId;
-    float      targetX;
-    TargetType targetType;
+    int          targetId;
+    float        targetX;
+    TargetType   targetType;
     // Visual
-    float      tradeFlash;
-    int        spriteType;
-    int        animFrame;
-    float      animTimer;
-    int        facingRight;
+    float        tradeFlash;
+    int          spriteType;
+    int          animFrame;
+    float        animTimer;
+    int          facingRight;
 } Agent;
 
-// Marginal utility of buying one more good (diminishing returns)
-static inline float agent_potential_value(const Agent *a) {
-    float r = (float)(a->goods + 1) / a->halfValueAt;
-    return a->basePersonalValue / (r * r * r + 1.0f);
+#define AGENT_MKT(a, mid) (&(a)->markets[mid])
+
+// Marginal utility of buying one more unit of this good (diminishing returns)
+static inline float market_potential_value(const AgentMarket *m) {
+    float r = (float)(m->goods + 1) / m->halfValueAt;
+    return m->minValue + (m->basePersonalValue - m->minValue) / (r * r * r + 1.0f);
 }
 
-// Marginal utility of the last good owned (minimum acceptable sell price)
-static inline float agent_current_value(const Agent *a) {
-    float r = (float)a->goods / a->halfValueAt;
-    return a->basePersonalValue / (r * r * r + 1.0f);
+// Marginal utility of the last unit owned (minimum acceptable sell price)
+static inline float market_current_value(const AgentMarket *m) {
+    float r = (float)m->goods / m->halfValueAt;
+    return m->minValue + (m->basePersonalValue - m->minValue) / (r * r * r + 1.0f);
 }
 
-// Wants to buy: next good worth more than current asking price
-static inline int agent_is_buyer(const Agent *a) {
-    return agent_potential_value(a) > a->expectedMarketValue;
+// Value of doing nothing (diminishes the longer the agent has been idle)
+static inline float leisure_value(const LeisureState *l) {
+    float r = l->idleTime / l->halfValueAt;
+    return l->minValue + (l->basePersonalValue - l->minValue) / (r * r * r + 1.0f);
 }
 
-// Minimum goods an agent will hold; they refuse to sell below this floor.
-// Combined with the value curve, this prevents gossip-inflated EMV from
-// draining agents to zero.
-#define GOODS_FLOOR 2
+// Utility an agent derives from $1 given their current wealth
+static inline float utility_per_dollar(float money) {
+    return MONEY_UTILITY_BASE / (money + 1.0f);
+}
 
-// Wants to sell: current good worth less than asking price, and has goods above floor
-static inline int agent_is_seller(const Agent *a) {
-    return a->goods > GOODS_FLOOR && agent_current_value(a) < a->expectedMarketValue;
+// Buyer if the utility of acquiring the good exceeds the utility of the money spent
+static inline int market_is_buyer(const AgentMarket *m, float money) {
+    return market_potential_value(m) > m->expectedMarketValue * utility_per_dollar(money);
+}
+
+// Seller if the utility of the money received exceeds the utility of keeping the good
+static inline int market_is_seller(const AgentMarket *m, float money) {
+    return market_current_value(m) < m->expectedMarketValue * utility_per_dollar(money);
 }
 
 void agents_init(Agent *agents, int count, float worldWidth);
 void agents_update(Agent *agents, int count, float dt);
 void agents_pick_new_target(Agent *agent, int agentCount, float worldWidth);
-// Shift basePersonalValue of n randomly chosen agents by delta
-void agents_influence(Agent *agents, int count, int n, float delta);
+// Shift basePersonalValue of n randomly chosen agents in market mid by delta
+void agents_influence(Agent *agents, int count, int n, float delta, MarketId mid);
+// Add delta money to n randomly chosen agents
+void agents_give_money(Agent *agents, int count, int n, float delta);
+// Add delta goods to n randomly chosen agents in market mid
+void agents_give_goods(Agent *agents, int count, int n, int delta, MarketId mid);
 
 #endif

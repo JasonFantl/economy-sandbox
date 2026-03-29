@@ -6,34 +6,51 @@
 #include "assets.h"
 #include <stdbool.h>
 
-#define SCREEN_W      1200
-#define SCREEN_H      700
-#define WORLD_WIDTH   1160.0f
-#define GROUND_Y      390
-#define WORLD_AREA_H  450
-#define SPRITE_SCALE  2.0f   // display scale: 32px sprite cell → 64px on screen
-#define PLOT_MARGIN_L  40
-#define PLOT_MARGIN_R  30
-#define PLOT_MARGIN_T  20
-#define PLOT_MARGIN_B  30
-#define PANEL_GAP      30
+#define SCREEN_W       1200
+#define SCREEN_H        700
+#define WORLD_WIDTH    1160.0f
+#define GROUND_Y        235
+#define WORLD_AREA_H    260
+#define SPRITE_SCALE    2.0f
+#define PLOT_MARGIN_L    40
+#define PLOT_MARGIN_R    30
+#define PLOT_MARGIN_T    12
+#define PLOT_MARGIN_B    15
+#define PANEL_GAP        30
+#define PANEL_ROW_GAP     4
+#define STRIP_H          16
+#define NUM_PANELS        4
 
 typedef enum {
     PLOT_WEALTH        = 0,  // money vs goods scatter
-    PLOT_AGENT_VALUES  = 1,  // agents sorted by base value, dots for PV and EMV
+    PLOT_AGENT_VALUES  = 1,  // agents sorted by base value with price dots
     PLOT_EMV_HISTORY   = 2,  // EMV and personal value over time
-    PLOT_COUNT         = 3
+    PLOT_GOODS_HISTORY = 3,  // goods count per agent over time
+    PLOT_COUNT         = 4
 } PlotType;
+
+// State for one plot panel: which plot type and which market to display
+typedef struct {
+    PlotType plotType;
+    int      marketId;   // MarketId cast to int
+} PanelState;
 
 void render_world(const Agent *agents, int count, bool paused, int simSteps,
                   const Assets *assets);
-// avh = expected market value history; pvh = potential value history
-void render_plot(const AgentValueHistory *avh, const AgentValueHistory *pvh,
-                 const Agent *agents, int agentCount,
-                 PlotType leftPlot, PlotType rightPlot);
 
-// Check for clicks on the panel header strips; cycle the plot type if hit.
+// avh/pvh/gvh are arrays of MARKET_COUNT histories; panels is NUM_PANELS entries (TL,TR,BL,BR)
+void render_plot(const AgentValueHistory avh[MARKET_COUNT],
+                 const AgentValueHistory pvh[MARKET_COUNT],
+                 const AgentValueHistory gvh[MARKET_COUNT],
+                 const Agent *agents, int agentCount,
+                 PanelState panels[NUM_PANELS]);
+
+// Check for clicks on panel strips; cycle plot type/market or start bounds edit.
 // Returns true if a click was consumed.
-bool plot_cycle_click(PlotType *left, PlotType *right);
+bool panel_handle_click(PanelState panels[NUM_PANELS]);
+
+// Process keyboard input for the active bounds editor.
+// Returns true if keyboard input was consumed.
+bool panel_handle_bounds_keyboard(void);
 
 #endif
