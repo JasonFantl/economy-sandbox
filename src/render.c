@@ -216,28 +216,52 @@ static void draw_agent_panel(const Agent *agents, int count,
 
     float xStep = (float)pw / (float)(count - 1);
     for (int rank = 0; rank < count; rank++) {
-        const Agent *a = &agents[indices[rank]];
-        int x      = px + (int)((float)rank * xStep);
-        float pv   = a->basePersonalValue;
-        float emv  = a->expectedMarketValue;
-        int y_pv   = py + ph - (int)(pv  / 100.0f * (float)ph);
-        int y_emv  = py + ph - (int)(emv / 100.0f * (float)ph);
+        const Agent *a  = &agents[indices[rank]];
+        int x           = px + (int)((float)rank * xStep);
+        float base      = a->basePersonalValue;
+        float sellPrice = agent_current_value(a);
+        float buyPrice  = agent_potential_value(a);
+        float emv       = a->expectedMarketValue;
 
-        DrawLine(x, y_pv, x, y_emv, (Color){100,100,100,160});
-        DrawCircle(x, y_pv, 3, (Color){80, 140, 255, 220});  // blue = base personal value
+        int y_base  = py + ph - (int)(base      / 100.0f * (float)ph);
+        int y_sell  = py + ph - (int)(sellPrice / 100.0f * (float)ph);
+        int y_buy   = py + ph - (int)(buyPrice  / 100.0f * (float)ph);
+        int y_emv   = py + ph - (int)(emv       / 100.0f * (float)ph);
 
+        // Thin connector from base value down to EMV (context line)
+        DrawLine(x, y_base, x, y_emv, (Color){80,80,90,120});
+
+        // Shaded band between buy price and sell price (the hold zone)
+        int y_band_top = y_buy < y_sell ? y_buy : y_sell;   // higher y-value = lower screen pixel
+        int band_h     = (y_sell < y_buy ? y_buy : y_sell) - y_band_top;
+        if (band_h < 1) band_h = 1;
+        DrawRectangle(x - 1, y_band_top, 3, band_h, (Color){180,180,100,40});
+
+        // Base personal value (S) — dark blue
+        DrawCircle(x, y_base, 3, (Color){ 80, 140, 255, 220});
+        // Sell price (currentValue) — orange
+        DrawCircle(x, y_sell, 2, (Color){255, 160,  60, 200});
+        // Buy price (potentialValue) — cyan
+        DrawCircle(x, y_buy,  2, (Color){ 80, 220, 220, 200});
+        // Expected market value — green/red/yellow
         Color emvCol = (a->tradeFlash > 0.0f)
                        ? YELLOW
-                       : (agent_is_buyer(a) ? (Color){60,210,90,220}
-                                            : (Color){220,70,70,220});
+                       : (agent_is_buyer(a)  ? (Color){ 60, 210,  90, 220}
+                          : agent_is_seller(a) ? (Color){220,  70,  70, 220}
+                                               : (Color){150, 150, 150, 200});
         DrawCircle(x, y_emv, 3, emvCol);
     }
 
-    int lx = px + pw - 140, ly = py + 5;
-    DrawCircle(lx, ly + 4,  3, (Color){80,140,255,220});
-    DrawText("Base value",   lx + 7, ly - 1,  11, (Color){80,140,255,220});
-    DrawCircle(lx, ly + 18, 3, (Color){60,210,90,220});
-    DrawText("Exp. mkt val", lx + 7, ly + 13, 11, (Color){60,210,90,220});
+    // Legend (2 columns)
+    int lx = px + pw - 200, ly = py + 5;
+    DrawCircle(lx,       ly +  4, 3, (Color){ 80, 140, 255, 220});
+    DrawText("Base val (S)",  lx + 7,  ly -  1, 11, (Color){ 80, 140, 255, 220});
+    DrawCircle(lx,       ly + 18, 2, (Color){255, 160,  60, 200});
+    DrawText("Sell price",    lx + 7,  ly + 13, 11, (Color){255, 160,  60, 200});
+    DrawCircle(lx + 100, ly +  4, 2, (Color){ 80, 220, 220, 200});
+    DrawText("Buy price",     lx + 107, ly -  1, 11, (Color){ 80, 220, 220, 200});
+    DrawCircle(lx + 100, ly + 18, 3, (Color){ 60, 210,  90, 220});
+    DrawText("Exp. mkt val",  lx + 107, ly + 13, 11, (Color){ 60, 210,  90, 220});
 }
 
 // ---------------------------------------------------------------------------
