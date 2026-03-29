@@ -48,9 +48,14 @@ static inline int agent_is_buyer(const Agent *a) {
     return agent_potential_value(a) > a->expectedMarketValue;
 }
 
-// Wants to sell: current good worth less than current asking price, and has goods
+// Minimum goods an agent will hold; they refuse to sell below this floor.
+// Combined with the value curve, this prevents gossip-inflated EMV from
+// draining agents to zero.
+#define GOODS_FLOOR 2
+
+// Wants to sell: current good worth less than asking price, and has goods above floor
 static inline int agent_is_seller(const Agent *a) {
-    return a->goods > 0 && agent_current_value(a) < a->expectedMarketValue;
+    return a->goods > GOODS_FLOOR && agent_current_value(a) < a->expectedMarketValue;
 }
 
 void agents_init(Agent *agents, int count, float worldWidth);
