@@ -6,6 +6,7 @@
 // ---------------------------------------------------------------------------
 
 const int TILE_VARIANT_COUNT[TILE_COUNT] = {
+    [TILE_NONE]       = 0,   // empty — no texture
     // Ground
     [TILE_GRASS]      = 5,   // 80×16  strip
     [TILE_GRASS_ALT]  = 6,   // 48×32  3×2 grid
@@ -54,6 +55,7 @@ static Rectangle grid_src(int variant, int cols) {
 // ---------------------------------------------------------------------------
 
 Rectangle tileatlas_src_rect(TileType type, int variant) {
+    if (type == TILE_NONE) return (Rectangle){0, 0, 0, 0};
     int vc = TILE_VARIANT_COUNT[type];
     if (vc > 0 && variant >= vc) variant = variant % vc;
 
@@ -171,6 +173,7 @@ void tileatlas_unload(TileAtlas *a) {
 
 Texture2D tileatlas_texture(const TileAtlas *a, TileType type) {
     switch (type) {
+        case TILE_NONE:       return a->grass;  // fallback; draw should skip TILE_NONE
         case TILE_GRASS:      return a->grass;
         case TILE_GRASS_ALT:  return a->grass_alt;
         case TILE_PATH:       return a->path;
@@ -199,6 +202,8 @@ Texture2D tileatlas_texture(const TileAtlas *a, TileType type) {
 
 void tileatlas_draw(const TileAtlas *a, TileType type, int variant,
                     int px, int py, float scale) {
+    if (type == TILE_NONE) return;   // nothing to draw on object layer
+
     int size = (int)(TILE_SIZE * scale);
 
     if (type == TILE_WATER) {

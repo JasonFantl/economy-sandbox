@@ -1,20 +1,24 @@
 // mapbuilder/mapbuilder.c — Economy Sandbox Map Builder
 //
-// Palette: organised by category (Ground / Nature / Buildings / Miscellaneous)
-// with sprite previews, variant strip, and economic-role tags.
+// Two-layer editing: Ground layer (terrain) and Object layer (buildings, trees, props).
+// Object sprites use PNG transparency so the ground shows through underneath.
 //
-// Tools (keyboard shortcut):
-//   P  Pencil     — paint tile(s), drag to paint, right-click erases to grass
-//   B  Bucket     — flood-fill connected region
-//   I  Eyedrop    — pick tile from map, auto-switches to Pencil
-//   R  Rectangle  — drag to fill a filled rectangle
+// Layer switching:
+//   Tab / 1 / 2  — toggle or directly select Ground / Object layer
+//   Selecting a tile from "Ground" auto-switches to Ground layer.
+//   Selecting from Nature / Buildings / Miscellaneous auto-switches to Object layer.
 //
-// Brush size (Pencil only):  [  decrease   ]  increase   (1 / 3 / 5)
-// Variant:  + / -  or click the variant strip in the palette
+// Tools (hotkey):
+//   P  Pencil     — paint, drag to paint, right-click erases to layer default
+//   B  Bucket     — flood-fill connected region on the active layer
+//   I  Eyedrop    — pick tile + variant from active layer, switch to Pencil
+//   R  Rectangle  — drag to fill rectangle
 //
-// Camera:  WASD / arrow keys scroll  |  mouse-wheel zooms to cursor  |  Home centres
+// Brush size (Pencil):  [  smaller   ]  larger   (1 / 3 / 5)
+// Variant:  + / -  or click the variant strip
 //
-// File:  Ctrl+S save   Ctrl+O load   Ctrl+N new map (80x60)   Ctrl+Z undo
+// Camera:  WASD / arrows scroll  |  wheel zooms to cursor  |  Home centres
+// File:    Ctrl+S save  Ctrl+O load  Ctrl+N new  Ctrl+Z undo
 
 #include "raylib.h"
 #include "src/world.h"
@@ -26,68 +30,66 @@
 // ---------------------------------------------------------------------------
 // Layout
 // ---------------------------------------------------------------------------
-#define SCREEN_W       1280
-#define SCREEN_H        800
-#define PALETTE_W       224
-#define TOOLBAR_H        46
-#define STATUS_H         26
-#define TILE_PREVIEW_SZ  20
-#define TILE_ROW_H       23
-#define CAT_HDR_H        21
-#define MIN_SCALE        0.5f
-#define MAX_SCALE        8.0f
-#define DEFAULT_MAP_W    80
-#define DEFAULT_MAP_H    60
-#define DEFAULT_FILE     "map.emap"
+#define SCREEN_W        1280
+#define SCREEN_H         800
+#define PALETTE_W        224
+#define TOOLBAR_H         46
+#define STATUS_H          26
+#define LAYER_BAR_H       32   // layer-switcher strip at top of palette
+#define TILE_PREVIEW_SZ   20
+#define TILE_ROW_H        23
+#define CAT_HDR_H         21
+#define MIN_SCALE         0.5f
+#define MAX_SCALE         8.0f
+#define DEFAULT_MAP_W     80
+#define DEFAULT_MAP_H     60
+#define DEFAULT_FILE      "map.emap"
 
 // ---------------------------------------------------------------------------
-// Palette categories
+// Palette categories — each knows which layer it belongs to
 // ---------------------------------------------------------------------------
 typedef struct {
     const char *label;
     Color       accent;
+    MapLayer    layer;
     TileType    tiles[12];
     int         count;
     bool        collapsed;
 } PaletteGroup;
 
 static PaletteGroup g_groups[] = {
-    { "Ground",
-      { 85, 172,  64, 255 },
-      { TILE_GRASS, TILE_GRASS_ALT, TILE_DEAD_GRASS, TILE_PATH, TILE_WATER },
-      5, false },
-    { "Nature",
-      { 45, 148,  48, 255 },
-      { TILE_TREE, TILE_PINE_TREE, TILE_ROCK, TILE_WHEATFIELD },
-      4, false },
-    { "Buildings",
-      {208, 142,  72, 255 },
-      { TILE_HUT, TILE_HOUSE, TILE_MARKET, TILE_WORKSHOP, TILE_RESOURCE, TILE_TAVERN },
-      6, false },
-    { "Miscellaneous",
-      {136, 162, 210, 255 },
-      { TILE_BRIDGE, TILE_WELL, TILE_CHEST, TILE_SIGN },
-      4, false },
+    { "Ground",        { 85, 172,  64, 255}, LAYER_GROUND,
+      { TILE_GRASS, TILE_GRASS_ALT, TILE_DEAD_GRASS, TILE_PATH, TILE_WATER }, 5, false },
+    { "Nature",        { 45, 148,  48, 255}, LAYER_OBJECTS,
+      { TILE_TREE, TILE_PINE_TREE, TILE_ROCK, TILE_WHEATFIELD }, 4, false },
+    { "Buildings",     {208, 142,  72, 255}, LAYER_OBJECTS,
+      { TILE_HUT, TILE_HOUSE, TILE_MARKET, TILE_WORKSHOP, TILE_RESOURCE, TILE_TAVERN }, 6, false },
+    { "Miscellaneous", {136, 162, 210, 255}, LAYER_OBJECTS,
+      { TILE_BRIDGE, TILE_WELL, TILE_CHEST, TILE_SIGN }, 4, false },
 };
 #define GROUP_COUNT 4
 
 // ---------------------------------------------------------------------------
 // Theme
 // ---------------------------------------------------------------------------
-static const Color C_BG       = { 18,  20,  28, 255};
-static const Color C_PAL_BG   = { 22,  26,  38, 255};
-static const Color C_CAT_HDR  = { 30,  38,  56, 255};
-static const Color C_SEL_BG   = { 45,  70, 128, 255};
-static const Color C_HOV_BG   = { 36,  44,  66, 255};
-static const Color C_TOOLBAR  = { 24,  28,  42, 255};
-static const Color C_STATUS   = { 13,  16,  23, 255};
-static const Color C_BORDER   = { 46,  56,  80, 255};
-static const Color C_TEXT     = {218, 224, 236, 255};
-static const Color C_TEXT_DIM = {128, 140, 160, 255};
-static const Color C_SEL_RING = { 96, 156, 255, 255};
-static const Color C_HOVER    = {255, 255, 255, 130};
-static const Color C_RECT_FILL= {100, 160, 255,  40};
-static const Color C_RECT_BDR = {100, 160, 255, 200};
+static const Color C_BG        = { 18,  20,  28, 255};
+static const Color C_PAL_BG    = { 22,  26,  38, 255};
+static const Color C_CAT_HDR   = { 30,  38,  56, 255};
+static const Color C_SEL_BG    = { 45,  70, 128, 255};
+static const Color C_HOV_BG    = { 36,  44,  66, 255};
+static const Color C_TOOLBAR   = { 24,  28,  42, 255};
+static const Color C_STATUS    = { 13,  16,  23, 255};
+static const Color C_BORDER    = { 46,  56,  80, 255};
+static const Color C_TEXT      = {218, 224, 236, 255};
+static const Color C_TEXT_DIM  = {128, 140, 160, 255};
+static const Color C_SEL_RING  = { 96, 156, 255, 255};
+static const Color C_HOVER     = {255, 255, 255, 130};
+static const Color C_RECT_FILL = {100, 160, 255,  40};
+static const Color C_RECT_BDR  = {100, 160, 255, 200};
+
+// Layer accent colours
+static const Color C_LAYER_GROUND  = { 85, 172,  64, 255};
+static const Color C_LAYER_OBJECTS = {136, 162, 210, 255};
 
 // ---------------------------------------------------------------------------
 // Tools
@@ -103,12 +105,11 @@ typedef enum {
 static const char *TOOL_LABEL[TOOL_COUNT] = { "Pencil", "Bucket", "Eyedrop", "Rect" };
 static const char *TOOL_KEY[TOOL_COUNT]   = { "P", "B", "I", "R" };
 
-// Toolbar button layout constants (must match draw_toolbar)
+// Toolbar button layout (must match draw_toolbar)
 #define TB_TOOL_X0    56
 #define TB_TOOL_W     62
 #define TB_BTN_H      34
 #define TB_BTN_INNER  58
-// Brush buttons start after tools + separator + label
 #define TB_BRUSH_X0   (TB_TOOL_X0 + TOOL_COUNT * TB_TOOL_W + 4 + 12 + 44)
 #define TB_BRUSH_W    30
 #define TB_BRUSH_BTN  28
@@ -117,22 +118,23 @@ static const char *TOOL_KEY[TOOL_COUNT]   = { "P", "B", "I", "R" };
 // State
 // ---------------------------------------------------------------------------
 typedef struct {
-    WorldMap  *map;
-    WorldMap  *undo;
-    TileAtlas  atlas;
-    TileType   selType;
-    int        selVariant;
-    float      camX, camY;
-    float      scale;
-    bool       dirty;
-    bool       painting;
-    EditTool   tool;
-    int        brushSize;
-    bool       rectActive;
-    int        rectX0, rectY0, rectX1, rectY1;
-    char       statusMsg[192];
-    float      statusTimer;
-    char       filePath[256];
+    WorldMap   *map;
+    WorldMap   *undo;
+    TileAtlas   atlas;
+    TileType    selType;
+    int         selVariant;
+    MapLayer    activeLayer;
+    float       camX, camY;
+    float       scale;
+    bool        dirty;
+    bool        painting;
+    EditTool    tool;
+    int         brushSize;
+    bool        rectActive;
+    int         rectX0, rectY0, rectX1, rectY1;
+    char        statusMsg[192];
+    float       statusTimer;
+    char        filePath[256];
 } MBState;
 
 // ---------------------------------------------------------------------------
@@ -147,9 +149,10 @@ static void show_status(MBState *s, const char *msg) {
 static void save_undo(MBState *s) {
     if (s->undo) worldmap_free(s->undo);
     s->undo = worldmap_create(s->map->width, s->map->height);
-    if (s->undo)
-        memcpy(s->undo->cells, s->map->cells,
-               (size_t)(s->map->width * s->map->height) * sizeof(MapCell));
+    if (!s->undo) return;
+    int n = s->map->width * s->map->height;
+    memcpy(s->undo->ground,  s->map->ground,  (size_t)n * sizeof(MapCell));
+    memcpy(s->undo->objects, s->map->objects, (size_t)n * sizeof(MapCell));
 }
 
 static int map_ax(void) { return PALETTE_W + 2; }
@@ -172,8 +175,33 @@ static int tile_py(const MBState *s, int ty) {
     return map_ay() + (int)((float)ty * s->scale * TILE_SIZE - s->camY);
 }
 
+// Access cell on the active layer
+static MapCell *active_cell(const MBState *s, int x, int y) {
+    return (s->activeLayer == LAYER_GROUND)
+        ? worldmap_cell(s->map, x, y)
+        : worldmap_obj_cell(s->map, x, y);
+}
+
+// Default erase value for the active layer
+static TileType erase_type(const MBState *s) {
+    return (s->activeLayer == LAYER_GROUND) ? TILE_GRASS : TILE_NONE;
+}
+static int erase_variant(const MBState *s) {
+    return (s->activeLayer == LAYER_GROUND) ? 2 : 0;
+}
+
+// Draw a tile icon into a screen rectangle
 static void draw_tile_icon(const TileAtlas *a, TileType type, int variant,
                             int px, int py, int sz) {
+    if (type == TILE_NONE) {
+        // Checkerboard to indicate "empty"
+        int half = sz / 2;
+        DrawRectangle(px,        py,        half, half, (Color){60, 60, 70, 255});
+        DrawRectangle(px + half, py,        half, half, (Color){40, 40, 50, 255});
+        DrawRectangle(px,        py + half, half, half, (Color){40, 40, 50, 255});
+        DrawRectangle(px + half, py + half, half, half, (Color){60, 60, 70, 255});
+        return;
+    }
     if (type == TILE_WATER) {
         DrawRectangle(px, py, sz, sz, (Color){60, 120, 200, 255});
         return;
@@ -204,10 +232,10 @@ static Color role_color(TileType t) {
 }
 
 // ---------------------------------------------------------------------------
-// Flood fill (BFS)
+// Flood fill (BFS) on the active layer
 // ---------------------------------------------------------------------------
 static void flood_fill(MBState *s, int startX, int startY) {
-    MapCell *origin = worldmap_cell(s->map, startX, startY);
+    MapCell *origin = active_cell(s, startX, startY);
     if (!origin) return;
     uint8_t srcType = origin->type, srcVar = origin->variant;
     if (srcType == (uint8_t)s->selType && srcVar == (uint8_t)s->selVariant) return;
@@ -222,12 +250,12 @@ static void flood_fill(MBState *s, int startX, int startY) {
     qx[tail] = startX; qy[tail++] = startY;
     vis[startY * s->map->width + startX] = true;
 
-    const int ddx[4] = {1, -1, 0, 0};
+    const int ddx[4] = {1, -1, 0,  0};
     const int ddy[4] = {0,  0, 1, -1};
 
     while (head < tail) {
         int x = qx[head], y = qy[head++];
-        MapCell *c = worldmap_cell(s->map, x, y);
+        MapCell *c = active_cell(s, x, y);
         if (!c || c->type != srcType || c->variant != srcVar) continue;
         c->type    = (uint8_t)s->selType;
         c->variant = (uint8_t)s->selVariant;
@@ -244,16 +272,54 @@ static void flood_fill(MBState *s, int startX, int startY) {
     free(qx); free(qy); free(vis);
 }
 
-// Paint a brushSize x brushSize patch centred at (tx, ty)
+// Paint brushSize x brushSize patch on the active layer
 static void paint_brush(MBState *s, int tx, int ty) {
     int half = s->brushSize / 2;
     for (int dy = -half; dy <= half; dy++) {
         for (int dx = -half; dx <= half; dx++) {
-            MapCell *c = worldmap_cell(s->map, tx + dx, ty + dy);
+            MapCell *c = active_cell(s, tx + dx, ty + dy);
             if (c) { c->type = (uint8_t)s->selType; c->variant = (uint8_t)s->selVariant; }
         }
     }
     s->dirty = true;
+}
+
+// ---------------------------------------------------------------------------
+// Draw: layer switcher (inside the palette, just below the toolbar)
+// ---------------------------------------------------------------------------
+static void draw_layer_bar(MBState *s) {
+    int barY = map_ay();
+    DrawRectangle(0, barY, PALETTE_W, LAYER_BAR_H, (Color){26, 32, 48, 255});
+    DrawLine(0, barY + LAYER_BAR_H - 1, PALETTE_W, barY + LAYER_BAR_H - 1, C_BORDER);
+
+    // Two buttons side-by-side
+    int btnW = PALETTE_W / 2 - 3;
+    int btnY = barY + 4;
+    int btnH = LAYER_BAR_H - 8;
+
+    const char *lbls[2] = {"Ground", "Objects"};
+    const Color accents[2] = {C_LAYER_GROUND, C_LAYER_OBJECTS};
+
+    Vector2 mouse = GetMousePosition();
+    for (int l = 0; l < 2; l++) {
+        int bx = (l == 0) ? 3 : btnW + 5;
+        bool sel = ((int)s->activeLayer == l);
+        bool hov = (!sel && mouse.x >= bx && mouse.x < bx + btnW &&
+                    mouse.y >= btnY && mouse.y < btnY + btnH);
+        Color bg  = sel ? C_SEL_BG : (hov ? C_HOV_BG : (Color){30, 36, 54, 255});
+        Color bdr = sel ? accents[l] : C_BORDER;
+
+        DrawRectangle(bx, btnY, btnW, btnH, bg);
+        DrawRectangleLines(bx, btnY, btnW, btnH, bdr);
+        if (sel) DrawRectangle(bx, btnY, 3, btnH, accents[l]);
+
+        int tw = MeasureText(lbls[l], 11);
+        DrawText(lbls[l], bx + (btnW - tw) / 2, btnY + (btnH - 11) / 2,
+                 11, sel ? C_TEXT : C_TEXT_DIM);
+
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && hov)
+            s->activeLayer = (MapLayer)l;
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -278,12 +344,10 @@ static void draw_toolbar(const MBState *s) {
         ix += TB_TOOL_W;
     }
 
-    // Separator
     ix += 4;
     DrawLine(ix, 8, ix, TOOLBAR_H - 8, C_BORDER);
     ix += 12;
 
-    // Brush size
     DrawText("Brush", ix, 16, 11, C_TEXT_DIM);
     ix += 44;
     int brushOpts[3] = {1, 3, 5};
@@ -299,34 +363,43 @@ static void draw_toolbar(const MBState *s) {
         ix += TB_BRUSH_W;
     }
 
-    // Separator
     ix += 4;
     DrawLine(ix, 8, ix, TOOLBAR_H - 8, C_BORDER);
     ix += 12;
 
     // Selected tile preview
     draw_tile_icon(&s->atlas, s->selType, s->selVariant, ix, 7, 32);
-    DrawRectangleLines(ix, 7, 32, 32, C_BORDER);
+    DrawRectangleLines(ix, 7, 32, 32,
+                       s->activeLayer == LAYER_GROUND ? C_LAYER_GROUND : C_LAYER_OBJECTS);
     ix += 38;
+
     DrawText(TILE_INFO[s->selType].label, ix, 10, 12, C_TEXT);
     int vc = TILE_VARIANT_COUNT[s->selType];
     char vbuf[48];
     if (vc > 0) snprintf(vbuf, sizeof(vbuf), "v%d/%d  (+/-)", s->selVariant, vc - 1);
     else        snprintf(vbuf, sizeof(vbuf), "no variants");
     DrawText(vbuf, ix, 26, 10, C_TEXT_DIM);
+
+    // Active layer label (far right of toolbar)
+    const char *layerName = (s->activeLayer == LAYER_GROUND) ? "Ground" : "Objects";
+    Color layerCol = (s->activeLayer == LAYER_GROUND) ? C_LAYER_GROUND : C_LAYER_OBJECTS;
+    int lw = MeasureText(layerName, 13);
+    DrawText("Layer:", SCREEN_W - lw - 68, 16, 11, C_TEXT_DIM);
+    DrawText(layerName, SCREEN_W - lw - 8, 15, 13, layerCol);
 }
 
 // ---------------------------------------------------------------------------
 // Draw: palette
 // ---------------------------------------------------------------------------
 static void draw_palette(MBState *s) {
-    int aY = map_ay();
-    int aH = map_ah() + STATUS_H;
-    DrawRectangle(0, aY, PALETTE_W, aH, C_PAL_BG);
-    DrawLine(PALETTE_W + 1, aY, PALETTE_W + 1, aY + aH, C_BORDER);
+    int palY  = map_ay() + LAYER_BAR_H;
+    int palH  = map_ah() + STATUS_H - LAYER_BAR_H;
+    DrawRectangle(0, palY, PALETTE_W, palH, C_PAL_BG);
+    DrawLine(PALETTE_W + 1, map_ay(), PALETTE_W + 1,
+             map_ay() + map_ah() + STATUS_H, C_BORDER);
 
     Vector2 mouse = GetMousePosition();
-    int iy = aY + 4;
+    int iy = palY + 4;
 
     for (int g = 0; g < GROUP_COUNT; g++) {
         PaletteGroup *grp = &g_groups[g];
@@ -342,11 +415,11 @@ static void draw_palette(MBState *s) {
         snprintf(lbl, sizeof(lbl), "  %s  %s", grp->collapsed ? "+" : "-", grp->label);
         DrawText(lbl, 6, iy + 4, 11, C_TEXT);
 
-        // Count badge
-        char cnt[8]; snprintf(cnt, sizeof(cnt), "%d", grp->count);
-        int cw = MeasureText(cnt, 10);
-        DrawRectangle(PALETTE_W - cw - 12, iy + 4, cw + 8, 13, (Color){44, 54, 78, 255});
-        DrawText(cnt, PALETTE_W - cw - 8, iy + 5, 10, C_TEXT_DIM);
+        // Layer badge
+        const char *layerBadge = (grp->layer == LAYER_GROUND) ? "gnd" : "obj";
+        Color lbCol = (grp->layer == LAYER_GROUND) ? C_LAYER_GROUND : C_LAYER_OBJECTS;
+        int lbW = MeasureText(layerBadge, 9);
+        DrawText(layerBadge, PALETTE_W - lbW - 6, iy + 5, 9, lbCol);
 
         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && catHov)
             grp->collapsed = !grp->collapsed;
@@ -354,7 +427,6 @@ static void draw_palette(MBState *s) {
         iy += CAT_HDR_H + 1;
         if (grp->collapsed) continue;
 
-        // Tile rows
         for (int ti = 0; ti < grp->count; ti++) {
             TileType type = grp->tiles[ti];
             bool sel = (s->selType == type);
@@ -372,11 +444,10 @@ static void draw_palette(MBState *s) {
             DrawText(TILE_INFO[type].label, 34, iy + 5, 11,
                      sel ? C_TEXT : (Color){170, 178, 196, 255});
 
-            // Non-walkable dot
             if (!TILE_INFO[type].walkable)
-                DrawCircle(PALETTE_W - 50, iy + TILE_ROW_H / 2, 3, (Color){200, 70, 70, 200});
+                DrawCircle(PALETTE_W - 50, iy + TILE_ROW_H / 2, 3,
+                           (Color){200, 70, 70, 200});
 
-            // Economic role tag
             const char *tag = role_tag(type);
             if (tag) {
                 int tw = MeasureText(tag, 9);
@@ -384,15 +455,16 @@ static void draw_palette(MBState *s) {
             }
 
             if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && hov) {
-                s->selType    = type;
-                s->selVariant = 0;
+                s->selType     = type;
+                s->selVariant  = 0;
+                s->activeLayer = grp->layer;  // auto-switch layer
             }
             iy += TILE_ROW_H;
         }
         iy += 3;
     }
 
-    // Variant strip at bottom
+    // Variant strip
     int vsY = SCREEN_H - STATUS_H - 82;
     DrawLine(6, vsY, PALETTE_W - 6, vsY, C_BORDER);
     vsY += 5;
@@ -405,8 +477,7 @@ static void draw_palette(MBState *s) {
         DrawText(vbuf, PALETTE_W - vw - 5, vsY + 1, 11, C_TEXT_DIM);
         vsY += 16;
 
-        int iconSz = 22;
-        int perRow = (PALETTE_W - 14) / (iconSz + 2);
+        int iconSz = 22, perRow = (PALETTE_W - 14) / (iconSz + 2);
         int vx = 7, vy = vsY;
         for (int v = 0; v < vc; v++) {
             bool vsel = (v == s->selVariant);
@@ -426,7 +497,7 @@ static void draw_palette(MBState *s) {
 }
 
 // ---------------------------------------------------------------------------
-// Draw: map area
+// Draw: map
 // ---------------------------------------------------------------------------
 static void draw_map(const MBState *s) {
     int ax = map_ax(), ay = map_ay(), aw = map_aw(), ah = map_ah();
@@ -441,7 +512,7 @@ static void draw_map(const MBState *s) {
     if (endX > s->map->width)  endX = s->map->width;
     if (endY > s->map->height) endY = s->map->height;
 
-    // Tiles
+    // Pass 1: ground layer
     for (int ty = startY; ty < endY; ty++) {
         for (int tx = startX; tx < endX; tx++) {
             const MapCell *cell = worldmap_cell(s->map, tx, ty);
@@ -450,7 +521,32 @@ static void draw_map(const MBState *s) {
         }
     }
 
-    // Grid lines (always on; alpha scales with zoom)
+    // Pass 2: object layer (transparent sprites let ground show through)
+    for (int ty = startY; ty < endY; ty++) {
+        for (int tx = startX; tx < endX; tx++) {
+            const MapCell *cell = worldmap_obj_cell(s->map, tx, ty);
+            if (!cell || cell->type == TILE_NONE) continue;
+            tileatlas_draw_cell(&s->atlas, cell, tile_px(s, tx), tile_py(s, ty), s->scale);
+        }
+    }
+
+    // Dim the inactive layer slightly so the active one reads clearly
+    if (s->activeLayer == LAYER_GROUND) {
+        // Dim object layer: draw a semi-transparent overlay only where objects exist
+        for (int ty = startY; ty < endY; ty++) {
+            for (int tx = startX; tx < endX; tx++) {
+                const MapCell *cell = worldmap_obj_cell(s->map, tx, ty);
+                if (!cell || cell->type == TILE_NONE) continue;
+                int px = tile_px(s, tx), py = tile_py(s, ty), sz = (int)td;
+                DrawRectangle(px, py, sz, sz, (Color){0, 0, 0, 80});
+            }
+        }
+    } else {
+        // Dim ground layer with a global semi-transparent overlay
+        DrawRectangle(ax, ay, aw, ah, (Color){0, 0, 0, 55});
+    }
+
+    // Grid lines
     {
         int sz = (int)td;
         if (sz >= 3) {
@@ -495,12 +591,13 @@ static void draw_map(const MBState *s) {
             else
                 DrawRectangleLines(hpx, hpy, hsz, hsz, C_HOVER);
 
-            // Tile info overlay
-            const MapCell *hc = worldmap_cell(s->map, tx, ty);
+            // Tile info for the active layer
+            const MapCell *hc = active_cell(s, tx, ty);
             if (hc) {
+                const char *layerStr = (s->activeLayer == LAYER_GROUND) ? "gnd" : "obj";
                 char tbuf[80];
-                snprintf(tbuf, sizeof(tbuf), "[%d, %d]  %s  v%d",
-                         tx, ty, TILE_INFO[hc->type].label, hc->variant);
+                snprintf(tbuf, sizeof(tbuf), "[%d,%d] %s  %s  v%d",
+                         tx, ty, layerStr, TILE_INFO[hc->type].label, hc->variant);
                 int tw = MeasureText(tbuf, 11);
                 DrawRectangle(ax + 2, ay + 2, tw + 10, 17, (Color){0, 0, 0, 160});
                 DrawText(tbuf, ax + 7, ay + 4, 11, C_TEXT);
@@ -509,6 +606,10 @@ static void draw_map(const MBState *s) {
     }
 
     EndScissorMode();
+
+    // Layer accent border on the map area
+    Color layerAccent = (s->activeLayer == LAYER_GROUND) ? C_LAYER_GROUND : C_LAYER_OBJECTS;
+    DrawRectangleLines(ax, ay, aw, ah, layerAccent);
 }
 
 // ---------------------------------------------------------------------------
@@ -520,13 +621,13 @@ static void draw_status(const MBState *s) {
     DrawLine(0, sy, SCREEN_W, sy, C_BORDER);
 
     char buf[320];
-    snprintf(buf, sizeof(buf), "  %s  |  %d x %d tiles  |  zoom %.1fx  |  %s",
+    snprintf(buf, sizeof(buf), "  %s  |  %d x %d  |  zoom %.1fx  |  %s",
              s->filePath, s->map->width, s->map->height,
              s->scale, s->dirty ? "UNSAVED *" : "saved");
     DrawText(buf, 4, sy + 7, 11, C_TEXT_DIM);
 
     const char *hints =
-        "Ctrl+S/O/N/Z  |  P B I R tools  |  [ ] brush  |  +/- variant  |  Home centre";
+        "Ctrl+S/O/N/Z  |  P B I R tools  |  [ ] brush  |  +/- variant  |  Tab layer  |  Home centre";
     int hw = MeasureText(hints, 10);
     DrawText(hints, SCREEN_W - hw - 8, sy + 8, 10, (Color){76, 90, 114, 255});
 
@@ -540,7 +641,7 @@ static void draw_status(const MBState *s) {
 }
 
 // ---------------------------------------------------------------------------
-// Input
+// Input handling
 // ---------------------------------------------------------------------------
 static void handle_input(MBState *s) {
     float dt = GetFrameTime();
@@ -551,6 +652,11 @@ static void handle_input(MBState *s) {
     int ax = map_ax(), ay = map_ay(), aw = map_aw(), ah = map_ah();
     bool inMap = (mouse.x > ax && mouse.x < ax + aw &&
                   mouse.y > ay && mouse.y < ay + ah);
+
+    // Layer switching
+    if (IsKeyPressed(KEY_TAB)) s->activeLayer = (s->activeLayer == LAYER_GROUND) ? LAYER_OBJECTS : LAYER_GROUND;
+    if (IsKeyPressed(KEY_ONE)) s->activeLayer = LAYER_GROUND;
+    if (IsKeyPressed(KEY_TWO)) s->activeLayer = LAYER_OBJECTS;
 
     // Tool hotkeys
     if (IsKeyPressed(KEY_P)) s->tool = TOOL_PENCIL;
@@ -681,11 +787,13 @@ static void handle_input(MBState *s) {
                     if (leftDown) {
                         paint_brush(s, tx, ty);
                     } else {
+                        // Right-click: erase to layer default
+                        TileType et = erase_type(s); int ev = erase_variant(s);
                         int half = s->brushSize / 2;
-                        for (int ddy = -half; ddy <= half; ddy++) {
-                            for (int ddx = -half; ddx <= half; ddx++) {
-                                MapCell *c = worldmap_cell(s->map, tx+ddx, ty+ddy);
-                                if (c) { c->type = TILE_GRASS; c->variant = 2; }
+                        for (int dy = -half; dy <= half; dy++) {
+                            for (int dx = -half; dx <= half; dx++) {
+                                MapCell *c = active_cell(s, tx+dx, ty+dy);
+                                if (c) { c->type = (uint8_t)et; c->variant = (uint8_t)ev; }
                             }
                         }
                         s->dirty = true;
@@ -699,7 +807,7 @@ static void handle_input(MBState *s) {
                 save_undo(s); flood_fill(s, tx, ty); s->dirty = true;
             } else if (rightPres && onTile) {
                 TileType oldType = s->selType; int oldVar = s->selVariant;
-                s->selType = TILE_GRASS; s->selVariant = 2;
+                s->selType = erase_type(s); s->selVariant = erase_variant(s);
                 save_undo(s); flood_fill(s, tx, ty); s->dirty = true;
                 s->selType = oldType; s->selVariant = oldVar;
             }
@@ -707,7 +815,7 @@ static void handle_input(MBState *s) {
 
         case TOOL_EYEDROP:
             if (leftPres && onTile) {
-                const MapCell *c = worldmap_cell(s->map, tx, ty);
+                const MapCell *c = active_cell(s, tx, ty);
                 if (c) {
                     s->selType    = (TileType)c->type;
                     s->selVariant = (int)c->variant;
@@ -732,7 +840,7 @@ static void handle_input(MBState *s) {
                 int ry1 = s->rectY0 > s->rectY1 ? s->rectY0 : s->rectY1;
                 for (int y = ry0; y <= ry1; y++) {
                     for (int x = rx0; x <= rx1; x++) {
-                        MapCell *c = worldmap_cell(s->map, x, y);
+                        MapCell *c = active_cell(s, x, y);
                         if (c) { c->type=(uint8_t)s->selType; c->variant=(uint8_t)s->selVariant; }
                     }
                 }
@@ -754,12 +862,13 @@ int main(void) {
     SetTargetFPS(60);
 
     MBState s = {0};
-    s.map        = worldmap_create(DEFAULT_MAP_W, DEFAULT_MAP_H);
-    s.selType    = TILE_GRASS;
-    s.selVariant = 2;
-    s.scale      = 3.0f;
-    s.brushSize  = 1;
-    s.tool       = TOOL_PENCIL;
+    s.map         = worldmap_create(DEFAULT_MAP_W, DEFAULT_MAP_H);
+    s.selType     = TILE_GRASS;
+    s.selVariant  = 2;
+    s.activeLayer = LAYER_GROUND;
+    s.scale       = 3.0f;
+    s.brushSize   = 1;
+    s.tool        = TOOL_PENCIL;
     strncpy(s.filePath, DEFAULT_FILE, sizeof(s.filePath) - 1);
 
     tileatlas_load(&s.atlas);
@@ -780,6 +889,7 @@ int main(void) {
         ClearBackground(C_BG);
         draw_map(&s);
         draw_palette(&s);
+        draw_layer_bar(&s);
         draw_toolbar(&s);
         draw_status(&s);
         EndDrawing();

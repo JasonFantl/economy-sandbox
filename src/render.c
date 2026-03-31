@@ -64,10 +64,22 @@ void render_world(const WorldMap *map, const TileAtlas *tiles,
     (void)tilesAcross; (void)tilesDown;
 
     if (map) {
+        // Pass 1 — ground layer
         for (int ty = 0; ty < map->height; ty++) {
             for (int tx = 0; tx < map->width; tx++) {
                 const MapCell *cell = worldmap_cell(map, tx, ty);
                 if (!cell) continue;
+                int px = (int)((float)tx * TILE_SIZE * WORLD_TILE_SCALE);
+                int py = (int)((float)ty * TILE_SIZE * WORLD_TILE_SCALE);
+                if (px > SCREEN_W || py > WORLD_VIEW_H) continue;
+                tileatlas_draw_cell(tiles, cell, px, py, WORLD_TILE_SCALE);
+            }
+        }
+        // Pass 2 — object layer (PNG transparency lets ground show through)
+        for (int ty = 0; ty < map->height; ty++) {
+            for (int tx = 0; tx < map->width; tx++) {
+                const MapCell *cell = worldmap_obj_cell(map, tx, ty);
+                if (!cell || cell->type == TILE_NONE) continue;
                 int px = (int)((float)tx * TILE_SIZE * WORLD_TILE_SCALE);
                 int py = (int)((float)ty * TILE_SIZE * WORLD_TILE_SCALE);
                 if (px > SCREEN_W || py > WORLD_VIEW_H) continue;

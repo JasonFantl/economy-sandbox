@@ -8,41 +8,44 @@
 
 // ---------------------------------------------------------------------------
 // Tile types — shared between game and map builder
+//
+// TILE_NONE (0) is the "empty" sentinel used in the object layer to mean
+// "nothing here".  Ground cells should never contain TILE_NONE.
 // ---------------------------------------------------------------------------
 
 typedef enum {
+    TILE_NONE       = 0,   // empty / transparent (object layer only)
     // Ground (walkable)
-    TILE_GRASS        = 0,
-    TILE_GRASS_ALT    = 1,
-    TILE_PATH         = 2,
-    TILE_DEAD_GRASS   = 3,   // Ground/DeadGrass.png  48×32 — 3×2 = 6 variants
+    TILE_GRASS      = 1,
+    TILE_GRASS_ALT  = 2,
+    TILE_PATH       = 3,
+    TILE_DEAD_GRASS = 4,   // Ground/DeadGrass.png  48×32 — 6 variants
     // Terrain (not walkable)
-    TILE_WATER        = 4,
-    TILE_TREE         = 5,
-    TILE_PINE_TREE    = 6,
-    TILE_ROCK         = 7,
-    TILE_WHEATFIELD   = 8,   // Nature/Wheatfield.png 64×16 — 4 variants (walkable, resource)
+    TILE_WATER      = 5,
+    TILE_TREE       = 6,
+    TILE_PINE_TREE  = 7,
+    TILE_ROCK       = 8,
+    TILE_WHEATFIELD = 9,   // Nature/Wheatfield.png 64×16 — 4 variants (walkable, resource)
     // Buildings — each carries an economic role
-    TILE_HUT          = 9,   // simple dwelling: agents rest here
-    TILE_HOUSE        = 10,  // dwelling: agents rest here
-    TILE_MARKET       = 11,  // trading location
-    TILE_WORKSHOP     = 12,  // production (wood → chair)
-    TILE_RESOURCE     = 13,  // resource gathering / stockpile
-    TILE_TAVERN       = 14,  // leisure location
+    TILE_HUT        = 10,  // simple dwelling: agents rest here
+    TILE_HOUSE      = 11,  // dwelling: agents rest here
+    TILE_MARKET     = 12,  // trading location
+    TILE_WORKSHOP   = 13,  // production (wood → chair)
+    TILE_RESOURCE   = 14,  // resource gathering / stockpile
+    TILE_TAVERN     = 15,  // leisure location
     // Miscellaneous
-    TILE_BRIDGE       = 15,  // Miscellaneous/Bridge.png  80×48 — 5×3 = 15 variants (walkable)
-    TILE_WELL         = 16,  // Miscellaneous/Well.png    48×32 — 3×2 = 6 variants
-    TILE_CHEST        = 17,  // Miscellaneous/Chests.png  32×16 — 2 variants
-    TILE_SIGN         = 18,  // Miscellaneous/Signs.png   64×16 — 4 variants (walkable)
-    TILE_COUNT        = 19
+    TILE_BRIDGE     = 16,  // Miscellaneous/Bridge.png  80×48 — 15 variants (walkable)
+    TILE_WELL       = 17,  // Miscellaneous/Well.png    48×32 — 6 variants
+    TILE_CHEST      = 18,  // Miscellaneous/Chests.png  32×16 — 2 variants
+    TILE_SIGN       = 19,  // Miscellaneous/Signs.png   64×16 — 4 variants (walkable)
+    TILE_COUNT      = 20
 } TileType;
 
-// Static metadata for each tile type — walkability and economic role
+// Static metadata for each tile type
 typedef struct {
     const char *label;
     bool        walkable;
     bool        isBuilding;
-    // Economic roles (used by the simulation)
     bool        isHome;
     bool        isMarket;
     bool        isWorkshop;
@@ -53,29 +56,54 @@ typedef struct {
 extern const TileInfo TILE_INFO[TILE_COUNT];
 
 // ---------------------------------------------------------------------------
-// Map cells and world map
+// Layer identifiers
 // ---------------------------------------------------------------------------
+typedef enum {
+    LAYER_GROUND  = 0,   // base terrain — always filled
+    LAYER_OBJECTS = 1,   // buildings, trees, props — TILE_NONE means empty
+} MapLayer;
 
+// ---------------------------------------------------------------------------
+// Map cells
+// ---------------------------------------------------------------------------
 typedef struct {
-    uint8_t type;     // TileType — what kind of tile
-    uint8_t variant;  // visual variant index within that tile type
+    uint8_t type;     // TileType
+    uint8_t variant;  // visual variant index
 } MapCell;
 
+// ---------------------------------------------------------------------------
+// Two-layer world map
+//
+// ground  — every cell always holds a ground tile (grass, path, water …)
+// objects — every cell either holds an object tile or TILE_NONE (empty)
+// ---------------------------------------------------------------------------
 typedef struct {
     int      width, height;
-    MapCell *cells;           // row-major: cells[y * width + x]
+    MapCell *ground;    // ground layer  (row-major: [y*width + x])
+    MapCell *objects;   // object layer  (TILE_NONE type == empty)
 } WorldMap;
 
 // ---------------------------------------------------------------------------
 // Map lifecycle and I/O
-// Binary format: magic "ECON", uint16 version=1, uint16 w, uint16 h,
-//                then (w*h) MapCell entries (2 bytes each)
+//
+// Binary format v2:
+//   [4]  magic  "ECON"
+//   [2]  version uint16 = 2
+//   [2]  width   uint16
+//   [2]  height  uint16
+//   [w×h × 2]  ground cells (MapCell)
+//   [w×h × 2]  object cells (MapCell)
+//
+// v1 maps (single cell array) are loaded into ground; objects layer is empty.
 // ---------------------------------------------------------------------------
 
-WorldMap *worldmap_create(int width, int height);   // filled with TILE_GRASS
+WorldMap *worldmap_create(int width, int height);    // ground=grass v2, objects=TILE_NONE
 void      worldmap_free(WorldMap *m);
-MapCell  *worldmap_cell(const WorldMap *m, int x, int y); // NULL if out of bounds
 bool      worldmap_save(const WorldMap *m, const char *path);
-WorldMap *worldmap_load(const char *path);          // NULL on failure
+WorldMap *worldmap_load(const char *path);           // NULL on failure
+
+// Cell accessors — return NULL if coordinates are out of bounds
+MapCell *worldmap_cell(const WorldMap *m, int x, int y);      // ground layer
+MapCell *worldmap_obj_cell(const WorldMap *m, int x, int y);  // object layer
 
 #endif

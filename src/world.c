@@ -8,6 +8,7 @@
 // ---------------------------------------------------------------------------
 //                              label             walk   bldg   home   mkt    wkshp  rsrc   leis
 const TileInfo TILE_INFO[TILE_COUNT] = {
+    [TILE_NONE]       = { "(empty)",       false, false, false, false, false, false, false },
     [TILE_GRASS]      = { "Grass",         true,  false, false, false, false, false, false },
     [TILE_GRASS_ALT]  = { "Grass (alt)",   true,  false, false, false, false, false, false },
     [TILE_PATH]       = { "Path",          true,  false, false, false, false, false, false },
@@ -38,45 +39,68 @@ WorldMap *worldmap_create(int width, int height) {
     if (!m) return NULL;
     m->width  = width;
     m->height = height;
-    m->cells  = malloc((size_t)(width * height) * sizeof(MapCell));
-    if (!m->cells) { free(m); return NULL; }
-    // Fill with middle grass variant (variant 2 = mid-green)
-    for (int i = 0; i < width * height; i++) {
-        m->cells[i].type    = TILE_GRASS;
-        m->cells[i].variant = 2;
+
+    int n = width * height;
+    m->ground  = malloc((size_t)n * sizeof(MapCell));
+    m->objects = malloc((size_t)n * sizeof(MapCell));
+    if (!m->ground || !m->objects) {
+        free(m->ground); free(m->objects); free(m); return NULL;
+    }
+
+    // Ground: fill with mid-green grass (variant 2)
+    for (int i = 0; i < n; i++) {
+        m->ground[i].type    = TILE_GRASS;
+        m->ground[i].variant = 2;
+    }
+    // Objects: all empty
+    for (int i = 0; i < n; i++) {
+        m->objects[i].type    = TILE_NONE;
+        m->objects[i].variant = 0;
     }
     return m;
 }
 
 void worldmap_free(WorldMap *m) {
     if (!m) return;
-    free(m->cells);
+    free(m->ground);
+    free(m->objects);
     free(m);
 }
 
 MapCell *worldmap_cell(const WorldMap *m, int x, int y) {
     if (!m || x < 0 || x >= m->width || y < 0 || y >= m->height) return NULL;
-    return &m->cells[y * m->width + x];
+    return &m->ground[y * m->width + x];
+}
+
+MapCell *worldmap_obj_cell(const WorldMap *m, int x, int y) {
+    if (!m || x < 0 || x >= m->width || y < 0 || y >= m->height) return NULL;
+    return &m->objects[y * m->width + x];
 }
 
 // ---------------------------------------------------------------------------
 // File I/O
+//
+// v2: magic "ECON", version=2, width, height, ground cells, object cells
+// v1: magic "ECON", version=1, width, height, single cells array
+//     → load into ground; create empty objects layer
 // ---------------------------------------------------------------------------
 
 bool worldmap_save(const WorldMap *m, const char *path) {
     FILE *f = fopen(path, "wb");
     if (!f) return false;
 
-    const uint8_t magic[4] = {'E','C','O','N'};
-    uint16_t ver = 1;
+    const uint8_t magic[4] = {'E', 'C', 'O', 'N'};
+    uint16_t ver = 2;
     uint16_t w   = (uint16_t)m->width;
     uint16_t h   = (uint16_t)m->height;
+    int      n   = m->width * m->height;
 
-    fwrite(magic, 1, 4, f);
-    fwrite(&ver,  2, 1, f);
-    fwrite(&w,    2, 1, f);
-    fwrite(&h,    2, 1, f);
-    fwrite(m->cells, sizeof(MapCell), (size_t)(m->width * m->height), f);
+    fwrite(magic,    1, 4, f);
+    fwrite(&ver,     2, 1, f);
+    fwrite(&w,       2, 1, f);
+    fwrite(&h,       2, 1, f);
+    fwrite(m->ground,  sizeof(MapCell), (size_t)n, f);
+    fwrite(m->objects, sizeof(MapCell), (size_t)n, f);
 
     fclose(f);
     return true;
@@ -100,7 +124,16 @@ WorldMap *worldmap_load(const char *path) {
     WorldMap *m = worldmap_create((int)w, (int)h);
     if (!m) { fclose(f); return NULL; }
 
-    fread(m->cells, sizeof(MapCell), (size_t)(w * h), f);
+    int n = (int)w * (int)h;
+
+    if (ver == 2) {
+        fread(m->ground,  sizeof(MapCell), (size_t)n, f);
+        fread(m->objects, sizeof(MapCell), (size_t)n, f);
+    } else {
+        // v1: single layer — load into ground, objects stay empty (TILE_NONE)
+        fread(m->ground, sizeof(MapCell), (size_t)n, f);
+    }
+
     fclose(f);
     return m;
 }
