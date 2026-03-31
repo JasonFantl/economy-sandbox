@@ -15,19 +15,26 @@ typedef enum {
     TILE_GRASS        = 0,
     TILE_GRASS_ALT    = 1,
     TILE_PATH         = 2,
+    TILE_DEAD_GRASS   = 3,   // Ground/DeadGrass.png  48×32 — 3×2 = 6 variants
     // Terrain (not walkable)
-    TILE_WATER        = 3,
-    TILE_TREE         = 4,
-    TILE_PINE_TREE    = 5,
-    TILE_ROCK         = 6,
+    TILE_WATER        = 4,
+    TILE_TREE         = 5,
+    TILE_PINE_TREE    = 6,
+    TILE_ROCK         = 7,
+    TILE_WHEATFIELD   = 8,   // Nature/Wheatfield.png 64×16 — 4 variants (walkable, resource)
     // Buildings — each carries an economic role
-    TILE_HUT          = 7,   // simple dwelling: agents rest here
-    TILE_HOUSE        = 8,   // dwelling: agents rest here
-    TILE_MARKET       = 9,   // trading location
-    TILE_WORKSHOP     = 10,  // production (wood → chair)
-    TILE_RESOURCE     = 11,  // resource gathering / stockpile
-    TILE_TAVERN       = 12,  // leisure location
-    TILE_COUNT        = 13
+    TILE_HUT          = 9,   // simple dwelling: agents rest here
+    TILE_HOUSE        = 10,  // dwelling: agents rest here
+    TILE_MARKET       = 11,  // trading location
+    TILE_WORKSHOP     = 12,  // production (wood → chair)
+    TILE_RESOURCE     = 13,  // resource gathering / stockpile
+    TILE_TAVERN       = 14,  // leisure location
+    // Miscellaneous
+    TILE_BRIDGE       = 15,  // Miscellaneous/Bridge.png  80×48 — 5×3 = 15 variants (walkable)
+    TILE_WELL         = 16,  // Miscellaneous/Well.png    48×32 — 3×2 = 6 variants
+    TILE_CHEST        = 17,  // Miscellaneous/Chests.png  32×16 — 2 variants
+    TILE_SIGN         = 18,  // Miscellaneous/Signs.png   64×16 — 4 variants (walkable)
+    TILE_COUNT        = 19
 } TileType;
 
 // Static metadata for each tile type — walkability and economic role

@@ -8,19 +8,25 @@
 // ---------------------------------------------------------------------------
 //                              label             walk   bldg   home   mkt    wkshp  rsrc   leis
 const TileInfo TILE_INFO[TILE_COUNT] = {
-    [TILE_GRASS]     = { "Grass",         true,  false, false, false, false, false, false },
-    [TILE_GRASS_ALT] = { "Grass (alt)",   true,  false, false, false, false, false, false },
-    [TILE_PATH]      = { "Path",          true,  false, false, false, false, false, false },
-    [TILE_WATER]     = { "Water",         false, false, false, false, false, false, false },
-    [TILE_TREE]      = { "Tree",          false, false, false, false, false, true,  false },
-    [TILE_PINE_TREE] = { "Pine Tree",     false, false, false, false, false, false, false },
-    [TILE_ROCK]      = { "Rock",          false, false, false, false, false, false, false },
-    [TILE_HUT]       = { "Hut",          false, true,  true,  false, false, false, false },
-    [TILE_HOUSE]     = { "House",         false, true,  true,  false, false, false, false },
-    [TILE_MARKET]    = { "Market",        false, true,  false, true,  false, false, false },
-    [TILE_WORKSHOP]  = { "Workshop",      false, true,  false, false, true,  false, false },
-    [TILE_RESOURCE]  = { "Resource Store",false, true,  false, false, false, true,  false },
-    [TILE_TAVERN]    = { "Tavern",        false, true,  false, false, false, false, true  },
+    [TILE_GRASS]      = { "Grass",         true,  false, false, false, false, false, false },
+    [TILE_GRASS_ALT]  = { "Grass (alt)",   true,  false, false, false, false, false, false },
+    [TILE_PATH]       = { "Path",          true,  false, false, false, false, false, false },
+    [TILE_DEAD_GRASS] = { "Dead Grass",    true,  false, false, false, false, false, false },
+    [TILE_WATER]      = { "Water",         false, false, false, false, false, false, false },
+    [TILE_TREE]       = { "Tree",          false, false, false, false, false, true,  false },
+    [TILE_PINE_TREE]  = { "Pine Tree",     false, false, false, false, false, false, false },
+    [TILE_ROCK]       = { "Rock",          false, false, false, false, false, false, false },
+    [TILE_WHEATFIELD] = { "Wheatfield",    true,  false, false, false, false, true,  false },
+    [TILE_HUT]        = { "Hut",           false, true,  true,  false, false, false, false },
+    [TILE_HOUSE]      = { "House",         false, true,  true,  false, false, false, false },
+    [TILE_MARKET]     = { "Market",        false, true,  false, true,  false, false, false },
+    [TILE_WORKSHOP]   = { "Workshop",      false, true,  false, false, true,  false, false },
+    [TILE_RESOURCE]   = { "Resource Store",false, true,  false, false, false, true,  false },
+    [TILE_TAVERN]     = { "Tavern",        false, true,  false, false, false, false, true  },
+    [TILE_BRIDGE]     = { "Bridge",        true,  false, false, false, false, false, false },
+    [TILE_WELL]       = { "Well",          false, false, false, false, false, false, false },
+    [TILE_CHEST]      = { "Chest",         false, false, false, false, false, true,  false },
+    [TILE_SIGN]       = { "Sign",          true,  false, false, false, false, false, false },
 };
 
 // ---------------------------------------------------------------------------
@@ -32,9 +38,14 @@ WorldMap *worldmap_create(int width, int height) {
     if (!m) return NULL;
     m->width  = width;
     m->height = height;
-    m->cells  = calloc((size_t)(width * height), sizeof(MapCell));
+    m->cells  = malloc((size_t)(width * height) * sizeof(MapCell));
     if (!m->cells) { free(m); return NULL; }
-    return m;  // calloc zeroes memory; TILE_GRASS == 0, variant == 0
+    // Fill with middle grass variant (variant 2 = mid-green)
+    for (int i = 0; i < width * height; i++) {
+        m->cells[i].type    = TILE_GRASS;
+        m->cells[i].variant = 2;
+    }
+    return m;
 }
 
 void worldmap_free(WorldMap *m) {
