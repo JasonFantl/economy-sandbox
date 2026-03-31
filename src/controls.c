@@ -29,13 +29,13 @@ static bool in_rect(float mx, float my, int rx, int ry, int rw, int rh) {
     return mx >= rx && mx <= rx + rw && my >= ry && my <= ry + rh;
 }
 
-static void start_edit(InfluencePanel *p, InfEditField field) {
+static void start_edit(InfluencePanel *p, InfluenceEditField field) {
     p->editing = field;
     switch (field) {
-        case INF_EDIT_N:     snprintf(p->buf, sizeof(p->buf), "%d",   p->n);          break;
-        case INF_EDIT_MONEY: snprintf(p->buf, sizeof(p->buf), "%.1f", p->deltaMoney); break;
-        case INF_EDIT_F:     snprintf(p->buf, sizeof(p->buf), "%.1f", p->f);          break;
-        case INF_EDIT_GOODS: snprintf(p->buf, sizeof(p->buf), "%d",   p->deltaGoods); break;
+        case INF_EDIT_NUM_AGENTS:  snprintf(p->buf, sizeof(p->buf), "%d",   p->numAgents);      break;
+        case INF_EDIT_MONEY:       snprintf(p->buf, sizeof(p->buf), "%.1f", p->moneyDelta);     break;
+        case INF_EDIT_VALUATION:   snprintf(p->buf, sizeof(p->buf), "%.1f", p->valuationDelta); break;
+        case INF_EDIT_GOODS:       snprintf(p->buf, sizeof(p->buf), "%d",   p->goodsDelta);     break;
         default: break;
     }
     p->bufLen = (int)strlen(p->buf);
@@ -43,24 +43,24 @@ static void start_edit(InfluencePanel *p, InfEditField field) {
 
 static void apply_edit(InfluencePanel *p) {
     switch (p->editing) {
-        case INF_EDIT_N:     { int v = atoi(p->buf); if (v > 0) p->n = v; }  break;
-        case INF_EDIT_MONEY: p->deltaMoney = (float)atof(p->buf);             break;
-        case INF_EDIT_F:     p->f = (float)atof(p->buf);                      break;
-        case INF_EDIT_GOODS: p->deltaGoods = atoi(p->buf);                    break;
+        case INF_EDIT_NUM_AGENTS: { int v = atoi(p->buf); if (v > 0) p->numAgents = v; }  break;
+        case INF_EDIT_MONEY:      p->moneyDelta     = (float)atof(p->buf);                 break;
+        case INF_EDIT_VALUATION:  p->valuationDelta = (float)atof(p->buf);                 break;
+        case INF_EDIT_GOODS:      p->goodsDelta     = atoi(p->buf);                        break;
         default: break;
     }
     p->editing = INF_EDIT_NONE;
 }
 
 void influence_panel_init(InfluencePanel *p) {
-    p->n          = 30;
-    p->deltaMoney = 100.0f;
-    p->f          = 5.0f;
-    p->deltaGoods = 10;
-    p->marketId   = MARKET_WOOD;
-    p->editing    = INF_EDIT_NONE;
-    p->bufLen     = 0;
-    p->buf[0]     = '\0';
+    p->numAgents      = 30;
+    p->moneyDelta     = 100.0f;
+    p->valuationDelta = 5.0f;
+    p->goodsDelta     = 10;
+    p->marketId       = MARKET_WOOD;
+    p->editing        = INF_EDIT_NONE;
+    p->bufLen         = 0;
+    p->buf[0]         = '\0';
 }
 
 bool influence_panel_update(InfluencePanel *p, Agent *agents, int agentCount) {
@@ -85,8 +85,8 @@ bool influence_panel_update(InfluencePanel *p, Agent *agents, int agentCount) {
     if (!in_rect(m.x, m.y, PNL_X, PNL_Y, PNL_W, PNL_H)) return false;
 
     if (in_rect(m.x, m.y, PNL_X, ROW_Y_N, PNL_W, ROW_H)) {
-        if (p->editing == INF_EDIT_N) apply_edit(p);
-        else start_edit(p, INF_EDIT_N);
+        if (p->editing == INF_EDIT_NUM_AGENTS) apply_edit(p);
+        else start_edit(p, INF_EDIT_NUM_AGENTS);
         return true;
     }
     if (in_rect(m.x, m.y, PNL_X, ROW_Y_MONEY, PNL_W, ROW_H)) {
@@ -107,8 +107,8 @@ bool influence_panel_update(InfluencePanel *p, Agent *agents, int agentCount) {
         return true;
     }
     if (in_rect(m.x, m.y, PNL_X, ROW_Y_F, PNL_W, ROW_H)) {
-        if (p->editing == INF_EDIT_F) apply_edit(p);
-        else start_edit(p, INF_EDIT_F);
+        if (p->editing == INF_EDIT_VALUATION) apply_edit(p);
+        else start_edit(p, INF_EDIT_VALUATION);
         return true;
     }
     if (in_rect(m.x, m.y, PNL_X, ROW_Y_GOODS, PNL_W, ROW_H)) {
@@ -119,9 +119,9 @@ bool influence_panel_update(InfluencePanel *p, Agent *agents, int agentCount) {
     // Apply button
     if (in_rect(m.x, m.y, PNL_X + PAD, BTN_Y, PNL_W - 2*PAD, BTN_H)) {
         if (p->editing != INF_EDIT_NONE) apply_edit(p);
-        if (p->deltaMoney != 0.0f)  agents_give_money(agents, agentCount, p->n, p->deltaMoney);
-        if (p->f != 0.0f)           agents_influence(agents, agentCount, p->n, p->f, p->marketId);
-        if (p->deltaGoods != 0)     agents_give_goods(agents, agentCount, p->n, p->deltaGoods, p->marketId);
+        if (p->moneyDelta != 0.0f)     agents_inject_money(agents, agentCount, p->numAgents, p->moneyDelta);
+        if (p->valuationDelta != 0.0f) agents_adjust_valuations(agents, agentCount, p->numAgents, p->valuationDelta, p->marketId);
+        if (p->goodsDelta != 0)        agents_inject_goods(agents, agentCount, p->numAgents, p->goodsDelta, p->marketId);
         return true;
     }
 
@@ -138,7 +138,7 @@ void influence_panel_render(const InfluencePanel *p) {
 
     // N row
     {
-        bool editing = (p->editing == INF_EDIT_N);
+        bool editing = (p->editing == INF_EDIT_NUM_AGENTS);
         Color bg = editing ? (Color){20, 60, 90, 255} : (Color){35, 48, 60, 255};
         DrawRectangle(PNL_X, ROW_Y_N, PNL_W, ROW_H - 1, bg);
         DrawRectangleLines(PNL_X, ROW_Y_N, PNL_W, ROW_H - 1, (Color){70, 95, 115, 255});
@@ -149,7 +149,7 @@ void influence_panel_render(const InfluencePanel *p) {
             snprintf(val, sizeof(val), "%s%s", p->buf, cur ? "|" : " ");
             DrawText(val, PNL_X + PNL_W - MeasureText(val, 13) - 6, ROW_Y_N + 5, 13, WHITE);
         } else {
-            snprintf(val, sizeof(val), "%d", p->n);
+            snprintf(val, sizeof(val), "%d", p->numAgents);
             DrawText(val, PNL_X + PNL_W - MeasureText(val, 13) - 6, ROW_Y_N + 5, 13, (Color){80, 180, 255, 255});
         }
     }
@@ -167,27 +167,27 @@ void influence_panel_render(const InfluencePanel *p) {
             snprintf(val, sizeof(val), "%s%s", p->buf, cur ? "|" : " ");
             DrawText(val, PNL_X + PNL_W - MeasureText(val, 13) - 6, ROW_Y_MONEY + 5, 13, WHITE);
         } else {
-            snprintf(val, sizeof(val), "%+.0f", p->deltaMoney);
-            Color col = (p->deltaMoney >= 0) ? (Color){60, 210, 90, 255} : (Color){220, 70, 70, 255};
+            snprintf(val, sizeof(val), "%+.0f", p->moneyDelta);
+            Color col = (p->moneyDelta >= 0) ? (Color){60, 210, 90, 255} : (Color){220, 70, 70, 255};
             DrawText(val, PNL_X + PNL_W - MeasureText(val, 13) - 6, ROW_Y_MONEY + 5, 13, col);
         }
     }
 
-    // Δ value row
+    // Δ valuation row
     {
-        bool editing = (p->editing == INF_EDIT_F);
+        bool editing = (p->editing == INF_EDIT_VALUATION);
         Color bg = editing ? (Color){20, 60, 90, 255} : (Color){35, 48, 60, 255};
         DrawRectangle(PNL_X, ROW_Y_F, PNL_W, ROW_H - 1, bg);
         DrawRectangleLines(PNL_X, ROW_Y_F, PNL_W, ROW_H - 1, (Color){70, 95, 115, 255});
-        DrawText("\xce\x94 value:", PNL_X + 6, ROW_Y_F + 5, 13, (Color){170, 175, 185, 255});
+        DrawText("\xce\x94 valuation:", PNL_X + 6, ROW_Y_F + 5, 13, (Color){170, 175, 185, 255});
         char val[24];
         if (editing) {
             bool cur = (int)(GetTime() * 2) % 2 == 0;
             snprintf(val, sizeof(val), "%s%s", p->buf, cur ? "|" : " ");
             DrawText(val, PNL_X + PNL_W - MeasureText(val, 13) - 6, ROW_Y_F + 5, 13, WHITE);
         } else {
-            snprintf(val, sizeof(val), "%+.1f", p->f);
-            Color col = (p->f >= 0) ? (Color){60, 210, 90, 255} : (Color){220, 70, 70, 255};
+            snprintf(val, sizeof(val), "%+.1f", p->valuationDelta);
+            Color col = (p->valuationDelta >= 0) ? (Color){60, 210, 90, 255} : (Color){220, 70, 70, 255};
             DrawText(val, PNL_X + PNL_W - MeasureText(val, 13) - 6, ROW_Y_F + 5, 13, col);
         }
     }
@@ -205,8 +205,8 @@ void influence_panel_render(const InfluencePanel *p) {
             snprintf(val, sizeof(val), "%s%s", p->buf, cur ? "|" : " ");
             DrawText(val, PNL_X + PNL_W - MeasureText(val, 13) - 6, ROW_Y_GOODS + 5, 13, WHITE);
         } else {
-            snprintf(val, sizeof(val), "%+d", p->deltaGoods);
-            Color col = (p->deltaGoods >= 0) ? (Color){60, 210, 90, 255} : (Color){220, 70, 70, 255};
+            snprintf(val, sizeof(val), "%+d", p->goodsDelta);
+            Color col = (p->goodsDelta >= 0) ? (Color){60, 210, 90, 255} : (Color){220, 70, 70, 255};
             DrawText(val, PNL_X + PNL_W - MeasureText(val, 13) - 6, ROW_Y_GOODS + 5, 13, col);
         }
     }
@@ -259,7 +259,7 @@ void influence_panel_render(const InfluencePanel *p) {
 }
 
 // ---------------------------------------------------------------------------
-// BreakRatePanel
+// DecayRatePanel
 // ---------------------------------------------------------------------------
 
 // Positioned to the right of the influence panel
@@ -276,14 +276,14 @@ void influence_panel_render(const InfluencePanel *p) {
 #define BR_ROW_Y_CHAIR (BR_ROW_Y_WOOD + BR_ROW_H)
 #define BR_ROW_Y_DEBT  (BR_ROW_Y_CHAIR + BR_ROW_H)
 
-void break_rate_panel_init(BreakRatePanel *p) {
-    p->editing = BR_EDIT_NONE;
+void decay_rate_panel_init(DecayRatePanel *p) {
+    p->editing = DECAY_EDIT_NONE;
     p->bufLen  = 0;
     p->buf[0]  = '\0';
 }
 
-bool break_rate_panel_update(BreakRatePanel *p) {
-    if (p->editing != BR_EDIT_NONE) {
+bool decay_rate_panel_update(DecayRatePanel *p) {
+    if (p->editing != DECAY_EDIT_NONE) {
         int ch;
         while ((ch = GetCharPressed()) != 0) {
             bool ok = (ch >= '0' && ch <= '9') || ch == '.';
@@ -298,10 +298,10 @@ bool break_rate_panel_update(BreakRatePanel *p) {
             if (IsKeyPressed(KEY_ENTER)) {
                 float val = (float)atof(p->buf);
                 if (val < 0.0f) val = 0.0f;
-                if (p->editing == BR_EDIT_WOOD)  g_wood_break_prob  = val;
-                else                             g_chair_break_prob = val;
+                if (p->editing == DECAY_EDIT_WOOD)  g_wood_decay_rate  = val;
+                else                                g_chair_decay_rate = val;
             }
-            p->editing = BR_EDIT_NONE;
+            p->editing = DECAY_EDIT_NONE;
         }
     }
 
@@ -310,25 +310,25 @@ bool break_rate_panel_update(BreakRatePanel *p) {
     if (!in_rect(m.x, m.y, BR_X, BR_Y, BR_W, BR_H)) return false;
 
     if (in_rect(m.x, m.y, BR_X, BR_ROW_Y_WOOD, BR_W, BR_ROW_H)) {
-        if (p->editing == BR_EDIT_WOOD) {
+        if (p->editing == DECAY_EDIT_WOOD) {
             float val = (float)atof(p->buf);
-            if (val >= 0.0f) g_wood_break_prob = val;
-            p->editing = BR_EDIT_NONE;
+            if (val >= 0.0f) g_wood_decay_rate = val;
+            p->editing = DECAY_EDIT_NONE;
         } else {
-            p->editing = BR_EDIT_WOOD;
-            snprintf(p->buf, sizeof(p->buf), "%.4f", g_wood_break_prob);
+            p->editing = DECAY_EDIT_WOOD;
+            snprintf(p->buf, sizeof(p->buf), "%.4f", g_wood_decay_rate);
             p->bufLen = (int)strlen(p->buf);
         }
         return true;
     }
     if (in_rect(m.x, m.y, BR_X, BR_ROW_Y_CHAIR, BR_W, BR_ROW_H)) {
-        if (p->editing == BR_EDIT_CHAIR) {
+        if (p->editing == DECAY_EDIT_CHAIR) {
             float val = (float)atof(p->buf);
-            if (val >= 0.0f) g_chair_break_prob = val;
-            p->editing = BR_EDIT_NONE;
+            if (val >= 0.0f) g_chair_decay_rate = val;
+            p->editing = DECAY_EDIT_NONE;
         } else {
-            p->editing = BR_EDIT_CHAIR;
-            snprintf(p->buf, sizeof(p->buf), "%.4f", g_chair_break_prob);
+            p->editing = DECAY_EDIT_CHAIR;
+            snprintf(p->buf, sizeof(p->buf), "%.4f", g_chair_decay_rate);
             p->bufLen = (int)strlen(p->buf);
         }
         return true;
@@ -340,20 +340,20 @@ bool break_rate_panel_update(BreakRatePanel *p) {
     return true;
 }
 
-void break_rate_panel_render(const BreakRatePanel *p) {
+void decay_rate_panel_render(const DecayRatePanel *p) {
     DrawRectangle(BR_X + 2, BR_Y + 2, BR_W, BR_H, (Color){0, 0, 0, 100});
     DrawRectangle(BR_X, BR_Y, BR_W, BR_H, (Color){15, 22, 32, 220});
     DrawRectangleLines(BR_X, BR_Y, BR_W, BR_H, (Color){80, 110, 140, 255});
 
     DrawRectangle(BR_X, BR_Y, BR_W, BR_HDR_H, (Color){28, 48, 78, 255});
-    DrawText("Break Rates (/unit/s)", BR_X + 6, BR_Y + 5, 13, WHITE);
+    DrawText("Decay Rates (/unit/s)", BR_X + 6, BR_Y + 5, 13, WHITE);
 
-    // Helper: draw one editable break-rate row
+    // Helper: draw one editable decay-rate row
     for (int i = 0; i < 2; i++) {
-        BrEditField field = (i == 0) ? BR_EDIT_WOOD : BR_EDIT_CHAIR;
+        DecayEditField field = (i == 0) ? DECAY_EDIT_WOOD : DECAY_EDIT_CHAIR;
         int ry            = (i == 0) ? BR_ROW_Y_WOOD : BR_ROW_Y_CHAIR;
         const char *label = (i == 0) ? "Wood:" : "Chair:";
-        float curVal      = (i == 0) ? g_wood_break_prob : g_chair_break_prob;
+        float curVal      = (i == 0) ? g_wood_decay_rate : g_chair_decay_rate;
         bool editing      = (p->editing == field);
 
         Color bg = editing ? (Color){20, 60, 90, 255} : (Color){35, 48, 60, 255};

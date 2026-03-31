@@ -91,8 +91,8 @@ void render_world(const Agent *agents, int count, bool paused, int simSteps,
 // Plot helpers
 // ---------------------------------------------------------------------------
 
-static Color emv_color(float basePersonalValue, unsigned char alpha) {
-    float t = basePersonalValue / 150.0f;
+static Color emv_color(float maxUtility, unsigned char alpha) {
+    float t = maxUtility / 150.0f;
     if (t < 0.0f) t = 0.0f;
     if (t > 1.0f) t = 1.0f;
     return (Color){(unsigned char)(55+t*200),30,(unsigned char)(255-t*200),alpha};
@@ -208,20 +208,20 @@ static void draw_wealth_panel(const Agent *agents, int count, int marketId,
 
 static const Agent *s_sort_agents   = NULL;
 static int          s_sort_marketId = 0;
-static int cmp_by_base_value(const void *a, const void *b) {
-    float fa=s_sort_agents[*(const int*)a].econ.markets[s_sort_marketId].basePersonalValue;
-    float fb=s_sort_agents[*(const int*)b].econ.markets[s_sort_marketId].basePersonalValue;
+static int cmp_by_max_utility(const void *a, const void *b) {
+    float fa=s_sort_agents[*(const int*)a].econ.markets[s_sort_marketId].maxUtility;
+    float fb=s_sort_agents[*(const int*)b].econ.markets[s_sort_marketId].maxUtility;
     return (fa>fb)-(fa<fb);
 }
 
 static void draw_agent_panel(const Agent *agents, int count, int marketId,
                               int px, int py, int pw, int ph, float equilibrium) {
-    PlotBounds *b=&g_bounds[PLOT_AGENT_VALUES][marketId];
+    PlotBounds *b=&g_bounds[PLOT_VALUATION_DISTRIBUTION][marketId];
     float rawMax=1.0f;
     for (int i=0;i<count;i++) {
         const AgentMarket *m=&agents[i].econ.markets[marketId];
-        float v=m->basePersonalValue;
-        if (m->expectedMarketValue>v) v=m->expectedMarketValue;
+        float v=m->maxUtility;
+        if (m->priceExpectation>v) v=m->priceExpectation;
         if (v>rawMax) rawMax=v;
     }
     float yMax=(b->yMax>0.0f)?b->yMax:compute_ymax(rawMax);
@@ -230,15 +230,15 @@ static void draw_agent_panel(const Agent *agents, int count, int marketId,
     int indices[MAX_AGENTS];
     for (int i=0;i<count;i++) indices[i]=i;
     s_sort_agents=agents; s_sort_marketId=marketId;
-    qsort(indices,(size_t)count,sizeof(int),cmp_by_base_value);
+    qsort(indices,(size_t)count,sizeof(int),cmp_by_max_utility);
 
     float xStep=(float)pw/(float)(count-1);
     for (int rank=0;rank<count;rank++) {
         const Agent      *a=&agents[indices[rank]];
         const AgentMarket *m=&a->econ.markets[marketId];
         int x=px+(int)((float)rank*xStep);
-        float sellPrice=market_current_value(m), buyPrice=market_potential_value(m);
-        float base=m->basePersonalValue, emv=m->expectedMarketValue;
+        float sellPrice=marginal_sell_utility(m), buyPrice=marginal_buy_utility(m);
+        float base=m->maxUtility, emv=m->priceExpectation;
 
         int y_base=(int)(py+ph-base     /yMax*(float)ph);
         int y_sell=(int)(py+ph-sellPrice/yMax*(float)ph);
@@ -262,17 +262,17 @@ static void draw_agent_panel(const Agent *agents, int count, int marketId,
         if (y_sell>=py && y_sell<=py+ph) DrawCircle(x,y_sell,2,(Color){255,160, 60,200});
         if (y_buy >=py && y_buy <=py+ph) DrawCircle(x,y_buy, 2,(Color){ 80,220,220,200});
         Color emvCol=(a->sprite.tradeFlash>0.0f)?YELLOW
-                    :(market_is_buyer(m, a->econ.money) ?(Color){ 60,210, 90,220}
-                     :market_is_seller(m, a->econ.money)?(Color){220, 70, 70,220}
-                                                         :(Color){150,150,150,200});
+                    :(wants_to_buy(m, a->econ.money) ?(Color){ 60,210, 90,220}
+                     :wants_to_sell(m, a->econ.money)?(Color){220, 70, 70,220}
+                                                      :(Color){150,150,150,200});
         if (y_emv>=py && y_emv<=py+ph) DrawCircle(x,y_emv,3,emvCol);
     }
 
     int lx=px+pw-200,ly=py+4;
-    DrawCircle(lx,   ly+4, 3,(Color){ 80,140,255,220}); DrawText("Base val (S)", lx+7,  ly-1, 10,(Color){ 80,140,255,220});
-    DrawCircle(lx,   ly+16,2,(Color){255,160, 60,200}); DrawText("Sell price",   lx+7,  ly+11,10,(Color){255,160, 60,200});
-    DrawCircle(lx+100,ly+4, 2,(Color){ 80,220,220,200}); DrawText("Buy price",   lx+107,ly-1, 10,(Color){ 80,220,220,200});
-    DrawCircle(lx+100,ly+16,3,(Color){ 60,210, 90,220}); DrawText("Exp. mkt val",lx+107,ly+11,10,(Color){ 60,210, 90,220});
+    DrawCircle(lx,   ly+4, 3,(Color){ 80,140,255,220}); DrawText("Max utility",  lx+7,  ly-1, 10,(Color){ 80,140,255,220});
+    DrawCircle(lx,   ly+16,2,(Color){255,160, 60,200}); DrawText("Sell util",    lx+7,  ly+11,10,(Color){255,160, 60,200});
+    DrawCircle(lx+100,ly+4, 2,(Color){ 80,220,220,200}); DrawText("Buy util",    lx+107,ly-1, 10,(Color){ 80,220,220,200});
+    DrawCircle(lx+100,ly+16,3,(Color){ 60,210, 90,220}); DrawText("Price expect",lx+107,ly+11,10,(Color){ 60,210, 90,220});
 }
 
 // ---------------------------------------------------------------------------
@@ -284,11 +284,11 @@ static void draw_timeseries_panel(const AgentValueHistory *avh,
                                    const Agent *agents, int marketId,
                                    int px, int py, int pw, int ph,
                                    float equilibrium) {
-    PlotBounds *b=&g_bounds[PLOT_EMV_HISTORY][marketId];
+    PlotBounds *b=&g_bounds[PLOT_PRICE_HISTORY][marketId];
     float rawMax=1.0f;
     for (int s=0;s<avh->count;s++) { float v=avh_avg(avh,s); if(v>rawMax) rawMax=v; }
     for (int ag=0;ag<avh->agentCount;ag++) {
-        float v=agents[ag].econ.markets[marketId].basePersonalValue;
+        float v=agents[ag].econ.markets[marketId].maxUtility;
         if (v>rawMax) rawMax=v;
     }
     float yMax=(b->yMax>0.0f)?b->yMax:compute_ymax(rawMax);
@@ -314,7 +314,7 @@ static void draw_timeseries_panel(const AgentValueHistory *avh,
         }
     }
     for (int ag=0;ag<avh->agentCount;ag++) {
-        Color col=emv_color(agents[ag].econ.markets[marketId].basePersonalValue,55);
+        Color col=emv_color(agents[ag].econ.markets[marketId].maxUtility,55);
         for (int s=1;s<avh->count;s++) {
             float v0=avh_get(avh,ag,s-1), v1=avh_get(avh,ag,s);
             draw_line_yclip(px+(int)((float)(s-1)*xScale),py+ph-(int)(v0/yMax*(float)ph),
@@ -330,10 +330,10 @@ static void draw_timeseries_panel(const AgentValueHistory *avh,
     }
 
     int lx=px+pw-200,ly=py+4;
-    DrawLine(lx,   ly+4, lx+12, ly+4, emv_color(50.0f,200));     DrawText("EMV/agent",lx+16,ly-1, 10,(Color){200,200,200,255});
-    DrawLine(lx+100,ly+4, lx+112,ly+4, (Color){50,180,100,200}); DrawText("PV/agent", lx+116,ly-1, 10,(Color){80,210,130,255});
-    DrawLine(lx,   ly+15,lx+12, ly+15,WHITE);                    DrawText("EMV avg",  lx+16, ly+10,10,WHITE);
-    DrawLine(lx+100,ly+15,lx+112,ly+15,(Color){80,230,130,230}); DrawText("PV avg",   lx+116,ly+10,10,(Color){80,230,130,255});
+    DrawLine(lx,   ly+4, lx+12, ly+4, emv_color(50.0f,200));     DrawText("Price/agent",lx+16,ly-1, 10,(Color){200,200,200,255});
+    DrawLine(lx+100,ly+4, lx+112,ly+4, (Color){50,180,100,200}); DrawText("Util/agent", lx+116,ly-1, 10,(Color){80,210,130,255});
+    DrawLine(lx,   ly+15,lx+12, ly+15,WHITE);                    DrawText("Price avg",  lx+16, ly+10,10,WHITE);
+    DrawLine(lx+100,ly+15,lx+112,ly+15,(Color){80,230,130,230}); DrawText("Util avg",   lx+116,ly+10,10,(Color){80,230,130,255});
 }
 
 // ---------------------------------------------------------------------------
@@ -392,10 +392,10 @@ static void draw_goods_panel(const AgentValueHistory *gvh,
 
 static const char *plot_title(PlotType t) {
     switch (t) {
-        case PLOT_WEALTH:        return "Money vs Goods";
-        case PLOT_AGENT_VALUES:  return "Agent Values";
-        case PLOT_EMV_HISTORY:   return "Value History";
-        case PLOT_GOODS_HISTORY: return "Goods History";
+        case PLOT_WEALTH:                 return "Money vs Goods";
+        case PLOT_VALUATION_DISTRIBUTION: return "Valuation Distribution";
+        case PLOT_PRICE_HISTORY:          return "Price History";
+        case PLOT_GOODS_HISTORY:          return "Goods History";
         default:                 return "";
     }
 }
@@ -484,9 +484,9 @@ static void draw_panel(const PanelState *ps,
     switch (ps->plotType) {
         case PLOT_WEALTH:
             draw_wealth_panel(agents,agentCount,mid,px,py,pw,ph); break;
-        case PLOT_AGENT_VALUES:
+        case PLOT_VALUATION_DISTRIBUTION:
             draw_agent_panel(agents,agentCount,mid,px,py,pw,ph,equilibrium); break;
-        case PLOT_EMV_HISTORY:
+        case PLOT_PRICE_HISTORY:
             draw_timeseries_panel(&avh[mid],&pvh[mid],agents,mid,px,py,pw,ph,equilibrium); break;
         case PLOT_GOODS_HISTORY:
             draw_goods_panel(&gvh[mid],mid,px,py,pw,ph); break;
@@ -538,7 +538,7 @@ void render_plot(const AgentValueHistory avh[MARKET_COUNT],
 
         float eq=0.0f;
         for (int i=0;i<agentCount;i++)
-            eq+=agents[i].econ.markets[panels[pi].marketId].basePersonalValue;
+            eq+=agents[i].econ.markets[panels[pi].marketId].maxUtility;
         eq/=(float)agentCount;
 
         draw_plot_strip  (ppx, strip_y,          half, panels[pi].plotType);

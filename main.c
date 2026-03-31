@@ -30,9 +30,9 @@ static void simulation_step(Agent *agents, int count, float dt) {
                 for (int mid = 0; mid < MARKET_COUNT; mid++) {
                     MarketId m = (MarketId)mid;
                     market_gossip(a, b, m);
-                    if (market_is_buyer(AGENT_MKT(a, m), a->econ.money) && market_is_seller(AGENT_MKT(b, m), b->econ.money))
+                    if (wants_to_buy(AGENT_MKT(a, m), a->econ.money) && wants_to_sell(AGENT_MKT(b, m), b->econ.money))
                         market_trade(a, b, m);
-                    else if (market_is_buyer(AGENT_MKT(b, m), b->econ.money) && market_is_seller(AGENT_MKT(a, m), a->econ.money))
+                    else if (wants_to_buy(AGENT_MKT(b, m), b->econ.money) && wants_to_sell(AGENT_MKT(a, m), a->econ.money))
                         market_trade(b, a, m);
                 }
 
@@ -50,8 +50,8 @@ static void simulation_step(Agent *agents, int count, float dt) {
     if (priceTimer >= PRICE_RECORD_INTERVAL) {
         for (int mid = 0; mid < MARKET_COUNT; mid++) {
             MarketId m = (MarketId)mid;
-            avh_record(&avh[mid], agents, NUM_AGENTS, m);
-            avh_record_personal(&pvh[mid], agents, NUM_AGENTS, m);
+            avh_record_prices(&avh[mid], agents, NUM_AGENTS, m);
+            avh_record_personal_valuations(&pvh[mid], agents, NUM_AGENTS, m);
             avh_record_goods(&gvh[mid], agents, NUM_AGENTS, m);
         }
         priceTimer = 0.0f;
@@ -60,7 +60,7 @@ static void simulation_step(Agent *agents, int count, float dt) {
 
 static void render_frame(const Agent *agents, int count, bool paused,
                           int simSteps, const Inspector *ins,
-                          const InfluencePanel *inf, const BreakRatePanel *br,
+                          const InfluencePanel *inf, const DecayRatePanel *decay,
                           const Assets *assets,
                           PanelState panels[NUM_PANELS]) {
     BeginDrawing();
@@ -68,7 +68,7 @@ static void render_frame(const Agent *agents, int count, bool paused,
     render_world(agents, count, paused, simSteps, assets);
     render_plot(avh, pvh, gvh, agents, count, panels);
     influence_panel_render(inf);
-    break_rate_panel_render(br);
+    decay_rate_panel_render(decay);
     inspector_render(ins, agents);
     DrawFPS(4, 4);
     EndDrawing();
@@ -86,18 +86,18 @@ int main(void) {
     bool       paused   = false;
     int        simSteps = 1;
     PanelState panels[NUM_PANELS] = {
-        { PLOT_WEALTH,       MARKET_WOOD  },   // top-left
-        { PLOT_EMV_HISTORY,  MARKET_WOOD  },   // top-right
-        { PLOT_AGENT_VALUES, MARKET_WOOD  },   // bottom-left
-        { PLOT_EMV_HISTORY,  MARKET_CHAIR },   // bottom-right
+        { PLOT_WEALTH,                 MARKET_WOOD  },   // top-left
+        { PLOT_PRICE_HISTORY,          MARKET_WOOD  },   // top-right
+        { PLOT_VALUATION_DISTRIBUTION, MARKET_WOOD  },   // bottom-left
+        { PLOT_PRICE_HISTORY,          MARKET_CHAIR },   // bottom-right
     };
     Inspector      inspector;
     InfluencePanel influence;
-    BreakRatePanel breakRates;
+    DecayRatePanel decayRates;
     Assets         assets;
     inspector_init(&inspector);
     influence_panel_init(&influence);
-    break_rate_panel_init(&breakRates);
+    decay_rate_panel_init(&decayRates);
     assets_load(&assets);
 
     while (!WindowShouldClose()) {
@@ -115,7 +115,7 @@ int main(void) {
         panel_handle_bounds_keyboard();
         bool consumed = panel_handle_click(panels);
         if (!consumed) consumed = influence_panel_update(&influence, agents, NUM_AGENTS);
-        if (!consumed) consumed = break_rate_panel_update(&breakRates);
+        if (!consumed) consumed = decay_rate_panel_update(&decayRates);
         if (!consumed) inspector_update(&inspector, agents, NUM_AGENTS);
 
         // Update
@@ -126,7 +126,7 @@ int main(void) {
             }
         }
 
-        render_frame(agents, NUM_AGENTS, paused, simSteps, &inspector, &influence, &breakRates, &assets,
+        render_frame(agents, NUM_AGENTS, paused, simSteps, &inspector, &influence, &decayRates, &assets,
                      panels);
     }
 

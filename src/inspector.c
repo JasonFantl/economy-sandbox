@@ -45,10 +45,10 @@ static void start_edit(Inspector *ins, EditField field, const Agent *a) {
     ins->editField = field;
     float val = 0.0f;
     switch (field) {
-        case EDIT_WOOD_S:    val = a->econ.markets[MARKET_WOOD].basePersonalValue;   break;
-        case EDIT_WOOD_EMV:  val = a->econ.markets[MARKET_WOOD].expectedMarketValue; break;
-        case EDIT_CHAIR_S:   val = a->econ.markets[MARKET_CHAIR].basePersonalValue;  break;
-        case EDIT_CHAIR_EMV: val = a->econ.markets[MARKET_CHAIR].expectedMarketValue; break;
+        case EDIT_WOOD_UTILITY:  val = a->econ.markets[MARKET_WOOD].maxUtility;      break;
+        case EDIT_WOOD_PRICE:    val = a->econ.markets[MARKET_WOOD].priceExpectation; break;
+        case EDIT_CHAIR_UTILITY: val = a->econ.markets[MARKET_CHAIR].maxUtility;     break;
+        case EDIT_CHAIR_PRICE:   val = a->econ.markets[MARKET_CHAIR].priceExpectation; break;
         default: break;
     }
     snprintf(ins->inputBuf, sizeof(ins->inputBuf), "%.2f", val);
@@ -61,10 +61,10 @@ static void apply_edit(Inspector *ins, Agent *agents) {
     if (val < 0.1f) val = 0.1f;
     Agent *a = &agents[ins->selectedId];
     switch (ins->editField) {
-        case EDIT_WOOD_S:    a->econ.markets[MARKET_WOOD].basePersonalValue   = val; break;
-        case EDIT_WOOD_EMV:  a->econ.markets[MARKET_WOOD].expectedMarketValue = val; break;
-        case EDIT_CHAIR_S:   a->econ.markets[MARKET_CHAIR].basePersonalValue  = val; break;
-        case EDIT_CHAIR_EMV: a->econ.markets[MARKET_CHAIR].expectedMarketValue = val; break;
+        case EDIT_WOOD_UTILITY:  a->econ.markets[MARKET_WOOD].maxUtility       = val; break;
+        case EDIT_WOOD_PRICE:    a->econ.markets[MARKET_WOOD].priceExpectation  = val; break;
+        case EDIT_CHAIR_UTILITY: a->econ.markets[MARKET_CHAIR].maxUtility      = val; break;
+        case EDIT_CHAIR_PRICE:   a->econ.markets[MARKET_CHAIR].priceExpectation = val; break;
         default: break;
     }
     ins->editField = EDIT_NONE;
@@ -107,13 +107,13 @@ bool inspector_update(Inspector *ins, Agent *agents, int agentCount) {
         }
         // Editable rows
         if      (in_rect(m.x, m.y, INS_X, ROW_Y_WOOD_S,    INS_W, ROW_H))
-            start_edit(ins, EDIT_WOOD_S,    &agents[ins->selectedId]);
+            start_edit(ins, EDIT_WOOD_UTILITY,  &agents[ins->selectedId]);
         else if (in_rect(m.x, m.y, INS_X, ROW_Y_WOOD_EMV,  INS_W, ROW_H))
-            start_edit(ins, EDIT_WOOD_EMV,  &agents[ins->selectedId]);
+            start_edit(ins, EDIT_WOOD_PRICE,    &agents[ins->selectedId]);
         else if (in_rect(m.x, m.y, INS_X, ROW_Y_CHAIR_S,   INS_W, ROW_H))
-            start_edit(ins, EDIT_CHAIR_S,   &agents[ins->selectedId]);
+            start_edit(ins, EDIT_CHAIR_UTILITY, &agents[ins->selectedId]);
         else if (in_rect(m.x, m.y, INS_X, ROW_Y_CHAIR_EMV, INS_W, ROW_H))
-            start_edit(ins, EDIT_CHAIR_EMV, &agents[ins->selectedId]);
+            start_edit(ins, EDIT_CHAIR_PRICE,   &agents[ins->selectedId]);
         else
             ins->editField = EDIT_NONE;
         return true;
@@ -221,7 +221,7 @@ void inspector_render(const Inspector *ins, const Agent *agents) {
 
     // Separator + edit hint
     DrawRectangle(INS_X, ROW_Y_WOOD_HDR - SEP_H, INS_W, SEP_H, (Color){40, 60, 80, 255});
-    DrawText("click S/EMV to edit", INS_X + INS_W - 124, ROW_Y_WOOD_HDR - SEP_H + 1,
+    DrawText("click to edit", INS_X + INS_W - 90, ROW_Y_WOOD_HDR - SEP_H + 1,
              10, (Color){90, 110, 130, 255});
 
     // ---- Wood market section ----
@@ -231,24 +231,24 @@ void inspector_render(const Inspector *ins, const Agent *agents) {
     snprintf(buf, sizeof(buf), "%d", mw->goods);
     draw_row(ROW_Y_WOOD_GOODS, "Goods", buf, false, false, (Color){200, 160, 80, 255});
 
-    snprintf(buf, sizeof(buf), "%.2f", mw->basePersonalValue);
-    draw_row(ROW_Y_WOOD_S, "Base Value (S)",
-             ins->editField == EDIT_WOOD_S ? ins->inputBuf : buf,
-             true, ins->editField == EDIT_WOOD_S,
+    snprintf(buf, sizeof(buf), "%.2f", mw->maxUtility);
+    draw_row(ROW_Y_WOOD_S, "Max Utility",
+             ins->editField == EDIT_WOOD_UTILITY ? ins->inputBuf : buf,
+             true, ins->editField == EDIT_WOOD_UTILITY,
              (Color){80, 140, 255, 255});
 
-    snprintf(buf, sizeof(buf), "%.2f", mw->expectedMarketValue);
-    draw_row(ROW_Y_WOOD_EMV, "Exp. Mkt. Value",
-             ins->editField == EDIT_WOOD_EMV ? ins->inputBuf : buf,
-             true, ins->editField == EDIT_WOOD_EMV,
+    snprintf(buf, sizeof(buf), "%.2f", mw->priceExpectation);
+    draw_row(ROW_Y_WOOD_EMV, "Price Expect.",
+             ins->editField == EDIT_WOOD_PRICE ? ins->inputBuf : buf,
+             true, ins->editField == EDIT_WOOD_PRICE,
              (Color){60, 210, 90, 255});
 
     char buyBuf[24], sellBuf[24];
-    snprintf(buyBuf,  sizeof(buyBuf),  "%.2f", market_potential_value(mw));
-    snprintf(sellBuf, sizeof(sellBuf), "%.2f", market_current_value(mw));
+    snprintf(buyBuf,  sizeof(buyBuf),  "%.2f", marginal_buy_utility(mw));
+    snprintf(sellBuf, sizeof(sellBuf), "%.2f", marginal_sell_utility(mw));
     draw_split_row(ROW_Y_WOOD_PRICES,
-                   "Buy:", buyBuf,  (Color){ 80, 200, 240, 255},
-                   "Sell:", sellBuf, (Color){240, 160,  80, 255});
+                   "Buy util:", buyBuf,  (Color){ 80, 200, 240, 255},
+                   "Sell util:", sellBuf, (Color){240, 160,  80, 255});
 
     // ---- Chair market section ----
     DrawRectangle(INS_X, ROW_Y_CHAIR_HDR - SEP_H, INS_W, SEP_H, (Color){40, 60, 80, 255});
@@ -258,23 +258,23 @@ void inspector_render(const Inspector *ins, const Agent *agents) {
     snprintf(buf, sizeof(buf), "%d", mc->goods);
     draw_row(ROW_Y_CHAIR_GOODS, "Goods", buf, false, false, (Color){200, 160, 80, 255});
 
-    snprintf(buf, sizeof(buf), "%.2f", mc->basePersonalValue);
-    draw_row(ROW_Y_CHAIR_S, "Base Value (S)",
-             ins->editField == EDIT_CHAIR_S ? ins->inputBuf : buf,
-             true, ins->editField == EDIT_CHAIR_S,
+    snprintf(buf, sizeof(buf), "%.2f", mc->maxUtility);
+    draw_row(ROW_Y_CHAIR_S, "Max Utility",
+             ins->editField == EDIT_CHAIR_UTILITY ? ins->inputBuf : buf,
+             true, ins->editField == EDIT_CHAIR_UTILITY,
              (Color){80, 140, 255, 255});
 
-    snprintf(buf, sizeof(buf), "%.2f", mc->expectedMarketValue);
-    draw_row(ROW_Y_CHAIR_EMV, "Exp. Mkt. Value",
-             ins->editField == EDIT_CHAIR_EMV ? ins->inputBuf : buf,
-             true, ins->editField == EDIT_CHAIR_EMV,
+    snprintf(buf, sizeof(buf), "%.2f", mc->priceExpectation);
+    draw_row(ROW_Y_CHAIR_EMV, "Price Expect.",
+             ins->editField == EDIT_CHAIR_PRICE ? ins->inputBuf : buf,
+             true, ins->editField == EDIT_CHAIR_PRICE,
              (Color){60, 210, 90, 255});
 
-    snprintf(buyBuf,  sizeof(buyBuf),  "%.2f", market_potential_value(mc));
-    snprintf(sellBuf, sizeof(sellBuf), "%.2f", market_current_value(mc));
+    snprintf(buyBuf,  sizeof(buyBuf),  "%.2f", marginal_buy_utility(mc));
+    snprintf(sellBuf, sizeof(sellBuf), "%.2f", marginal_sell_utility(mc));
     draw_split_row(ROW_Y_CHAIR_PRICES,
-                   "Buy:", buyBuf,  (Color){ 80, 200, 240, 255},
-                   "Sell:", sellBuf, (Color){240, 160,  80, 255});
+                   "Buy util:", buyBuf,  (Color){ 80, 200, 240, 255},
+                   "Sell util:", sellBuf, (Color){240, 160,  80, 255});
 
     // ---- Shared stats ----
     DrawRectangle(INS_X, ROW_Y_MONEY - SEP_H, INS_W, SEP_H, (Color){40, 60, 80, 255});
@@ -282,8 +282,8 @@ void inspector_render(const Inspector *ins, const Agent *agents) {
     snprintf(buf, sizeof(buf), "%.2f", a->econ.money);
     draw_row(ROW_Y_MONEY, "Money", buf, false, false, (Color){255, 215, 0, 255});
 
-    snprintf(buf, sizeof(buf), "%.2f", leisure_value(&a->econ.leisure));
-    draw_row(ROW_Y_LEISURE, "Leisure Value", buf, false, false, (Color){150, 150, 150, 255});
+    snprintf(buf, sizeof(buf), "%.2f", leisure_utility(&a->econ.leisure));
+    draw_row(ROW_Y_LEISURE, "Leisure Utility", buf, false, false, (Color){150, 150, 150, 255});
 
     if (a->body.targetType == TARGET_AGENT)
         snprintf(buf, sizeof(buf), "Agent #%d", a->body.targetId);

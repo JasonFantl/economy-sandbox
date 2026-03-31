@@ -5,16 +5,16 @@
 
 #define PRICE_HISTORY_SIZE  400
 
-extern int g_allow_debt;  // 0 = normal (buyers need money), 1 = allow negative money
+extern int g_allow_debt;  // 0 = buyers need money to trade; 1 = allow negative money
 
-// Nerlove adaptive expectation: EMV_new = EMV_old^(1-alpha) * signal^alpha
+// Nerlove adaptive expectation: price_new = price_old^(1-rate) * signal^rate
 #include <math.h>
-static inline float nerlove_update(float emv, float signal, float alpha) {
+static inline float nerlove_update(float price, float signal, float rate) {
     if (signal < 0.1f) signal = 0.1f;
-    return powf(emv, 1.0f - alpha) * powf(signal, alpha);
+    return powf(price, 1.0f - rate) * powf(signal, rate);
 }
 
-// Per-agent value history (circular buffer)
+// Per-agent price-belief history (circular buffer, one row per agent)
 typedef struct {
     float data[MAX_AGENTS][PRICE_HISTORY_SIZE];
     int   count;
@@ -22,21 +22,19 @@ typedef struct {
     int   agentCount;
 } AgentValueHistory;
 
-// Gossip: agents nudge their EMVs for market mid toward each other on meeting.
-void  market_gossip(Agent *a, Agent *b, MarketId mid);
+// Price belief exchange: each agent nudges their price expectation toward the other's
+void market_gossip(Agent *a, Agent *b, MarketId mid);
 
-// Trade: attempt a transaction for market mid between a buyer and a seller.
-// Returns 1 if transaction occurred.
-int   market_trade(Agent *buyer, Agent *seller, MarketId mid);
+// Trade attempt for market mid between a willing buyer and a willing seller.
+// Returns 1 if a transaction occurred.
+int  market_trade(Agent *buyer, Agent *seller, MarketId mid);
 
-// Record expectedMarketValue for market mid
-void  avh_record(AgentValueHistory *avh, const Agent *agents, int count, MarketId mid);
-// Record market_potential_value() for market mid
-void  avh_record_personal(AgentValueHistory *avh, const Agent *agents, int count, MarketId mid);
-// Record goods count for market mid
-void  avh_record_goods(AgentValueHistory *avh, const Agent *agents, int count, MarketId mid);
+// History recording
+void avh_record_prices(AgentValueHistory *h, const Agent *agents, int count, MarketId mid);
+void avh_record_personal_valuations(AgentValueHistory *h, const Agent *agents, int count, MarketId mid);
+void avh_record_goods(AgentValueHistory *h, const Agent *agents, int count, MarketId mid);
 
-float avh_get(const AgentValueHistory *avh, int agentIdx, int sampleIdx);
-float avh_avg(const AgentValueHistory *avh, int sampleIdx);
+float avh_get(const AgentValueHistory *h, int agentIdx, int sampleIdx);
+float avh_avg(const AgentValueHistory *h, int sampleIdx);
 
 #endif

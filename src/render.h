@@ -22,11 +22,11 @@
 #define NUM_PANELS        4
 
 typedef enum {
-    PLOT_WEALTH        = 0,  // money vs goods scatter
-    PLOT_AGENT_VALUES  = 1,  // agents sorted by base value with price dots
-    PLOT_EMV_HISTORY   = 2,  // EMV and personal value over time
-    PLOT_GOODS_HISTORY = 3,  // goods count per agent over time
-    PLOT_COUNT         = 4
+    PLOT_WEALTH                 = 0,  // money vs goods scatter
+    PLOT_VALUATION_DISTRIBUTION = 1,  // agents sorted by max utility with price dots
+    PLOT_PRICE_HISTORY          = 2,  // price expectations and personal valuations over time
+    PLOT_GOODS_HISTORY          = 3,  // goods count per agent over time
+    PLOT_COUNT                  = 4
 } PlotType;
 
 // State for one plot panel: which plot type and which market to display

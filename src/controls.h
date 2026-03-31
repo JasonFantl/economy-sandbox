@@ -4,34 +4,41 @@
 #include "agent.h"
 #include <stdbool.h>
 
-typedef enum { INF_EDIT_NONE = 0, INF_EDIT_N, INF_EDIT_MONEY, INF_EDIT_F, INF_EDIT_GOODS } InfEditField;
+// ---------------------------------------------------------------------------
+// Influence panel — inject exogenous shocks to money, goods, or valuations
+// ---------------------------------------------------------------------------
+
+typedef enum { INF_EDIT_NONE = 0, INF_EDIT_NUM_AGENTS, INF_EDIT_MONEY, INF_EDIT_VALUATION, INF_EDIT_GOODS } InfluenceEditField;
 
 typedef struct {
-    int          n;          // agents to influence
-    float        deltaMoney; // delta money (market-independent)
-    float        f;          // delta personal value
-    int          deltaGoods; // delta goods
-    MarketId     marketId;   // which market to influence (for f and deltaGoods)
-    InfEditField editing;
-    char         buf[16];
-    int          bufLen;
+    int                numAgents;    // how many agents to affect
+    float              moneyDelta;   // change in money (market-independent)
+    float              valuationDelta; // change in maxUtility for selected market
+    int                goodsDelta;   // change in goods count for selected market
+    MarketId           marketId;     // which market valuationDelta and goodsDelta apply to
+    InfluenceEditField editing;
+    char               buf[16];
+    int                bufLen;
 } InfluencePanel;
 
 void influence_panel_init(InfluencePanel *p);
 bool influence_panel_update(InfluencePanel *p, Agent *agents, int agentCount);
 void influence_panel_render(const InfluencePanel *p);
 
-typedef enum { BR_EDIT_NONE = 0, BR_EDIT_WOOD, BR_EDIT_CHAIR } BrEditField;
+// ---------------------------------------------------------------------------
+// Decay rate panel — edit per-unit, per-second decay rates for each good
+// ---------------------------------------------------------------------------
+
+typedef enum { DECAY_EDIT_NONE = 0, DECAY_EDIT_WOOD, DECAY_EDIT_CHAIR } DecayEditField;
 
 typedef struct {
-    BrEditField editing;
-    char        buf[16];
-    int         bufLen;
-} BreakRatePanel;
+    DecayEditField editing;
+    char           buf[16];
+    int            bufLen;
+} DecayRatePanel;
 
-void break_rate_panel_init(BreakRatePanel *p);
-// Handle input. Returns true if a mouse click was consumed.
-bool break_rate_panel_update(BreakRatePanel *p);
-void break_rate_panel_render(const BreakRatePanel *p);
+void decay_rate_panel_init(DecayRatePanel *p);
+bool decay_rate_panel_update(DecayRatePanel *p);
+void decay_rate_panel_render(const DecayRatePanel *p);
 
 #endif

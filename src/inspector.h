@@ -5,11 +5,11 @@
 #include <stdbool.h>
 
 typedef enum {
-    EDIT_NONE      = -1,
-    EDIT_WOOD_S    =  0,
-    EDIT_WOOD_EMV  =  1,
-    EDIT_CHAIR_S   =  2,
-    EDIT_CHAIR_EMV =  3,
+    EDIT_NONE         = -1,
+    EDIT_WOOD_UTILITY =  0,
+    EDIT_WOOD_PRICE   =  1,
+    EDIT_CHAIR_UTILITY =  2,
+    EDIT_CHAIR_PRICE  =  3,
 } EditField;
 
 typedef struct {
