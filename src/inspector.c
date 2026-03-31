@@ -120,13 +120,11 @@ bool inspector_update(Inspector *ins, Agent *agents, int agentCount) {
     }
 
     // Agent sprite hit-test (only in world area)
-    if (m.y <= WORLD_AREA_H) {
-        float spriteDisp = SPRITE_FRAME_SIZE * SPRITE_SCALE;
-        float agentY = (float)GROUND_Y - spriteDisp / 2.0f;
-        float hitR   = spriteDisp / 2.0f;
+    if (m.y <= WORLD_VIEW_H) {
+        float hitR = (float)AGENT_DISP * 0.5f;
         for (int i = 0; i < agentCount; i++) {
             float dx = m.x - agents[i].body.x;
-            float dy = m.y - agentY;
+            float dy = m.y - agents[i].body.y;
             if (dx*dx + dy*dy <= hitR * hitR) {
                 if (ins->selectedId == i) {
                     ins->selectedId = -1;
@@ -188,9 +186,7 @@ void inspector_render(const Inspector *ins, const Agent *agents) {
     const Agent *a = &agents[ins->selectedId];
 
     // Highlight ring around selected agent
-    float spriteDisp = SPRITE_FRAME_SIZE * SPRITE_SCALE;
-    float cy = (float)GROUND_Y - spriteDisp / 2.0f;
-    DrawCircleLines((int)a->body.x, (int)cy, (int)(spriteDisp / 2.0f) + 3, WHITE);
+    DrawCircleLines((int)a->body.x, (int)a->body.y, AGENT_DISP / 2 + 3, WHITE);
 
     // Panel shadow + background
     DrawRectangle(INS_X + 3, INS_Y + 3, INS_W, INS_H, (Color){0, 0, 0, 120});

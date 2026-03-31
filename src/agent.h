@@ -42,12 +42,15 @@ typedef struct {
 // Agent sub-structs — one per concern
 // ---------------------------------------------------------------------------
 
+// Four cardinal directions for sprite row selection
+typedef enum { DIR_SOUTH = 0, DIR_WEST = 1, DIR_EAST = 2, DIR_NORTH = 3 } FacingDir;
+
 // World / movement state
 typedef struct {
     int        id;
-    float      x;
+    float      x, y;
     int        targetId;
-    float      targetX;
+    float      targetX, targetY;
     TargetType targetType;
 } AgentBody;
 
@@ -64,11 +67,11 @@ typedef struct {
 
 // Rendering / animation state
 typedef struct {
-    float tradeFlash;
-    int   spriteType;
-    int   animFrame;
-    float animTimer;
-    int   facingRight;
+    float     tradeFlash;
+    int       spriteType;  // which worker color variant (0-3)
+    int       animFrame;   // 0..WORKER_WALK_FRAMES-1
+    float     animTimer;
+    FacingDir facing;
 } AgentSprite;
 
 // ---------------------------------------------------------------------------
@@ -125,9 +128,9 @@ static inline int wants_to_sell(const AgentMarket *m, float money) {
 // ---------------------------------------------------------------------------
 
 // agent.c — world/body orchestration
-void agents_init(Agent *agents, int count, float worldWidth);
+void agents_init(Agent *agents, int count, float worldWidth, float worldHeight);
 void agents_update(Agent *agents, int count, float dt);
-void agents_pick_new_target(Agent *agent, int agentCount, float worldWidth);
+void agents_pick_new_target(Agent *agent, int agentCount, float worldWidth, float worldHeight);
 
 // econ.c — economic logic
 void agents_adjust_valuations(Agent *agents, int count, int numAgents, float delta, MarketId mid);

@@ -4,22 +4,29 @@
 #include "agent.h"
 #include "market.h"
 #include "assets.h"
+#include "world.h"
+#include "tileset.h"
 #include <stdbool.h>
 
-#define SCREEN_W       1200
-#define SCREEN_H        700
-#define WORLD_WIDTH    1160.0f
-#define GROUND_Y        235
-#define WORLD_AREA_H    260
-#define SPRITE_SCALE    2.0f
-#define PLOT_MARGIN_L    40
-#define PLOT_MARGIN_R    30
-#define PLOT_MARGIN_T    12
-#define PLOT_MARGIN_B    15
-#define PANEL_GAP        30
-#define PANEL_ROW_GAP     4
-#define STRIP_H          16
-#define NUM_PANELS        4
+#define SCREEN_W        1200
+#define SCREEN_H         700
+// World viewport: top portion used for the tile map
+#define WORLD_VIEW_H     420   // pixels of screen dedicated to the tile map
+// Plot area: bottom portion
+#define PLOT_MARGIN_L     40
+#define PLOT_MARGIN_R     30
+#define PLOT_MARGIN_T     12
+#define PLOT_MARGIN_B     15
+#define PANEL_GAP         30
+#define PANEL_ROW_GAP      4
+#define STRIP_H           16
+#define NUM_PANELS         4
+
+// Display scale: each 16-px tile is drawn at this pixel size on screen
+#define WORLD_TILE_SCALE  2.0f
+
+// Agent sprite display size (worker sprites are 16×16 at WORLD_TILE_SCALE)
+#define AGENT_DISP  ((int)(WORKER_FRAME_W * WORLD_TILE_SCALE))
 
 typedef enum {
     PLOT_WEALTH                 = 0,  // money vs goods scatter
@@ -29,28 +36,25 @@ typedef enum {
     PLOT_COUNT                  = 4
 } PlotType;
 
-// State for one plot panel: which plot type and which market to display
 typedef struct {
     PlotType plotType;
-    int      marketId;   // MarketId cast to int
+    int      marketId;
 } PanelState;
 
-void render_world(const Agent *agents, int count, bool paused, int simSteps,
+// Render the top-down tile world and agents
+void render_world(const WorldMap *map, const TileAtlas *tiles,
+                  const Agent *agents, int count,
+                  bool paused, int simSteps,
                   const Assets *assets);
 
-// avh/pvh/gvh are arrays of MARKET_COUNT histories; panels is NUM_PANELS entries (TL,TR,BL,BR)
+// Render the bottom plot area
 void render_plot(const AgentValueHistory avh[MARKET_COUNT],
                  const AgentValueHistory pvh[MARKET_COUNT],
                  const AgentValueHistory gvh[MARKET_COUNT],
                  const Agent *agents, int agentCount,
                  PanelState panels[NUM_PANELS]);
 
-// Check for clicks on panel strips; cycle plot type/market or start bounds edit.
-// Returns true if a click was consumed.
 bool panel_handle_click(PanelState panels[NUM_PANELS]);
-
-// Process keyboard input for the active bounds editor.
-// Returns true if keyboard input was consumed.
 bool panel_handle_bounds_keyboard(void);
 
 #endif

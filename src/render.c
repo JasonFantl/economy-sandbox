@@ -20,71 +20,96 @@ static char     g_bnd_buf[16];
 static int      g_bnd_len  = 0;
 
 // ---------------------------------------------------------------------------
-// World
+// World — 2D top-down tile map + agents
 // ---------------------------------------------------------------------------
 
-#define SPRITE_DISP  (SPRITE_FRAME_SIZE * SPRITE_SCALE)
-
-typedef struct { int houseIdx; float x; float scale; } HouseDecor;
-
-// Reduced house scale (3.5→2.5) to fit the smaller world area
-static const HouseDecor HOUSES[] = {
-    {0,   80, 2.5f}, {2,  220, 2.5f}, {4,  360, 2.5f},
-    {1,  500, 2.5f}, {5,  640, 2.5f}, {3,  780, 2.5f},
-    {0,  920, 2.5f}, {2, 1060, 2.5f}, {4, 1180, 2.5f},
-};
-static const int HOUSE_DECOR_COUNT = 9;
-
-static void draw_house(const HouseDecor *h, const Assets *assets) {
-    Texture2D tex = assets->houses[h->houseIdx];
-    float dw = (float)tex.width  * h->scale;
-    float dh = (float)tex.height * h->scale;
-    DrawTexturePro(tex, (Rectangle){0,0,(float)tex.width,(float)tex.height},
-                   (Rectangle){h->x-dw/2.0f,(float)GROUND_Y-dh,dw,dh},
-                   (Vector2){0,0}, 0.0f, WHITE);
-}
-
+// Draw one agent using the MiniWorldSprites worker sheet.
+// Worker sheet layout (80×192 = 5 cols × 12 rows of 16×16):
+//   rows 0-2  = south walk,  rows 3-5 = west walk
+//   rows 6-8  = east walk,   rows 9-11= north walk
+//   cols 0-2 = animation frames we cycle
 static void draw_agent(const Agent *a, const Assets *assets) {
-    float fw = a->sprite.facingRight ? (float)SPRITE_FRAME_SIZE : -(float)SPRITE_FRAME_SIZE;
-    float fx = a->sprite.facingRight ? (float)(a->sprite.animFrame*SPRITE_FRAME_SIZE)
-                                     : (float)((a->sprite.animFrame+1)*SPRITE_FRAME_SIZE);
-    Rectangle src = {fx,(float)(SPRITE_WALK_ROW*SPRITE_FRAME_SIZE),fw,(float)SPRITE_FRAME_SIZE};
-    Rectangle dst = {a->body.x-SPRITE_DISP/2.0f,(float)GROUND_Y-SPRITE_DISP,SPRITE_DISP,SPRITE_DISP};
-    DrawTexturePro(assets->sprites[a->sprite.spriteType], src, dst,
-                   (Vector2){0,0}, 0.0f, (a->sprite.tradeFlash>0.0f)?YELLOW:WHITE);
+    int dirRow = (int)a->sprite.facing * WORKER_DIR_ROWS; // 0,3,6,9
+    int col    = a->sprite.animFrame;                     // 0,1,2
+    float srcX = (float)(col    * WORKER_FRAME_W);
+    float srcY = (float)(dirRow * WORKER_FRAME_H);
 
-    Color dot;
-    if      (a->sprite.tradeFlash > 0.0f)          dot = YELLOW;
-    else if (a->econ.lastAction == ACTION_CHOP)     dot = (Color){160,100, 40,220};
-    else if (a->econ.lastAction == ACTION_BUILD)    dot = (Color){220,140, 60,220};
-    else                                            dot = (Color){150,150,150,180};
-    DrawCircle((int)a->body.x, GROUND_Y+3, 3, dot);
+    Rectangle src = { srcX, srcY, (float)WORKER_FRAME_W, (float)WORKER_FRAME_H };
+    float disp = (float)AGENT_DISP;
+    Rectangle dst = { a->body.x - disp * 0.5f,
+                      a->body.y - disp * 0.5f,
+                      disp, disp };
+
+    Color tint = (a->sprite.tradeFlash > 0.0f) ? YELLOW : WHITE;
+    DrawTexturePro(assets->workers[a->sprite.spriteType % WORKER_TYPE_COUNT],
+                   src, dst, (Vector2){0,0}, 0.0f, tint);
 }
 
-void render_world(const Agent *agents, int count, bool paused, int simSteps,
+// Depth-sort agents by Y (painter's algorithm) without allocating
+static int s_sort_count;
+static const Agent *s_sort_agents_ptr;
+static int cmp_agent_y(const void *a, const void *b) {
+    float ya = s_sort_agents_ptr[*(const int*)a].body.y;
+    float yb = s_sort_agents_ptr[*(const int*)b].body.y;
+    return (ya > yb) - (ya < yb);
+}
+
+void render_world(const WorldMap *map, const TileAtlas *tiles,
+                  const Agent *agents, int count,
+                  bool paused, int simSteps,
                   const Assets *assets) {
-    DrawTexturePro(assets->background,
-        (Rectangle){0,0,(float)assets->background.width,(float)assets->background.height},
-        (Rectangle){0,0,(float)SCREEN_W,(float)WORLD_AREA_H},
-        (Vector2){0,0}, 0.0f, WHITE);
+    // --- Tile map ---
+    int tilesAcross = SCREEN_W / AGENT_DISP + 2;
+    int tilesDown   = WORLD_VIEW_H / AGENT_DISP + 2;
+    (void)tilesAcross; (void)tilesDown;
 
-    for (int i = 0; i < HOUSE_DECOR_COUNT; i++) draw_house(&HOUSES[i], assets);
-    for (int i = 0; i < count; i++) draw_agent(&agents[i], assets);
-    DrawRectangle(0, WORLD_AREA_H, SCREEN_W, 2, DARKGRAY);
+    if (map) {
+        for (int ty = 0; ty < map->height; ty++) {
+            for (int tx = 0; tx < map->width; tx++) {
+                const MapCell *cell = worldmap_cell(map, tx, ty);
+                if (!cell) continue;
+                int px = (int)((float)tx * TILE_SIZE * WORLD_TILE_SCALE);
+                int py = (int)((float)ty * TILE_SIZE * WORLD_TILE_SCALE);
+                if (px > SCREEN_W || py > WORLD_VIEW_H) continue;
+                tileatlas_draw_cell(tiles, cell, px, py, WORLD_TILE_SCALE);
+            }
+        }
+    } else {
+        // Fallback: solid grass background
+        DrawRectangle(0, 0, SCREEN_W, WORLD_VIEW_H, (Color){60, 120, 50, 255});
+    }
 
-    DrawRectangle(0, 0, 430, 28, (Color){0,0,0,100});
-    DrawCircle( 10,14,5,(Color){150,150,150,255}); DrawText("Leisure",  20, 7,14,WHITE);
-    DrawCircle( 95,14,5,(Color){160,100, 40,255}); DrawText("Chopping",105, 7,14,WHITE);
-    DrawCircle(200,14,5,(Color){220,140, 60,255}); DrawText("Building",210, 7,14,WHITE);
-    DrawCircle(300,14,5,YELLOW);                   DrawText("Trading", 310, 7,14,WHITE);
+    // --- Agents (depth-sorted by Y) ---
+    static int indices[MAX_AGENTS];
+    for (int i = 0; i < count; i++) indices[i] = i;
+    s_sort_agents_ptr = agents;
+    s_sort_count = count;
+    (void)s_sort_count;
+    qsort(indices, (size_t)count, sizeof(int), cmp_agent_y);
+    for (int i = 0; i < count; i++) {
+        const Agent *a = &agents[indices[i]];
+        if (a->body.y < 0.0f || a->body.y > (float)WORLD_VIEW_H) continue;
+        draw_agent(a, assets);
+    }
 
+    // Divider between world and plots
+    DrawRectangle(0, WORLD_VIEW_H, SCREEN_W, 2, DARKGRAY);
+
+    // Legend
+    DrawRectangle(0, 0, 440, 26, (Color){0,0,0,120});
+    DrawCircle( 10,13,4,(Color){150,150,150,255}); DrawText("Leisure", 18, 6,13,WHITE);
+    DrawCircle( 90,13,4,(Color){160,100, 40,255}); DrawText("Chopping",98, 6,13,WHITE);
+    DrawCircle(190,13,4,(Color){220,140, 60,255}); DrawText("Building",198, 6,13,WHITE);
+    DrawCircle(285,13,4,YELLOW);                   DrawText("Trading",293, 6,13,WHITE);
+
+    // Speed indicator
     char speedBuf[32]; Color speedCol;
     if      (paused)       { snprintf(speedBuf,sizeof(speedBuf),"PAUSED");              speedCol=RED;    }
     else if (simSteps > 1) { snprintf(speedBuf,sizeof(speedBuf),"Speed: %dx",simSteps); speedCol=ORANGE; }
     else                   { snprintf(speedBuf,sizeof(speedBuf),"Speed: 1x");           speedCol=WHITE;  }
-    DrawRectangle(SCREEN_W-200,0,200,42,(Color){0,0,0,100});
-    DrawText(speedBuf,SCREEN_W-110,6,16,speedCol);
-    DrawText("[SPACE] pause  [F] speed",SCREEN_W-188,26,12,(Color){200,200,200,255});
+    DrawRectangle(SCREEN_W-200,0,200,40,(Color){0,0,0,100});
+    DrawText(speedBuf,    SCREEN_W-108, 4,16,speedCol);
+    DrawText("[SPACE]/[F]",SCREEN_W-186,24,11,(Color){200,200,200,255});
 }
 
 // ---------------------------------------------------------------------------
@@ -499,7 +524,7 @@ static void panel_geom(int panelIdx,
                        int *out_px, int *out_strip_y, int *out_py, int *out_ph) {
     int half     = (SCREEN_W - PLOT_MARGIN_L - PLOT_MARGIN_R - PANEL_GAP) / 2;
     int px_col[2] = { PLOT_MARGIN_L, PLOT_MARGIN_L + half + PANEL_GAP };
-    int plots_y  = WORLD_AREA_H + 2;
+    int plots_y  = WORLD_VIEW_H + 2;
     int plots_h  = SCREEN_H - plots_y;
     int row_h    = (plots_h - PANEL_ROW_GAP) / 2;
     int row_y[2] = { plots_y, plots_y + row_h + PANEL_ROW_GAP };
@@ -520,7 +545,7 @@ void render_plot(const AgentValueHistory avh[MARKET_COUNT],
                  const Agent *agents, int agentCount,
                  PanelState panels[NUM_PANELS]) {
     int half     = (SCREEN_W - PLOT_MARGIN_L - PLOT_MARGIN_R - PANEL_GAP) / 2;
-    int plots_y  = WORLD_AREA_H + 2;
+    int plots_y  = WORLD_VIEW_H + 2;
     int plots_h  = SCREEN_H - plots_y;
     int row_h    = (plots_h - PANEL_ROW_GAP) / 2;
     int px_right = PLOT_MARGIN_L + half + PANEL_GAP;

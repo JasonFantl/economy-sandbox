@@ -5,13 +5,20 @@
 #include "src/inspector.h"
 #include "src/controls.h"
 #include "src/assets.h"
+#include "src/world.h"
+#include "src/tileset.h"
 #include <math.h>
 #include <stdbool.h>
 
 #define NUM_AGENTS            120
 #define PRICE_RECORD_INTERVAL 0.25f
+#define MAP_FILE              "map.emap"
 
-// History arrays indexed by market — static so they live in BSS, not the stack
+// World dimensions in pixels (derived from tile map or fallback constants)
+static float g_world_w = 1200.0f;
+static float g_world_h = 400.0f;
+
+// History arrays indexed by market
 static AgentValueHistory avh[MARKET_COUNT];
 static AgentValueHistory pvh[MARKET_COUNT];
 static AgentValueHistory gvh[MARKET_COUNT];
@@ -25,8 +32,10 @@ static void simulation_step(Agent *agents, int count, float dt) {
         Agent *a = &agents[i];
         if (a->body.targetType == TARGET_AGENT) {
             Agent *b = &agents[a->body.targetId];
-            if (fabsf(a->body.x - b->body.x) < AGENT_RADIUS * 2.0f) {
-                // Gossip and trade for every market on each encounter
+            float dx = a->body.x - b->body.x;
+            float dy = a->body.y - b->body.y;
+            float dist2 = dx*dx + dy*dy;
+            if (dist2 < (AGENT_RADIUS * 2.0f) * (AGENT_RADIUS * 2.0f)) {
                 for (int mid = 0; mid < MARKET_COUNT; mid++) {
                     MarketId m = (MarketId)mid;
                     market_gossip(a, b, m);
@@ -35,13 +44,14 @@ static void simulation_step(Agent *agents, int count, float dt) {
                     else if (wants_to_buy(AGENT_MKT(b, m), b->econ.money) && wants_to_sell(AGENT_MKT(a, m), a->econ.money))
                         market_trade(b, a, m);
                 }
-
-                agents_pick_new_target(a, count, WORLD_WIDTH);
-                agents_pick_new_target(b, count, WORLD_WIDTH);
+                agents_pick_new_target(a, count, g_world_w, g_world_h);
+                agents_pick_new_target(b, count, g_world_w, g_world_h);
             }
         } else {
-            if (fabsf(a->body.x - a->body.targetX) < AGENT_RADIUS * 2.0f) {
-                agents_pick_new_target(a, count, WORLD_WIDTH);
+            float dx = a->body.x - a->body.targetX;
+            float dy = a->body.y - a->body.targetY;
+            if (dx*dx + dy*dy < (AGENT_RADIUS * 2.0f) * (AGENT_RADIUS * 2.0f)) {
+                agents_pick_new_target(a, count, g_world_w, g_world_h);
             }
         }
     }
@@ -58,14 +68,15 @@ static void simulation_step(Agent *agents, int count, float dt) {
     }
 }
 
-static void render_frame(const Agent *agents, int count, bool paused,
+static void render_frame(const WorldMap *map, const TileAtlas *tiles,
+                          const Agent *agents, int count, bool paused,
                           int simSteps, const Inspector *ins,
                           const InfluencePanel *inf, const DecayRatePanel *decay,
                           const Assets *assets,
                           PanelState panels[NUM_PANELS]) {
     BeginDrawing();
     ClearBackground(BLACK);
-    render_world(agents, count, paused, simSteps, assets);
+    render_world(map, tiles, agents, count, paused, simSteps, assets);
     render_plot(avh, pvh, gvh, agents, count, panels);
     influence_panel_render(inf);
     decay_rate_panel_render(decay);
@@ -80,16 +91,28 @@ int main(void) {
     InitWindow(SCREEN_W, SCREEN_H, "Economy Sandbox");
     SetTargetFPS(60);
 
+    // Load tile map (optional — game runs without one)
+    WorldMap *map = worldmap_load(MAP_FILE);
+    TileAtlas tiles = {0};
+    tileatlas_load(&tiles);
+
+    if (map) {
+        g_world_w = (float)(map->width  * TILE_SIZE) * WORLD_TILE_SCALE;
+        g_world_h = (float)(map->height * TILE_SIZE) * WORLD_TILE_SCALE;
+        // Clamp world height to the visible world viewport
+        if (g_world_h > (float)WORLD_VIEW_H) g_world_h = (float)WORLD_VIEW_H;
+    }
+
     Agent agents[NUM_AGENTS];
-    agents_init(agents, NUM_AGENTS, WORLD_WIDTH);
+    agents_init(agents, NUM_AGENTS, g_world_w, g_world_h);
 
     bool       paused   = false;
     int        simSteps = 1;
     PanelState panels[NUM_PANELS] = {
-        { PLOT_WEALTH,                 MARKET_WOOD  },   // top-left
-        { PLOT_PRICE_HISTORY,          MARKET_WOOD  },   // top-right
-        { PLOT_VALUATION_DISTRIBUTION, MARKET_WOOD  },   // bottom-left
-        { PLOT_PRICE_HISTORY,          MARKET_CHAIR },   // bottom-right
+        { PLOT_WEALTH,                 MARKET_WOOD  },
+        { PLOT_PRICE_HISTORY,          MARKET_WOOD  },
+        { PLOT_VALUATION_DISTRIBUTION, MARKET_WOOD  },
+        { PLOT_PRICE_HISTORY,          MARKET_CHAIR },
     };
     Inspector      inspector;
     InfluencePanel influence;
@@ -101,7 +124,6 @@ int main(void) {
     assets_load(&assets);
 
     while (!WindowShouldClose()) {
-        // Simulation speed controls
         if (IsKeyPressed(KEY_SPACE)) paused = !paused;
         if (IsKeyPressed(KEY_F)) {
             if (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT)) {
@@ -111,25 +133,24 @@ int main(void) {
             }
         }
 
-        // UI input (plot strips → influence panel → inspector, in z-order)
         panel_handle_bounds_keyboard();
         bool consumed = panel_handle_click(panels);
         if (!consumed) consumed = influence_panel_update(&influence, agents, NUM_AGENTS);
         if (!consumed) consumed = decay_rate_panel_update(&decayRates);
         if (!consumed) inspector_update(&inspector, agents, NUM_AGENTS);
 
-        // Update
         if (!paused) {
             float dt = GetFrameTime();
-            for (int s = 0; s < simSteps; s++) {
+            for (int s = 0; s < simSteps; s++)
                 simulation_step(agents, NUM_AGENTS, dt);
-            }
         }
 
-        render_frame(agents, NUM_AGENTS, paused, simSteps, &inspector, &influence, &decayRates, &assets,
-                     panels);
+        render_frame(map, &tiles, agents, NUM_AGENTS, paused, simSteps,
+                     &inspector, &influence, &decayRates, &assets, panels);
     }
 
+    tileatlas_unload(&tiles);
+    if (map) worldmap_free(map);
     assets_unload(&assets);
     CloseWindow();
     return 0;
