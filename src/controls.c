@@ -301,7 +301,7 @@ bool decay_rate_panel_update(DecayRatePanel *p) {
             if (IsKeyPressed(KEY_ENTER)) {
                 if (p->editing == DECAY_EDIT_CHOP_YIELD) {
                     int v = atoi(p->buf);
-                    if (v >= 1) g_chop_yield_max = v;
+                    if (v >= 1) g_chop_yield = v;
                 } else {
                     float val = (float)atof(p->buf);
                     if (val < 0.0f) val = 0.0f;
@@ -344,11 +344,11 @@ bool decay_rate_panel_update(DecayRatePanel *p) {
     if (in_rect(m.x, m.y, BR_X, BR_ROW_Y_CHOP, BR_W, BR_ROW_H)) {
         if (p->editing == DECAY_EDIT_CHOP_YIELD) {
             int v = atoi(p->buf);
-            if (v >= 1) g_chop_yield_max = v;
+            if (v >= 1) g_chop_yield = v;
             p->editing = DECAY_EDIT_NONE;
         } else {
             p->editing = DECAY_EDIT_CHOP_YIELD;
-            snprintf(p->buf, sizeof(p->buf), "%d", g_chop_yield_max);
+            snprintf(p->buf, sizeof(p->buf), "%d", g_chop_yield);
             p->bufLen = (int)strlen(p->buf);
         }
         return true;
@@ -399,14 +399,14 @@ void decay_rate_panel_render(const DecayRatePanel *p) {
         Color bg = editing ? (Color){20, 60, 90, 255} : (Color){35, 48, 60, 255};
         DrawRectangle(BR_X, BR_ROW_Y_CHOP, BR_W, BR_ROW_H - 1, bg);
         DrawRectangleLines(BR_X, BR_ROW_Y_CHOP, BR_W, BR_ROW_H - 1, (Color){70, 95, 115, 255});
-        DrawText("Chop yield (max):", BR_X + 6, BR_ROW_Y_CHOP + 5, 13, (Color){170, 175, 185, 255});
+        DrawText("Chop yield:", BR_X + 6, BR_ROW_Y_CHOP + 5, 13, (Color){170, 175, 185, 255});
         char val[24];
         if (editing) {
             bool cur = (int)(GetTime() * 2) % 2 == 0;
             snprintf(val, sizeof(val), "%s%s", p->buf, cur ? "|" : " ");
             DrawText(val, BR_X + BR_W - MeasureText(val, 13) - 6, BR_ROW_Y_CHOP + 5, 13, WHITE);
         } else {
-            snprintf(val, sizeof(val), "%d", g_chop_yield_max);
+            snprintf(val, sizeof(val), "%d", g_chop_yield);
             DrawText(val, BR_X + BR_W - MeasureText(val, 13) - 6, BR_ROW_Y_CHOP + 5, 13,
                      (Color){80, 180, 255, 255});
         }
