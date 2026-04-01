@@ -423,6 +423,118 @@ static void draw_goods_panel(const AgentValueHistory *gvh,
 }
 
 // ---------------------------------------------------------------------------
+// PLOT_SUPPLY_DEMAND
+// ---------------------------------------------------------------------------
+
+static int cmp_float_desc(const void *a, const void *b) {
+    float fa = *(const float*)a, fb = *(const float*)b;
+    return (fa < fb) - (fa > fb);
+}
+static int cmp_float_asc(const void *a, const void *b) {
+    float fa = *(const float*)a, fb = *(const float*)b;
+    return (fa > fb) - (fa < fb);
+}
+
+static void draw_supply_demand_panel(const Agent *agents, int count, int marketId,
+                                      int px, int py, int pw, int ph) {
+    PlotBounds *b = &g_bounds[PLOT_SUPPLY_DEMAND][marketId];
+
+    // Demand: buy utility of every agent, sorted highest to lowest
+    float demand[MAX_AGENTS];
+    int nDemand = 0;
+    for (int i = 0; i < count; i++)
+        demand[nDemand++] = marginal_buy_utility(&agents[i].econ.markets[marketId]);
+    qsort(demand, (size_t)nDemand, sizeof(float), cmp_float_desc);
+
+    // Supply: sell utility of agents who currently hold that good, sorted lowest to highest
+    float supply[MAX_AGENTS];
+    int nSupply = 0;
+    for (int i = 0; i < count; i++) {
+        const AgentMarket *m = &agents[i].econ.markets[marketId];
+        if (m->goods > 0)
+            supply[nSupply++] = marginal_sell_utility(m);
+    }
+    qsort(supply, (size_t)nSupply, sizeof(float), cmp_float_asc);
+
+    float rawMax = 1.0f;
+    for (int i = 0; i < nDemand; i++) if (demand[i] > rawMax) rawMax = demand[i];
+    for (int i = 0; i < nSupply; i++) if (supply[i] > rawMax) rawMax = supply[i];
+    float yMax = (b->yMax > 0.0f) ? b->yMax : compute_ymax(rawMax);
+
+    // Equilibrium: walk both curves; last index where demand[i] >= supply[i]
+    float eqPrice = 0.0f;
+    int   eqQty   = 0;
+    {
+        int n = nDemand < nSupply ? nDemand : nSupply;
+        for (int i = 0; i < n; i++) {
+            if (demand[i] >= supply[i]) {
+                eqPrice = (demand[i] + supply[i]) * 0.5f;
+                eqQty   = i + 1;
+            } else break;
+        }
+    }
+
+    draw_axes_y(px, py, pw, ph, yMax, eqPrice);
+
+    // X-axis quantity ticks
+    for (int step = 0; step <= 4; step++) {
+        int gv = count * step / 4;
+        int x  = px + (int)((float)step / 4.0f * (float)pw);
+        DrawLine(x, py+ph, x, py+ph+4, LIGHTGRAY);
+        char buf[16]; snprintf(buf, sizeof(buf), "%d", gv);
+        DrawText(buf, x-5, py+ph+6, 11, LIGHTGRAY);
+        DrawLine(x, py, x, py+ph, (Color){50,50,60,255});
+    }
+    DrawText("agents →", px+pw-56, py+ph+6, 11, LIGHTGRAY);
+
+    // Draw demand curve (staircase, descending)
+    Color demandCol = {80, 180, 255, 220};
+    for (int i = 0; i < nDemand; i++) {
+        int x0 = px + (int)((float) i      / (float)count * (float)pw);
+        int x1 = px + (int)((float)(i + 1) / (float)count * (float)pw);
+        int y  = py + ph - (int)(demand[i] / yMax * (float)ph);
+        if (y < py) y = py;
+        if (y > py+ph) y = py+ph;
+        DrawLine(x0, y, x1, y, demandCol);
+        if (i + 1 < nDemand) {
+            int y1 = py + ph - (int)(demand[i+1] / yMax * (float)ph);
+            if (y1 < py) y1 = py;
+            if (y1 > py+ph) y1 = py+ph;
+            DrawLine(x1, y, x1, y1, demandCol);
+        }
+    }
+
+    // Draw supply curve (staircase, ascending)
+    Color supplyCol = {255, 110, 80, 220};
+    for (int i = 0; i < nSupply; i++) {
+        int x0 = px + (int)((float) i      / (float)count * (float)pw);
+        int x1 = px + (int)((float)(i + 1) / (float)count * (float)pw);
+        int y  = py + ph - (int)(supply[i] / yMax * (float)ph);
+        if (y < py) y = py;
+        if (y > py+ph) y = py+ph;
+        DrawLine(x0, y, x1, y, supplyCol);
+        if (i + 1 < nSupply) {
+            int y1 = py + ph - (int)(supply[i+1] / yMax * (float)ph);
+            if (y1 < py) y1 = py;
+            if (y1 > py+ph) y1 = py+ph;
+            DrawLine(x1, y, x1, y1, supplyCol);
+        }
+    }
+
+    // Equilibrium quantity marker
+    if (eqQty > 0) {
+        int eqX = px + (int)((float)eqQty / (float)count * (float)pw);
+        DrawLine(eqX, py, eqX, py+ph, (Color){255,200,0,70});
+        char buf[16]; snprintf(buf, sizeof(buf), "Q*=%d", eqQty);
+        DrawText(buf, eqX+3, py+4, 10, (Color){255,200,0,200});
+    }
+
+    int lx = px + pw - 160, ly = py + 4;
+    DrawLine(lx,    ly+4,  lx+12, ly+4,  demandCol); DrawText("Demand (buy util)",  lx+16, ly-1,  10, demandCol);
+    DrawLine(lx,    ly+16, lx+12, ly+16, supplyCol); DrawText("Supply (sell util)",  lx+16, ly+11, 10, supplyCol);
+}
+
+// ---------------------------------------------------------------------------
 // Panel strips
 // ---------------------------------------------------------------------------
 
@@ -432,6 +544,7 @@ static const char *plot_title(PlotType t) {
         case PLOT_VALUATION_DISTRIBUTION: return "Valuation Distribution";
         case PLOT_PRICE_HISTORY:          return "Price History";
         case PLOT_GOODS_HISTORY:          return "Goods History";
+        case PLOT_SUPPLY_DEMAND:          return "Supply & Demand";
         default:                 return "";
     }
 }
@@ -526,6 +639,8 @@ static void draw_panel(const PanelState *ps,
             draw_timeseries_panel(&avh[mid],&pvh[mid],agents,mid,px,py,pw,ph,equilibrium); break;
         case PLOT_GOODS_HISTORY:
             draw_goods_panel(&gvh[mid],mid,px,py,pw,ph); break;
+        case PLOT_SUPPLY_DEMAND:
+            draw_supply_demand_panel(agents,agentCount,mid,px,py,pw,ph); break;
         default: break;
     }
 }

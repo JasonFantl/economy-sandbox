@@ -30,7 +30,8 @@ typedef enum {
     PLOT_VALUATION_DISTRIBUTION = 1,  // agents sorted by max utility with price dots
     PLOT_PRICE_HISTORY          = 2,  // price expectations and personal valuations over time
     PLOT_GOODS_HISTORY          = 3,  // goods count per agent over time
-    PLOT_COUNT                  = 4
+    PLOT_SUPPLY_DEMAND          = 4,  // supply and demand step curves with equilibrium
+    PLOT_COUNT                  = 5
 } PlotType;
 
 typedef struct {
