@@ -22,11 +22,8 @@
 #define STRIP_H           16
 #define NUM_PANELS         4
 
-// Display scale: each 16-px tile is drawn at this pixel size on screen
-#define WORLD_TILE_SCALE  2.0f
-
-// Agent sprite display size (worker sprites are 16×16 at WORLD_TILE_SCALE)
-#define AGENT_DISP  ((int)(WORKER_FRAME_W * WORLD_TILE_SCALE))
+// Agent sprite display size — half a tile (16px) so agents fit neatly on tile grid
+#define AGENT_DISP  ((int)(WORKER_FRAME_W))
 
 typedef enum {
     PLOT_WEALTH                 = 0,  // money vs goods scatter
@@ -42,10 +39,12 @@ typedef struct {
 } PanelState;
 
 // Render the top-down tile world and agents
+// camX/camY: world coordinate at the centre of the viewport; camZoom: scale factor
 void render_world(const WorldMap *map, const TileAtlas *tiles,
                   const Agent *agents, int count,
                   bool paused, int simSteps,
-                  const Assets *assets);
+                  const Assets *assets,
+                  float camX, float camY, float camZoom);
 
 // Render the bottom plot area
 void render_plot(const AgentValueHistory avh[MARKET_COUNT],

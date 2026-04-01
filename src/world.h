@@ -4,7 +4,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define TILE_SIZE 16  // base pixel size of one tile
+#define TILE_SIZE        16     // base pixel size of one tile (pixels in source asset)
+#define WORLD_TILE_SCALE  2.0f  // each tile is drawn at this many times TILE_SIZE
 
 // ---------------------------------------------------------------------------
 // Tile types — shared between game and map builder

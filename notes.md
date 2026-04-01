@@ -3,6 +3,20 @@ I would like the player to feel that they can make changes to the economy (as a 
 
 We would also like to give the impression that this system could be dropped in to a video game like Skyrim, allowing a living economy.
 
+We also need to be able to isolate a behavior in the most simple environment, with maximum observability. This means having the option to open a scene with only two people and watching their beliefs change over time.
+
+Maybe we have a toll to cross a bridge to influence merchant taxes.
+
+I would like a dynamic city as well. Perhaps each "city" is defined by a capitol (users could place down a new capitol and watch the city grow). Agents assign themselves to a city, then are user its laws. It would e nice to have equations to govern building new buildings and establishing paths.
+
+Forests could burn every once in a while, or we use some other example of self-stabalizing forces.
+
+Population dyanmics could be simulated, allowing the player to introduce more or less of an animal, which interacts with the forest and killing agents. Also requires agents can have kids. 
+
+Opinion dynamics, cliques and friends, watch flow of information. 
+
+Jobs
+
 The types fo actions I want to see the player make to influence the economy:
 * Flood market with a good from player
 * burn down forest

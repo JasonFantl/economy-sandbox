@@ -57,38 +57,57 @@ static int cmp_agent_y(const void *a, const void *b) {
 void render_world(const WorldMap *map, const TileAtlas *tiles,
                   const Agent *agents, int count,
                   bool paused, int simSteps,
-                  const Assets *assets) {
-    // --- Tile map ---
-    int tilesAcross = SCREEN_W / AGENT_DISP + 2;
-    int tilesDown   = WORLD_VIEW_H / AGENT_DISP + 2;
-    (void)tilesAcross; (void)tilesDown;
+                  const Assets *assets,
+                  float camX, float camY, float camZoom) {
+    // Camera: world point (camX, camY) is centred in the viewport.
+    Camera2D cam = {0};
+    cam.offset   = (Vector2){ (float)SCREEN_W * 0.5f, (float)WORLD_VIEW_H * 0.5f };
+    cam.target   = (Vector2){ camX, camY };
+    cam.zoom     = camZoom;
+
+    // Compute visible tile range for frustum culling
+    float tileW = (float)TILE_SIZE * WORLD_TILE_SCALE;
+    float worldLeft   = camX - ((float)SCREEN_W   * 0.5f) / camZoom;
+    float worldTop    = camY - ((float)WORLD_VIEW_H * 0.5f) / camZoom;
+    float worldRight  = worldLeft + (float)SCREEN_W   / camZoom;
+    float worldBottom = worldTop  + (float)WORLD_VIEW_H / camZoom;
+    int txMin = (int)(worldLeft  / tileW) - 1;
+    int tyMin = (int)(worldTop   / tileW) - 1;
+    int txMax = (int)(worldRight  / tileW) + 2;
+    int tyMax = (int)(worldBottom / tileW) + 2;
+
+    BeginScissorMode(0, 0, SCREEN_W, WORLD_VIEW_H);
+    BeginMode2D(cam);
 
     if (map) {
+        int x0 = txMin < 0 ? 0 : txMin,  x1 = txMax > map->width  ? map->width  : txMax;
+        int y0 = tyMin < 0 ? 0 : tyMin,  y1 = tyMax > map->height ? map->height : tyMax;
         // Pass 1 — ground layer
-        for (int ty = 0; ty < map->height; ty++) {
-            for (int tx = 0; tx < map->width; tx++) {
+        for (int ty = y0; ty < y1; ty++) {
+            for (int tx = x0; tx < x1; tx++) {
                 const MapCell *cell = worldmap_cell(map, tx, ty);
                 if (!cell) continue;
-                int px = (int)((float)tx * TILE_SIZE * WORLD_TILE_SCALE);
-                int py = (int)((float)ty * TILE_SIZE * WORLD_TILE_SCALE);
-                if (px > SCREEN_W || py > WORLD_VIEW_H) continue;
+                int px = (int)((float)tx * tileW);
+                int py = (int)((float)ty * tileW);
                 tileatlas_draw_cell(tiles, cell, px, py, WORLD_TILE_SCALE);
             }
         }
         // Pass 2 — object layer (PNG transparency lets ground show through)
-        for (int ty = 0; ty < map->height; ty++) {
-            for (int tx = 0; tx < map->width; tx++) {
+        for (int ty = y0; ty < y1; ty++) {
+            for (int tx = x0; tx < x1; tx++) {
                 const MapCell *cell = worldmap_obj_cell(map, tx, ty);
                 if (!cell || cell->type == TILE_NONE) continue;
-                int px = (int)((float)tx * TILE_SIZE * WORLD_TILE_SCALE);
-                int py = (int)((float)ty * TILE_SIZE * WORLD_TILE_SCALE);
-                if (px > SCREEN_W || py > WORLD_VIEW_H) continue;
+                int px = (int)((float)tx * tileW);
+                int py = (int)((float)ty * tileW);
                 tileatlas_draw_cell(tiles, cell, px, py, WORLD_TILE_SCALE);
             }
         }
     } else {
         // Fallback: solid grass background
-        DrawRectangle(0, 0, SCREEN_W, WORLD_VIEW_H, (Color){60, 120, 50, 255});
+        DrawRectangle((int)worldLeft, (int)worldTop,
+                      (int)((float)SCREEN_W / camZoom),
+                      (int)((float)WORLD_VIEW_H / camZoom),
+                      (Color){60, 120, 50, 255});
     }
 
     // --- Agents (depth-sorted by Y) ---
@@ -99,10 +118,11 @@ void render_world(const WorldMap *map, const TileAtlas *tiles,
     (void)s_sort_count;
     qsort(indices, (size_t)count, sizeof(int), cmp_agent_y);
     for (int i = 0; i < count; i++) {
-        const Agent *a = &agents[indices[i]];
-        if (a->body.y < 0.0f || a->body.y > (float)WORLD_VIEW_H) continue;
-        draw_agent(a, assets);
+        draw_agent(&agents[indices[i]], assets);
     }
+
+    EndMode2D();
+    EndScissorMode();
 
     // Divider between world and plots
     DrawRectangle(0, WORLD_VIEW_H, SCREEN_W, 2, DARKGRAY);

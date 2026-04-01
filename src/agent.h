@@ -1,9 +1,13 @@
 #ifndef AGENT_H
 #define AGENT_H
 
+#include <stdint.h>
+#include "world.h"
+
 #define MAX_AGENTS       200
 #define AGENT_RADIUS     5.0f
 #define AGENT_SPEED      120.0f
+#define MAX_PATH_LEN     256   // max waypoints stored per agent
 #define WOOD_PER_CHAIR   4
 #define MONEY_MAX_UTILITY 1000.0f  // marginal utility of $1 when money = 0
 
@@ -13,7 +17,12 @@ extern float g_chair_decay_rate;
 
 typedef enum { MARKET_WOOD = 0, MARKET_CHAIR = 1, MARKET_COUNT = 2 } MarketId;
 typedef enum { ACTION_LEISURE = 0, ACTION_CHOP = 1, ACTION_BUILD = 2 } AgentAction;
-typedef enum { TARGET_AGENT = 0, TARGET_POS = 1 } TargetType;
+typedef enum {
+    TARGET_AGENT      = 0,  // traveling to shared trade-meeting tile
+    TARGET_POS        = 1,  // traveling to random solo tile
+    TARGET_WORK_CHOP  = 2,  // traveling to wood-cutting site; execute chop on arrival
+    TARGET_WORK_BUILD = 3,  // traveling to chair-making site; execute build on arrival
+} TargetType;
 
 // ---------------------------------------------------------------------------
 // Economic building blocks
@@ -49,9 +58,17 @@ typedef enum { DIR_SOUTH = 0, DIR_WEST = 1, DIR_EAST = 2, DIR_NORTH = 3 } Facing
 typedef struct {
     int        id;
     float      x, y;
-    int        targetId;
-    float      targetX, targetY;
+    int        targetId;           // trade partner index (TARGET_AGENT)
+    float      targetX, targetY;   // final destination pixel (exact tile centre)
     TargetType targetType;
+    // Pre-computed waypoint path.  Filled once by BFS at target-pick time;
+    // per-step movement is O(1) — just advance along the list.
+    // Intermediate waypoints carry random pixel jitter within their tile;
+    // the last waypoint is the exact tile centre so trading partners converge.
+    float      wpPx[MAX_PATH_LEN];
+    float      wpPy[MAX_PATH_LEN];
+    int        wpCount;
+    int        wpIdx;
 } AgentBody;
 
 // Economic decision-making state
@@ -60,6 +77,7 @@ typedef struct {
     AgentMarket  markets[MARKET_COUNT];
     LeisureState leisure;
     AgentAction  lastAction;
+    AgentAction  pendingWork;      // work decided but not yet executed (ACTION_LEISURE = none)
     float        beliefUpdateRate; // Nerlove alpha: how quickly new prices are incorporated [0,1]
     float        productionTimer;  // countdown to next production decision
     float        productionPeriod; // seconds between production decisions
@@ -128,13 +146,24 @@ static inline int wants_to_sell(const AgentMarket *m, float money) {
 // ---------------------------------------------------------------------------
 
 // agent.c — world/body orchestration
+void agents_nav_init(const WorldMap *map);  // call once after loading the map
 void agents_init(Agent *agents, int count, float worldWidth, float worldHeight);
 void agents_update(Agent *agents, int count, float dt);
-void agents_pick_new_target(Agent *agent, int agentCount, float worldWidth, float worldHeight);
+// Pick a new target for agents[agentIdx].  When a trading pair is set up,
+// agents[agentIdx] AND the chosen partner both get their paths assigned here.
+void agents_pick_new_target(Agent *agents, int agentIdx, int agentCount,
+                             float worldWidth, float worldHeight);
 
 // econ.c — economic logic
 void agents_adjust_valuations(Agent *agents, int count, int numAgents, float delta, MarketId mid);
 void agents_inject_money(Agent *agents, int count, int numAgents, float delta);
 void agents_inject_goods(Agent *agents, int count, int numAgents, int delta, MarketId mid);
+// Called on arrival at a work site — executes the deferred production action
+void agent_execute_chop(Agent *a);   // adds 1–5 wood
+void agent_execute_build(Agent *a);  // spends WOOD_PER_CHAIR, gains 1 chair
+
+// Work-site pixel positions (assigned by agents_nav_init; useful for rendering markers)
+extern float g_chop_site_px, g_chop_site_py;
+extern float g_build_site_px, g_build_site_py;
 
 #endif

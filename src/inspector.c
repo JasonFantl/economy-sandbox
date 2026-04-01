@@ -77,7 +77,8 @@ void inspector_init(Inspector *ins) {
     ins->inputBuf[0] = '\0';
 }
 
-bool inspector_update(Inspector *ins, Agent *agents, int agentCount) {
+bool inspector_update(Inspector *ins, Agent *agents, int agentCount,
+                      float camX, float camY, float camZoom) {
     if (ins->editField != EDIT_NONE) {
         int ch;
         while ((ch = GetCharPressed()) != 0) {
@@ -119,12 +120,16 @@ bool inspector_update(Inspector *ins, Agent *agents, int agentCount) {
         return true;
     }
 
-    // Agent sprite hit-test (only in world area)
+    // Agent sprite hit-test (only in world area).
+    // Convert screen mouse to world coordinates using the camera transform.
     if (m.y <= WORLD_VIEW_H) {
+        float worldMx = (m.x - (float)SCREEN_W   * 0.5f) / camZoom + camX;
+        float worldMy = (m.y - (float)WORLD_VIEW_H * 0.5f) / camZoom + camY;
+        // hit radius in world pixels (AGENT_DISP is at zoom=1)
         float hitR = (float)AGENT_DISP * 0.5f;
         for (int i = 0; i < agentCount; i++) {
-            float dx = m.x - agents[i].body.x;
-            float dy = m.y - agents[i].body.y;
+            float dx = worldMx - agents[i].body.x;
+            float dy = worldMy - agents[i].body.y;
             if (dx*dx + dy*dy <= hitR * hitR) {
                 if (ins->selectedId == i) {
                     ins->selectedId = -1;
@@ -181,12 +186,15 @@ static void draw_market_section_header(int y, const char *title, Color col) {
     DrawText(title, INS_X + 8, y + 2, 11, col);
 }
 
-void inspector_render(const Inspector *ins, const Agent *agents) {
+void inspector_render(const Inspector *ins, const Agent *agents,
+                      float camX, float camY, float camZoom) {
     if (ins->selectedId < 0) return;
     const Agent *a = &agents[ins->selectedId];
 
-    // Highlight ring around selected agent
-    DrawCircleLines((int)a->body.x, (int)a->body.y, AGENT_DISP / 2 + 3, WHITE);
+    // Highlight ring — convert world pos to screen pos
+    float sx = (a->body.x - camX) * camZoom + (float)SCREEN_W   * 0.5f;
+    float sy = (a->body.y - camY) * camZoom + (float)WORLD_VIEW_H * 0.5f;
+    DrawCircleLines((int)sx, (int)sy, (float)(AGENT_DISP / 2 + 3) * camZoom, WHITE);
 
     // Panel shadow + background
     DrawRectangle(INS_X + 3, INS_Y + 3, INS_W, INS_H, (Color){0, 0, 0, 120});

@@ -17,7 +17,7 @@
 // Brush size (Pencil):  [  smaller   ]  larger   (1 / 3 / 5)
 // Variant:  + / -  or click the variant strip
 //
-// Camera:  WASD / arrows scroll  |  wheel zooms to cursor  |  Home centres
+// Camera:  Middle-mouse drag pan  |  WASD / arrows scroll  |  wheel zooms to cursor  |  Home centres
 // File:    Ctrl+S save  Ctrl+O load  Ctrl+N new  Ctrl+Z undo
 
 #include "raylib.h"
@@ -627,7 +627,7 @@ static void draw_status(const MBState *s) {
     DrawText(buf, 4, sy + 7, 11, C_TEXT_DIM);
 
     const char *hints =
-        "Ctrl+S/O/N/Z  |  P B I R tools  |  [ ] brush  |  +/- variant  |  Tab layer  |  Home centre";
+        "Ctrl+S/O/N/Z  |  P B I R tools  |  [ ] brush  |  +/- variant  |  Tab layer  |  MMB pan  |  Home centre";
     int hw = MeasureText(hints, 10);
     DrawText(hints, SCREEN_W - hw - 8, sy + 8, 10, (Color){76, 90, 114, 255});
 
@@ -702,7 +702,14 @@ static void handle_input(MBState *s) {
         }
     }
 
-    // Camera scroll
+    // Camera pan — middle-mouse drag (works anywhere on screen)
+    if (IsMouseButtonDown(MOUSE_MIDDLE_BUTTON)) {
+        Vector2 delta = GetMouseDelta();
+        s->camX -= delta.x;
+        s->camY -= delta.y;
+    }
+
+    // Camera scroll — WASD / arrow keys
     float spd = 5.0f * s->scale;
     if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) s->camX += spd;
     if (IsKeyDown(KEY_LEFT)  || IsKeyDown(KEY_A)) s->camX -= spd;

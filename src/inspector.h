@@ -20,7 +20,10 @@ typedef struct {
 } Inspector;
 
 void inspector_init(Inspector *ins);
-bool inspector_update(Inspector *ins, Agent *agents, int agentCount);
-void inspector_render(const Inspector *ins, const Agent *agents);
+// camX/camY: world coord at viewport centre; camZoom: current zoom
+bool inspector_update(Inspector *ins, Agent *agents, int agentCount,
+                      float camX, float camY, float camZoom);
+void inspector_render(const Inspector *ins, const Agent *agents,
+                      float camX, float camY, float camZoom);
 
 #endif

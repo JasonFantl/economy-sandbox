@@ -18,6 +18,13 @@
 static float g_world_w = 1200.0f;
 static float g_world_h = 400.0f;
 
+// Camera — world point at viewport centre, and zoom level
+static float g_camX   = 0.0f;
+static float g_camY   = 0.0f;
+static float g_camZoom = 1.0f;
+#define CAM_ZOOM_MIN 0.25f
+#define CAM_ZOOM_MAX 6.0f
+
 // History arrays indexed by market
 static AgentValueHistory avh[MARKET_COUNT];
 static AgentValueHistory pvh[MARKET_COUNT];
@@ -31,11 +38,12 @@ static void simulation_step(Agent *agents, int count, float dt) {
     for (int i = 0; i < count; i++) {
         Agent *a = &agents[i];
         if (a->body.targetType == TARGET_AGENT) {
-            Agent *b = &agents[a->body.targetId];
+            // Both agents navigated to the same meeting tile; trade when they converge
+            int bi = a->body.targetId;
+            Agent *b = &agents[bi];
             float dx = a->body.x - b->body.x;
             float dy = a->body.y - b->body.y;
-            float dist2 = dx*dx + dy*dy;
-            if (dist2 < (AGENT_RADIUS * 2.0f) * (AGENT_RADIUS * 2.0f)) {
+            if (dx*dx + dy*dy < (AGENT_RADIUS * 2.0f) * (AGENT_RADIUS * 2.0f)) {
                 for (int mid = 0; mid < MARKET_COUNT; mid++) {
                     MarketId m = (MarketId)mid;
                     market_gossip(a, b, m);
@@ -44,14 +52,26 @@ static void simulation_step(Agent *agents, int count, float dt) {
                     else if (wants_to_buy(AGENT_MKT(b, m), b->econ.money) && wants_to_sell(AGENT_MKT(a, m), a->econ.money))
                         market_trade(b, a, m);
                 }
-                agents_pick_new_target(a, count, g_world_w, g_world_h);
-                agents_pick_new_target(b, count, g_world_w, g_world_h);
+                // Save partner index before pick_new_target overwrites a's state
+                agents_pick_new_target(agents, i,  count, g_world_w, g_world_h);
+                agents_pick_new_target(agents, bi, count, g_world_w, g_world_h);
             }
-        } else {
+        } else if (a->body.targetType == TARGET_WORK_CHOP ||
+                   a->body.targetType == TARGET_WORK_BUILD) {
             float dx = a->body.x - a->body.targetX;
             float dy = a->body.y - a->body.targetY;
             if (dx*dx + dy*dy < (AGENT_RADIUS * 2.0f) * (AGENT_RADIUS * 2.0f)) {
-                agents_pick_new_target(a, count, g_world_w, g_world_h);
+                if (a->body.targetType == TARGET_WORK_CHOP)
+                    agent_execute_chop(a);
+                else
+                    agent_execute_build(a);
+                agents_pick_new_target(agents, i, count, g_world_w, g_world_h);
+            }
+        } else {  // TARGET_POS
+            float dx = a->body.x - a->body.targetX;
+            float dy = a->body.y - a->body.targetY;
+            if (dx*dx + dy*dy < (AGENT_RADIUS * 2.0f) * (AGENT_RADIUS * 2.0f)) {
+                agents_pick_new_target(agents, i, count, g_world_w, g_world_h);
             }
         }
     }
@@ -76,11 +96,12 @@ static void render_frame(const WorldMap *map, const TileAtlas *tiles,
                           PanelState panels[NUM_PANELS]) {
     BeginDrawing();
     ClearBackground(BLACK);
-    render_world(map, tiles, agents, count, paused, simSteps, assets);
+    render_world(map, tiles, agents, count, paused, simSteps, assets,
+                 g_camX, g_camY, g_camZoom);
     render_plot(avh, pvh, gvh, agents, count, panels);
     influence_panel_render(inf);
     decay_rate_panel_render(decay);
-    inspector_render(ins, agents);
+    inspector_render(ins, agents, g_camX, g_camY, g_camZoom);
     DrawFPS(4, 4);
     EndDrawing();
 }
@@ -102,6 +123,12 @@ int main(void) {
         // Clamp world height to the visible world viewport
         if (g_world_h > (float)WORLD_VIEW_H) g_world_h = (float)WORLD_VIEW_H;
     }
+    // Start camera so world top-left appears at viewport top-left
+    g_camX = (float)SCREEN_W   * 0.5f;
+    g_camY = (float)WORLD_VIEW_H * 0.5f;
+
+    // Build walkable nav graph (must happen before agents_init)
+    agents_nav_init(map);
 
     Agent agents[NUM_AGENTS];
     agents_init(agents, NUM_AGENTS, g_world_w, g_world_h);
@@ -133,11 +160,40 @@ int main(void) {
             }
         }
 
+        // --- Camera pan (middle-mouse drag) and zoom (scroll wheel) ---
+        Vector2 mouse = GetMousePosition();
+        bool inWorld = mouse.y <= (float)WORLD_VIEW_H;
+
+        if (inWorld && IsMouseButtonDown(MOUSE_MIDDLE_BUTTON)) {
+            Vector2 delta = GetMouseDelta();
+            g_camX -= delta.x / g_camZoom;
+            g_camY -= delta.y / g_camZoom;
+        }
+
+        if (inWorld) {
+            float wheel = GetMouseWheelMove();
+            if (wheel != 0.0f) {
+                // World position under the mouse before zoom
+                float preWx = (mouse.x - (float)SCREEN_W   * 0.5f) / g_camZoom + g_camX;
+                float preWy = (mouse.y - (float)WORLD_VIEW_H * 0.5f) / g_camZoom + g_camY;
+
+                float factor = (wheel > 0.0f) ? 1.1f : 1.0f / 1.1f;
+                g_camZoom *= factor;
+                if (g_camZoom < CAM_ZOOM_MIN) g_camZoom = CAM_ZOOM_MIN;
+                if (g_camZoom > CAM_ZOOM_MAX) g_camZoom = CAM_ZOOM_MAX;
+
+                // Adjust cam target so the world point under the mouse stays fixed
+                g_camX = preWx - (mouse.x - (float)SCREEN_W   * 0.5f) / g_camZoom;
+                g_camY = preWy - (mouse.y - (float)WORLD_VIEW_H * 0.5f) / g_camZoom;
+            }
+        }
+
         panel_handle_bounds_keyboard();
         bool consumed = panel_handle_click(panels);
         if (!consumed) consumed = influence_panel_update(&influence, agents, NUM_AGENTS);
         if (!consumed) consumed = decay_rate_panel_update(&decayRates);
-        if (!consumed) inspector_update(&inspector, agents, NUM_AGENTS);
+        if (!consumed) inspector_update(&inspector, agents, NUM_AGENTS,
+                                        g_camX, g_camY, g_camZoom);
 
         if (!paused) {
             float dt = GetFrameTime();

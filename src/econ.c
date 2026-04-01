@@ -7,6 +7,8 @@
 // Production decision — called once per production period
 // ---------------------------------------------------------------------------
 
+// Decide what to do next.  Work actions (CHOP/BUILD) are stored as pendingWork
+// and executed later when the agent physically arrives at the work site.
 static void choose_action(Agent *a) {
     AgentMarket *wood  = AGENT_MKT(a, MARKET_WOOD);
     AgentMarket *chair = AGENT_MKT(a, MARKET_CHAIR);
@@ -14,19 +16,16 @@ static void choose_action(Agent *a) {
     float idle_util    = leisure_utility(&a->econ.leisure);
     float money_util   = money_marginal_utility(a->econ.money);
 
-    // Chop: best of personal marginal utility or utility of selling wood at expected price
     float chop_util  = marginal_buy_utility(wood);
     float sell_wood  = wood->priceExpectation * money_util;
     if (sell_wood > chop_util) chop_util = sell_wood;
 
-    // Build: utility gain from new chair minus utility cost of WOOD_PER_CHAIR woods
     float build_util = -999.0f;
     if (wood->goods >= WOOD_PER_CHAIR) {
-        float chair_gain     = marginal_buy_utility(chair);
-        float sell_chair     = chair->priceExpectation * money_util;
+        float chair_gain = marginal_buy_utility(chair);
+        float sell_chair = chair->priceExpectation * money_util;
         if (sell_chair > chair_gain) chair_gain = sell_chair;
-        float wood_cost      = marginal_sell_utility(wood) * (float)WOOD_PER_CHAIR;
-        build_util = chair_gain - wood_cost;
+        build_util = chair_gain - marginal_sell_utility(wood) * (float)WOOD_PER_CHAIR;
     }
 
     AgentAction best     = ACTION_LEISURE;
@@ -34,16 +33,38 @@ static void choose_action(Agent *a) {
     if (chop_util  > best_val) { best = ACTION_CHOP;  best_val = chop_util; }
     if (build_util > best_val) { best = ACTION_BUILD; }
 
-    a->econ.lastAction = best;
-    if (best == ACTION_CHOP) {
-        wood->goods++;
-        a->econ.leisure.idleTime = 0.0f;
-    } else if (best == ACTION_BUILD) {
+    if (best == ACTION_LEISURE) {
+        a->econ.lastAction = ACTION_LEISURE;
+        a->econ.leisure.idleTime += a->econ.productionPeriod;
+    } else {
+        // Don't overwrite an existing pending work decision
+        if (a->econ.pendingWork == ACTION_LEISURE)
+            a->econ.pendingWork = best;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Work-site execution — called on arrival at the physical work site
+// ---------------------------------------------------------------------------
+
+void agent_execute_chop(Agent *a) {
+    AgentMarket *wood = AGENT_MKT(a, MARKET_WOOD);
+    wood->goods += GetRandomValue(1, 5);
+    a->econ.lastAction = ACTION_CHOP;
+    a->econ.leisure.idleTime = 0.0f;
+}
+
+void agent_execute_build(Agent *a) {
+    AgentMarket *wood  = AGENT_MKT(a, MARKET_WOOD);
+    AgentMarket *chair = AGENT_MKT(a, MARKET_CHAIR);
+    if (wood->goods >= WOOD_PER_CHAIR) {
         wood->goods  -= WOOD_PER_CHAIR;
         chair->goods++;
+        a->econ.lastAction = ACTION_BUILD;
         a->econ.leisure.idleTime = 0.0f;
     } else {
-        a->econ.leisure.idleTime += a->econ.productionPeriod;
+        // Wood decayed before arrival — treat as leisure
+        a->econ.lastAction = ACTION_LEISURE;
     }
 }
 
