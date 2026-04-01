@@ -1,4 +1,5 @@
 #include "controls.h"
+#include "econ.h"
 #include "market.h"
 #include "raylib.h"
 #include <stdio.h>
@@ -270,11 +271,12 @@ void influence_panel_render(const InfluencePanel *p) {
 #define BR_ROW_H  24
 #define BR_SEP     4
 #define BR_PAD     5
-#define BR_H  (BR_HDR_H + BR_SEP + BR_ROW_H + BR_ROW_H + BR_ROW_H + BR_PAD)
+#define BR_H  (BR_HDR_H + BR_SEP + BR_ROW_H + BR_ROW_H + BR_ROW_H + BR_ROW_H + BR_PAD)
 
 #define BR_ROW_Y_WOOD  (BR_Y + BR_HDR_H + BR_SEP)
-#define BR_ROW_Y_CHAIR (BR_ROW_Y_WOOD + BR_ROW_H)
-#define BR_ROW_Y_DEBT  (BR_ROW_Y_CHAIR + BR_ROW_H)
+#define BR_ROW_Y_CHAIR (BR_ROW_Y_WOOD  + BR_ROW_H)
+#define BR_ROW_Y_CHOP  (BR_ROW_Y_CHAIR + BR_ROW_H)
+#define BR_ROW_Y_DEBT  (BR_ROW_Y_CHOP  + BR_ROW_H)
 
 void decay_rate_panel_init(DecayRatePanel *p) {
     p->editing = DECAY_EDIT_NONE;
@@ -286,7 +288,8 @@ bool decay_rate_panel_update(DecayRatePanel *p) {
     if (p->editing != DECAY_EDIT_NONE) {
         int ch;
         while ((ch = GetCharPressed()) != 0) {
-            bool ok = (ch >= '0' && ch <= '9') || ch == '.';
+            bool ok = (ch >= '0' && ch <= '9')
+                   || (ch == '.' && p->editing != DECAY_EDIT_CHOP_YIELD);
             if (ok && p->bufLen < 14) {
                 p->buf[p->bufLen++] = (char)ch;
                 p->buf[p->bufLen]   = '\0';
@@ -296,10 +299,15 @@ bool decay_rate_panel_update(DecayRatePanel *p) {
             p->buf[--p->bufLen] = '\0';
         if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_ESCAPE)) {
             if (IsKeyPressed(KEY_ENTER)) {
-                float val = (float)atof(p->buf);
-                if (val < 0.0f) val = 0.0f;
-                if (p->editing == DECAY_EDIT_WOOD)  g_wood_decay_rate  = val;
-                else                                g_chair_decay_rate = val;
+                if (p->editing == DECAY_EDIT_CHOP_YIELD) {
+                    int v = atoi(p->buf);
+                    if (v >= 1) g_chop_yield_max = v;
+                } else {
+                    float val = (float)atof(p->buf);
+                    if (val < 0.0f) val = 0.0f;
+                    if (p->editing == DECAY_EDIT_WOOD)  g_wood_decay_rate  = val;
+                    else                                g_chair_decay_rate = val;
+                }
             }
             p->editing = DECAY_EDIT_NONE;
         }
@@ -333,6 +341,18 @@ bool decay_rate_panel_update(DecayRatePanel *p) {
         }
         return true;
     }
+    if (in_rect(m.x, m.y, BR_X, BR_ROW_Y_CHOP, BR_W, BR_ROW_H)) {
+        if (p->editing == DECAY_EDIT_CHOP_YIELD) {
+            int v = atoi(p->buf);
+            if (v >= 1) g_chop_yield_max = v;
+            p->editing = DECAY_EDIT_NONE;
+        } else {
+            p->editing = DECAY_EDIT_CHOP_YIELD;
+            snprintf(p->buf, sizeof(p->buf), "%d", g_chop_yield_max);
+            p->bufLen = (int)strlen(p->buf);
+        }
+        return true;
+    }
     if (in_rect(m.x, m.y, BR_X, BR_ROW_Y_DEBT, BR_W, BR_ROW_H)) {
         g_allow_debt = !g_allow_debt;
         return true;
@@ -348,7 +368,7 @@ void decay_rate_panel_render(const DecayRatePanel *p) {
     DrawRectangle(BR_X, BR_Y, BR_W, BR_HDR_H, (Color){28, 48, 78, 255});
     DrawText("Decay Rates (/unit/s)", BR_X + 6, BR_Y + 5, 13, WHITE);
 
-    // Helper: draw one editable decay-rate row
+    // Decay rate rows (wood, chair)
     for (int i = 0; i < 2; i++) {
         DecayEditField field = (i == 0) ? DECAY_EDIT_WOOD : DECAY_EDIT_CHAIR;
         int ry            = (i == 0) ? BR_ROW_Y_WOOD : BR_ROW_Y_CHAIR;
@@ -369,6 +389,25 @@ void decay_rate_panel_render(const DecayRatePanel *p) {
         } else {
             snprintf(val, sizeof(val), "%.4f", curVal);
             DrawText(val, BR_X + BR_W - MeasureText(val, 13) - 6, ry + 5, 13,
+                     (Color){80, 180, 255, 255});
+        }
+    }
+
+    // Chop yield row
+    {
+        bool editing = (p->editing == DECAY_EDIT_CHOP_YIELD);
+        Color bg = editing ? (Color){20, 60, 90, 255} : (Color){35, 48, 60, 255};
+        DrawRectangle(BR_X, BR_ROW_Y_CHOP, BR_W, BR_ROW_H - 1, bg);
+        DrawRectangleLines(BR_X, BR_ROW_Y_CHOP, BR_W, BR_ROW_H - 1, (Color){70, 95, 115, 255});
+        DrawText("Chop yield (max):", BR_X + 6, BR_ROW_Y_CHOP + 5, 13, (Color){170, 175, 185, 255});
+        char val[24];
+        if (editing) {
+            bool cur = (int)(GetTime() * 2) % 2 == 0;
+            snprintf(val, sizeof(val), "%s%s", p->buf, cur ? "|" : " ");
+            DrawText(val, BR_X + BR_W - MeasureText(val, 13) - 6, BR_ROW_Y_CHOP + 5, 13, WHITE);
+        } else {
+            snprintf(val, sizeof(val), "%d", g_chop_yield_max);
+            DrawText(val, BR_X + BR_W - MeasureText(val, 13) - 6, BR_ROW_Y_CHOP + 5, 13,
                      (Color){80, 180, 255, 255});
         }
     }

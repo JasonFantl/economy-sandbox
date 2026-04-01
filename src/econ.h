@@ -45,8 +45,11 @@ static inline int wants_to_sell(const AgentMarket *m, float money) {
 // econ.c — economic update and batch helpers
 // ---------------------------------------------------------------------------
 
+// Maximum wood gained per chop action (actual yield = GetRandomValue(1, g_chop_yield_max))
+extern int g_chop_yield_max;
+
 void agent_econ_update(Agent *a, float dt);
-void agent_execute_chop(Agent *a);   // adds 1–5 wood
+void agent_execute_chop(Agent *a);   // adds 1..g_chop_yield_max wood
 void agent_execute_build(Agent *a);  // spends WOOD_PER_CHAIR wood, gains 1 chair
 
 void agents_adjust_valuations(Agent *agents, int count, int numAgents, float delta, MarketId mid);

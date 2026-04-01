@@ -2,6 +2,8 @@
 #include "market.h"
 #include "raylib.h"
 
+int g_chop_yield_max = 5;
+
 // ---------------------------------------------------------------------------
 // Production decision — called once per production period
 // ---------------------------------------------------------------------------
@@ -15,8 +17,10 @@ static void choose_action(Agent *a) {
     float idle_util    = leisure_utility(&a->econ.leisure);
     float money_util   = money_marginal_utility(a->econ.money);
 
-    float chop_util  = marginal_buy_utility(wood);
-    float sell_wood  = wood->priceExpectation * money_util;
+    // Scale chop value by expected yield — more wood per chop = stronger incentive
+    float expected_yield = (1.0f + (float)g_chop_yield_max) * 0.5f;
+    float chop_util  = marginal_buy_utility(wood) * expected_yield;
+    float sell_wood  = wood->priceExpectation * money_util * expected_yield;
     if (sell_wood > chop_util) chop_util = sell_wood;
 
     float build_util = -999.0f;
@@ -48,7 +52,7 @@ static void choose_action(Agent *a) {
 
 void agent_execute_chop(Agent *a) {
     AgentMarket *wood = AGENT_MKT(a, MARKET_WOOD);
-    wood->goods += GetRandomValue(1, 5);
+    wood->goods += GetRandomValue(1, g_chop_yield_max);
     a->econ.lastAction = ACTION_CHOP;
     a->econ.leisure.idleTime = 0.0f;
 }

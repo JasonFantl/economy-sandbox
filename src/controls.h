@@ -29,7 +29,7 @@ void influence_panel_render(const InfluencePanel *p);
 // Decay rate panel — edit per-unit, per-second decay rates for each good
 // ---------------------------------------------------------------------------
 
-typedef enum { DECAY_EDIT_NONE = 0, DECAY_EDIT_WOOD, DECAY_EDIT_CHAIR } DecayEditField;
+typedef enum { DECAY_EDIT_NONE = 0, DECAY_EDIT_WOOD, DECAY_EDIT_CHAIR, DECAY_EDIT_CHOP_YIELD } DecayEditField;
 
 typedef struct {
     DecayEditField editing;
