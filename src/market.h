@@ -1,7 +1,7 @@
 #ifndef MARKET_H
 #define MARKET_H
 
-#include "agent.h"
+#include "econ.h"
 
 #define PRICE_HISTORY_SIZE  400
 

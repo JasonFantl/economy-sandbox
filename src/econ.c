@@ -1,7 +1,6 @@
-#include "agent.h"
+#include "econ.h"
 #include "market.h"
 #include "raylib.h"
-#include <math.h>
 
 // ---------------------------------------------------------------------------
 // Production decision — called once per production period
