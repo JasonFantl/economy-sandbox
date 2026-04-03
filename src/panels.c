@@ -161,11 +161,12 @@ void panel_valuation_dist(const Agent *agents, int count, int marketId,
     s_sort_agents=agents; s_sort_marketId=marketId;
     qsort(indices,(size_t)count,sizeof(int),cmp_by_max_utility);
 
-    float xStep=(float)pw/(float)(count-1);
+    float xStep=(float)pw/(float)(count);
+    float xOff=xStep*0.5f;
     for (int rank=0;rank<count;rank++) {
         const Agent      *a=&agents[indices[rank]];
         const AgentMarket *m=&a->econ.markets[marketId];
-        int x=px+(int)((float)rank*xStep);
+        int x=px+(int)(xOff+(float)rank*xStep);
         float sellPrice=marginal_sell_utility(m), buyPrice=marginal_buy_utility(m);
         float base=m->maxUtility, emv=m->priceExpectation;
 

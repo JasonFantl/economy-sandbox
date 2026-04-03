@@ -17,6 +17,8 @@ Opinion dynamics, cliques and friends, watch flow of information.
 
 Jobs
 
+Agents already consider the number of pieces of wood they will chop down when making an economic decision, we just need to tie that to the player burning down a forest.
+
 The types fo actions I want to see the player make to influence the economy:
 * Flood market with a good from player
 * burn down forest
@@ -46,3 +48,7 @@ Actions:
 
 
 Can we compare a city with 20 agents to a city with 500? What is different?
+
+Can we attach value to setting a fire (we like warmth), which requires using up wood? We could then more realistically have agents assign little to no intrinsic value to wood, it is only (maybe a few people like wood) instrumental to setting a fire each day. This lets us change the weather and see the value of wood change. We could see that giving people coats would effect the wood market.
+
+One issue we currently have: If agents have a high base value of chairs, but low base value for wood, they will not make wood even though they want chairs. Agents need to update their personal value both on their intrinsic value of the good, but also the instrumental value of the good. This currently does not exist.

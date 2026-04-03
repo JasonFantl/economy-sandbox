@@ -1,8 +1,7 @@
 #ifndef WALKTHROUGH_H
 #define WALKTHROUGH_H
 
-#include "agent.h"
-#include "market.h"
+#include "sim.h"
 #include "controls.h"
 #include "panels.h"
 #include <stdbool.h>
@@ -11,17 +10,12 @@
 #define WTHROUGH_NAV_H 36
 
 // ---------------------------------------------------------------------------
-// SimContext — shared data bundle passed to step render functions
+// SimContext — sim data + walkthrough UI panels, passed to step render fns
 // ---------------------------------------------------------------------------
 typedef struct {
-    Agent             *agents;
-    int                count;
-    const AgentValueHistory *avh;  // [MARKET_COUNT]
-    const AgentValueHistory *pvh;  // [MARKET_COUNT]
-    const AgentValueHistory *gvh;  // [MARKET_COUNT]
-    InfluencePanel    *inf;
-    DecayRatePanel    *decay;
-    float              worldW, worldH;
+    SimState       *sim;
+    InfluencePanel *inf;
+    DecayRatePanel *decay;
 } SimContext;
 
 // ---------------------------------------------------------------------------
@@ -30,51 +24,43 @@ typedef struct {
 typedef void (*RenderPanelsFn)(const SimContext *ctx,
                                 int plotX, int plotY, int plotW, int plotH);
 
+// Scene init callback — sets globals and ctx->count; agents_init called after
+typedef void (*SceneInitFn)(SimContext *ctx);
+
+// Step init callback — sets feature flags only (no agent reinit)
+typedef void (*StepInitFn)(void);
+
 // ---------------------------------------------------------------------------
 // Step definition
 // ---------------------------------------------------------------------------
 typedef struct {
-    // Simulation config applied on step entry
-    int   numAgents;
-    bool  diminishingReturns;
-    bool  debtAllowed;
-    bool  productionEnabled;
-    bool  decayEnabled;
-    bool  leisureEnabled;
-    bool  twoGoods;
-    float baseValueMin, baseValueMax;
-
-    // UI
     const char    *title;
     const char    *text;
+    StepInitFn     init;          // sets flags for this step (no agent reinit)
     RenderPanelsFn render_panels;
 } StepDef;
 
 // ---------------------------------------------------------------------------
-// Scene and Chapter
+// Scene
 // ---------------------------------------------------------------------------
-#define MAX_STEPS_PER_SCENE    8
-#define MAX_SCENES_PER_CHAPTER 4
-#define MAX_CHAPTERS           3
+#define MAX_STEPS_PER_SCENE 8
+#define MAX_SCENES          8
 
 typedef struct {
-    const char *title;
-    int         stepCount;
-    StepDef     steps[MAX_STEPS_PER_SCENE];
+    const char  *title;
+    SceneInitFn  init;       // called on scene entry; sets globals + ctx->count
+    int          stepCount;
+    StepDef      steps[MAX_STEPS_PER_SCENE];
 } SceneDef;
-
-typedef struct {
-    const char *title;
-    int         sceneCount;
-    SceneDef    scenes[MAX_SCENES_PER_CHAPTER];
-} ChapterDef;
 
 // ---------------------------------------------------------------------------
 // Walkthrough state
 // ---------------------------------------------------------------------------
 typedef struct {
-    int  chapter, scene, step;
-    bool active;  // false = free-play mode
+    int  scene, step;
+    bool active;        // false = free-play mode
+    bool scene_changed; // set true when scene changes; cleared by caller
+    bool popup_active;  // true = step intro popup is showing
 } WalkthroughState;
 
 // ---------------------------------------------------------------------------

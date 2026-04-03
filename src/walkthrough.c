@@ -8,53 +8,62 @@
 #include <string.h>
 #include <stdbool.h>
 
+
 // ---------------------------------------------------------------------------
 // Step render functions
 // ---------------------------------------------------------------------------
 
 static void render_c1s1p1(const SimContext *ctx, int x, int y, int w, int h) {
-    panel_price_history(ctx->avh, ctx->pvh, ctx->agents, ctx->count,
-                        MARKET_WOOD, x, y, w, h, 0.0f, false);
+    int gap = 8, hw = (w - gap) / 2;
+    panel_valuation_dist(ctx->sim->agents, ctx->sim->count, MARKET_WOOD,
+                         x, y, hw, h, 0.0f);
+    panel_price_history(ctx->sim->avh, ctx->sim->pvh, ctx->sim->agents, ctx->sim->count,
+                        MARKET_WOOD, x + hw + gap, y, hw, h, 0.0f, false);
 }
 
 static void render_c1s2p1(const SimContext *ctx, int x, int y, int w, int h) {
-    panel_price_history(ctx->avh, ctx->pvh, ctx->agents, ctx->count,
-                        MARKET_WOOD, x, y, w, h, 0.0f, false);
+    int gap = 8, hw = (w - gap) / 2;
+    panel_valuation_dist(ctx->sim->agents, ctx->sim->count, MARKET_WOOD,
+                         x, y, hw, h, 0.0f);
+    panel_price_history(ctx->sim->avh, ctx->sim->pvh, ctx->sim->agents, ctx->sim->count,
+                        MARKET_WOOD, x + hw + gap, y, hw, h, 0.0f, false);
 }
 
 static void render_c1s2p2(const SimContext *ctx, int x, int y, int w, int h) {
     int gap = 8, hw = (w - gap) / 2;
-    panel_price_history(ctx->avh, ctx->pvh, ctx->agents, ctx->count,
-                        MARKET_WOOD, x, y, hw, h, 0.0f, false);
-    panel_supply_demand(ctx->agents, ctx->count, MARKET_WOOD,
+    panel_valuation_dist(ctx->sim->agents, ctx->sim->count, MARKET_WOOD,
+                         x, y, hw, h, 0.0f);
+    panel_supply_demand(ctx->sim->agents, ctx->sim->count, MARKET_WOOD,
                         x + hw + gap, y, hw, h);
 }
 
 static void render_c1s2p3(const SimContext *ctx, int x, int y, int w, int h) {
-    int gap = 8, hw = (w - gap) / 2;
-    panel_price_history(ctx->avh, ctx->pvh, ctx->agents, ctx->count,
-                        MARKET_WOOD, x, y, hw, h, 0.0f, false);
-    panel_wealth(ctx->agents, ctx->count, MARKET_WOOD,
-                 x + hw + gap, y, hw, h);
+    int gap = 8, hw = (w - gap) / 2, hh = (h - gap) / 2;
+    panel_valuation_dist(ctx->sim->agents, ctx->sim->count, MARKET_WOOD,
+                         x, y, hw, hh, 0.0f);
+    panel_wealth(ctx->sim->agents, ctx->sim->count, MARKET_WOOD,
+                 x, y + hh + gap, hw, hh);
+    panel_price_history(ctx->sim->avh, ctx->sim->pvh, ctx->sim->agents, ctx->sim->count,
+                        MARKET_WOOD, x + hw + gap, y, hw, h, 0.0f, false);
 }
 
 static float avg_eq(const SimContext *ctx, int mid) {
     float sum = 0.0f;
-    for (int i = 0; i < ctx->count; i++)
-        sum += ctx->agents[i].econ.markets[mid].maxUtility;
-    return ctx->count > 0 ? sum / (float)ctx->count : 0.0f;
+    for (int i = 0; i < ctx->sim->count; i++)
+        sum += ctx->sim->agents[i].econ.markets[mid].maxUtility;
+    return ctx->sim->count > 0 ? sum / (float)ctx->sim->count : 0.0f;
 }
 
 static void render_c1s2p4(const SimContext *ctx, int x, int y, int w, int h) {
     int gap = 8, hw = (w - gap) / 2, hh = (h - gap) / 2;
     float eq = avg_eq(ctx, MARKET_WOOD);
-    panel_price_history  (ctx->avh, ctx->pvh, ctx->agents, ctx->count,
+    panel_price_history  (ctx->sim->avh, ctx->sim->pvh, ctx->sim->agents, ctx->sim->count,
                           MARKET_WOOD, x,         y,         hw, hh, eq, true);
-    panel_supply_demand  (ctx->agents, ctx->count, MARKET_WOOD,
+    panel_supply_demand  (ctx->sim->agents, ctx->sim->count, MARKET_WOOD,
                           x + hw + gap, y,         hw, hh);
-    panel_valuation_dist (ctx->agents, ctx->count, MARKET_WOOD,
+    panel_valuation_dist (ctx->sim->agents, ctx->sim->count, MARKET_WOOD,
                           x,            y + hh + gap, hw, hh, eq);
-    panel_wealth         (ctx->agents, ctx->count, MARKET_WOOD,
+    panel_wealth         (ctx->sim->agents, ctx->sim->count, MARKET_WOOD,
                           x + hw + gap, y + hh + gap, hw, hh);
 }
 
@@ -74,178 +83,277 @@ static void render_c1s2p7(const SimContext *ctx, int x, int y, int w, int h) {
 }
 
 // ---------------------------------------------------------------------------
-// Chapter / Scene / Step data
+// Step init functions
 // ---------------------------------------------------------------------------
 
-static const ChapterDef CHAPTERS[1] = {
-{
-    "Chapter 1: One Good", 2,
+static void step_c1s1p1(void) {
+    g_diminishing_returns = false;
+    g_production_enabled  = false;
+    g_leisure_enabled     = false;
+    g_two_goods           = false;
+    g_allow_debt          = 1;
+    g_wood_decay_rate     = 0.0f;
+    g_chair_decay_rate    = 0.0f;
+}
+
+static void step_c1s2p1(void) {
+    g_diminishing_returns = false;
+    g_production_enabled  = false;
+    g_leisure_enabled     = false;
+    g_two_goods           = false;
+    g_allow_debt          = 1;
+    g_wood_decay_rate     = 0.0f;
+    g_chair_decay_rate    = 0.0f;
+}
+
+static void step_c1s2p2(void) {
+    g_diminishing_returns = false;
+    g_production_enabled  = false;
+    g_leisure_enabled     = false;
+    g_two_goods           = false;
+    g_allow_debt          = 1;
+    g_wood_decay_rate     = 0.0f;
+    g_chair_decay_rate    = 0.0f;
+}
+
+static void step_c1s2p3(void) {
+    g_diminishing_returns = false;
+    g_production_enabled  = false;
+    g_leisure_enabled     = false;
+    g_two_goods           = false;
+    g_allow_debt          = 0;
+    g_wood_decay_rate     = 0.0f;
+    g_chair_decay_rate    = 0.0f;
+}
+
+static void step_c1s2p4(void) {
+    g_diminishing_returns = true;
+    g_production_enabled  = false;
+    g_leisure_enabled     = false;
+    g_two_goods           = false;
+    g_allow_debt          = 0;
+    g_wood_decay_rate     = 0.0f;
+    g_chair_decay_rate    = 0.0f;
+}
+
+static void step_c1s2p5(void) {
+    g_diminishing_returns = true;
+    g_production_enabled  = false;
+    g_leisure_enabled     = false;
+    g_two_goods           = false;
+    g_allow_debt          = 0;
+    g_wood_decay_rate     = 0.003f;
+    g_chair_decay_rate    = 0.003f;
+}
+
+static void step_c1s2p6(void) {
+    g_diminishing_returns = true;
+    g_production_enabled  = true;
+    g_leisure_enabled     = false;
+    g_two_goods           = false;
+    g_allow_debt          = 0;
+    g_wood_decay_rate     = 0.003f;
+    g_chair_decay_rate    = 0.003f;
+}
+
+static void step_c1s2p7(void) {
+    g_diminishing_returns = true;
+    g_production_enabled  = true;
+    g_leisure_enabled     = true;
+    g_two_goods           = false;
+    g_allow_debt          = 0;
+    g_wood_decay_rate     = 0.003f;
+    g_chair_decay_rate    = 0.003f;
+}
+
+// ---------------------------------------------------------------------------
+// Scene init functions
+// ---------------------------------------------------------------------------
+
+static void init_c1s1(SimContext *ctx) {
+    ctx->sim->count = 2;
+    agents_init(ctx->sim->agents, ctx->sim->count, ctx->sim->worldW, ctx->sim->worldH);
+    for (int i = 0; i < ctx->sim->count; i++) {
+        float t = (float)GetRandomValue(0, 10000) / 10000.0f;
+        ctx->sim->agents[i].econ.markets[MARKET_WOOD].maxUtility = 20.0f + t * 40.0f;
+        ctx->sim->agents[i].econ.markets[MARKET_WOOD].priceExpectation =
+            ctx->sim->agents[i].econ.markets[MARKET_WOOD].maxUtility;
+    }
+}
+
+static void init_c1s2(SimContext *ctx) {
+    ctx->sim->count = 100;
+    agents_init(ctx->sim->agents, ctx->sim->count, ctx->sim->worldW, ctx->sim->worldH);
+    for (int i = 0; i < ctx->sim->count; i++) {
+        float t = (float)GetRandomValue(0, 10000) / 10000.0f;
+        ctx->sim->agents[i].econ.markets[MARKET_WOOD].maxUtility = 20.0f + t * 40.0f;
+        ctx->sim->agents[i].econ.markets[MARKET_WOOD].priceExpectation =
+            ctx->sim->agents[i].econ.markets[MARKET_WOOD].maxUtility;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Scene / Step data
+// ---------------------------------------------------------------------------
+
+static const SceneDef SCENES[] = {
     {
-        // Scene 1: Two Agents
+        "Two Agents", init_c1s1, 1,
         {
-            "Scene 1: Two Agents", 1,
             {
-                {
-                    2, false, true, false, false, false, false, 20.0f, 60.0f,
-                    "Two Agents",
-                    "Two agents have different ideas of what a unit of wood is worth. "
-                    "Each time they fail to trade, they nudge their expected price "
-                    "toward their own valuation. Watch the prices converge over time.",
-                    render_c1s1p1
-                }
+                "Two Agents",
+                "Two agents have different ideas of what a unit of wood is worth. "
+                "Each time they fail to trade, they nudge their expected price "
+                "toward their own valuation. Watch the prices converge over time.",
+                step_c1s1p1, render_c1s1p1
             }
-        },
-        // Scene 2: Many Agents
+        }
+    },
+    {
+        "Many Agents", init_c1s2, 7,
         {
-            "Scene 2: Many Agents", 7,
             {
-                {
-                    100, false, true, false, false, false, false, 20.0f, 60.0f,
-                    "Many Agents",
-                    "With 100 agents, each with a different fixed valuation, all price "
-                    "expectations converge toward a shared market price through repeated "
-                    "gossip and failed trade attempts.",
-                    render_c1s2p1
-                },
-                {
-                    100, false, true, false, false, false, false, 20.0f, 60.0f,
-                    "Supply & Demand",
-                    "The supply curve shows agents ranked by their minimum sell price. "
-                    "The demand curve shows agents ranked by their maximum buy price. "
-                    "They cross at the equilibrium price - the natural price the market converges to.",
-                    render_c1s2p2
-                },
-                {
-                    100, false, false, false, false, false, false, 20.0f, 60.0f,
-                    "Market Collapse",
-                    "Without debt, buyers who run out of money can no longer trade. "
-                    "As money piles up in fewer hands, the market seizes. "
-                    "Watch the wealth distribution become extreme.",
-                    render_c1s2p3
-                },
-                {
-                    100, true, false, false, false, false, false, 20.0f, 60.0f,
-                    "Diminishing Returns",
-                    "Agents now have diminishing marginal utility - each additional unit "
-                    "of wood is worth less than the last. This creates a natural stopping "
-                    "point: agents stop buying when the price exceeds their marginal value. "
-                    "The market stabilises.",
-                    render_c1s2p4
-                },
-                {
-                    100, true, false, false, true, false, false, 20.0f, 60.0f,
-                    "Goods Decay",
-                    "Wood now rots over time. As inventory evaporates, the supply curve "
-                    "shrinks and prices rise. Try adjusting the decay rate to see how "
-                    "the market responds.",
-                    render_c1s2p5
-                },
-                {
-                    100, true, false, true, true, false, false, 20.0f, 60.0f,
-                    "Production",
-                    "Agents can now chop wood. When the market price exceeds their cost "
-                    "of effort, they produce and sell. Adjust the chop yield to flood "
-                    "or starve the market.",
-                    render_c1s2p6
-                },
-                {
-                    100, true, false, true, true, true, false, 20.0f, 60.0f,
-                    "Leisure",
-                    "Agents now value leisure - resting has diminishing utility too. "
-                    "They balance chopping, trading, and resting. "
-                    "Raise or lower the leisure value to see how it shifts supply.",
-                    render_c1s2p7
-                }
+                "Many Agents",
+                "With 100 agents, each with a different fixed valuation, all price "
+                "expectations converge toward a shared market price through repeated "
+                "gossip and failed trade attempts.",
+                step_c1s2p1, render_c1s2p1
+            },
+            {
+                "Supply & Demand",
+                "The supply curve shows agents ranked by their minimum sell price. "
+                "The demand curve shows agents ranked by their maximum buy price. "
+                "They cross at the equilibrium price - the natural price the market converges to.",
+                step_c1s2p2, render_c1s2p2
+            },
+            {
+                "Market Collapse",
+                "Without debt, buyers who run out of money can no longer trade. "
+                "As money piles up in fewer hands, the market seizes. "
+                "Watch the wealth distribution become extreme.",
+                step_c1s2p3, render_c1s2p3
+            },
+            {
+                "Diminishing Returns",
+                "Agents now have diminishing marginal utility - each additional unit "
+                "of wood is worth less than the last. This creates a natural stopping "
+                "point: agents stop buying when the price exceeds their marginal value. "
+                "The market stabilises.",
+                step_c1s2p4, render_c1s2p4
+            },
+            {
+                "Goods Decay",
+                "Wood now rots over time. As inventory evaporates, the supply curve "
+                "shrinks and prices rise. Try adjusting the decay rate to see how "
+                "the market responds.",
+                step_c1s2p5, render_c1s2p5
+            },
+            {
+                "Production",
+                "Agents can now chop wood. When the market price exceeds their cost "
+                "of effort, they produce and sell. Adjust the chop yield to flood "
+                "or starve the market.",
+                step_c1s2p6, render_c1s2p6
+            },
+            {
+                "Leisure",
+                "Agents now value leisure - resting has diminishing utility too. "
+                "They balance chopping, trading, and resting. "
+                "Raise or lower the leisure value to see how it shifts supply.",
+                step_c1s2p7, render_c1s2p7
             }
         }
     }
-}
 };
+
+#define SCENE_COUNT ((int)(sizeof(SCENES) / sizeof(SCENES[0])))
 
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
 
 static const StepDef *current_step(const WalkthroughState *wt) {
-    return &CHAPTERS[wt->chapter].scenes[wt->scene].steps[wt->step];
+    return &SCENES[wt->scene].steps[wt->step];
 }
 
 const StepDef *walkthrough_current_step(const WalkthroughState *wt) {
     return current_step(wt);
 }
 
-// ---------------------------------------------------------------------------
-// Apply step config
-// ---------------------------------------------------------------------------
+// Apply scene init (sets agent count + reinits agents). Called on scene entry.
+static void apply_scene(WalkthroughState *wt, SimContext *ctx) {
+    SCENES[wt->scene].init(ctx);
+}
 
-void walkthrough_apply(WalkthroughState *wt, SimContext *ctx) {
+// Apply step init (sets feature flags only, no agent reinit).
+static void apply_step(const WalkthroughState *wt) {
     const StepDef *s = current_step(wt);
-    g_diminishing_returns = s->diminishingReturns;
-    g_production_enabled  = s->productionEnabled;
-    g_leisure_enabled     = s->leisureEnabled;
-    g_two_goods           = s->twoGoods;
-    g_allow_debt          = s->debtAllowed ? 1 : 0;
-    if (!s->decayEnabled) {
-        g_wood_decay_rate  = 0.0f;
-        g_chair_decay_rate = 0.0f;
-    } else {
-        if (g_wood_decay_rate == 0.0f)  g_wood_decay_rate  = 0.003f;
-        if (g_chair_decay_rate == 0.0f) g_chair_decay_rate = 0.003f;
-    }
-    // Re-init agents with step's agent count
-    ctx->count = s->numAgents;
-    agents_init(ctx->agents, ctx->count, ctx->worldW, ctx->worldH);
-    // Randomise maxUtility into the step's baseValue range for wood
-    for (int i = 0; i < ctx->count; i++) {
-        float t = (float)GetRandomValue(0, 10000) / 10000.0f;
-        ctx->agents[i].econ.markets[MARKET_WOOD].maxUtility =
-            s->baseValueMin + t * (s->baseValueMax - s->baseValueMin);
-        ctx->agents[i].econ.markets[MARKET_WOOD].priceExpectation =
-            ctx->agents[i].econ.markets[MARKET_WOOD].maxUtility;
-    }
+    if (s->init) s->init();
 }
 
 // ---------------------------------------------------------------------------
 // Navigation
 // ---------------------------------------------------------------------------
 
+static void open_popup(WalkthroughState *wt) {
+    wt->popup_active = true;
+    g_sim.paused = true;
+}
+
 void walkthrough_init(WalkthroughState *wt, SimContext *ctx) {
-    wt->chapter = 0; wt->scene = 0; wt->step = 0; wt->active = true;
-    walkthrough_apply(wt, ctx);
+    wt->scene = 0; wt->step = 0; wt->active = true;
+    wt->scene_changed = false;
+    apply_step(wt);
+    apply_scene(wt, ctx);
+    open_popup(wt);
 }
 
 bool walkthrough_next_step(WalkthroughState *wt, SimContext *ctx) {
-    const SceneDef *sc = &CHAPTERS[wt->chapter].scenes[wt->scene];
-    if (wt->step + 1 < sc->stepCount) {
+    wt->scene_changed = false;
+    if (wt->step + 1 < SCENES[wt->scene].stepCount) {
         wt->step++;
+        apply_step(wt);
+    } else if (wt->scene + 1 < SCENE_COUNT) {
+        wt->scene++; wt->step = 0;
+        apply_step(wt);
+        apply_scene(wt, ctx);
+        wt->scene_changed = true;
     } else {
-        const ChapterDef *ch = &CHAPTERS[wt->chapter];
-        if (wt->scene + 1 < ch->sceneCount) {
-            wt->scene++; wt->step = 0;
-        } else {
-            walkthrough_exit(wt);
-            return false;
-        }
+        walkthrough_exit(wt);
+        return false;
     }
-    walkthrough_apply(wt, ctx);
+    open_popup(wt);
     return true;
 }
 
 bool walkthrough_prev_step(WalkthroughState *wt, SimContext *ctx) {
+    wt->scene_changed = false;
     if (wt->step > 0) {
         wt->step--;
+        apply_step(wt);
     } else if (wt->scene > 0) {
         wt->scene--;
-        wt->step = CHAPTERS[wt->chapter].scenes[wt->scene].stepCount - 1;
+        wt->step = SCENES[wt->scene].stepCount - 1;
+        apply_step(wt);
+        apply_scene(wt, ctx);
+        wt->scene_changed = true;
     } else {
         return false;
     }
-    walkthrough_apply(wt, ctx);
+    open_popup(wt);
     return true;
 }
 
 void walkthrough_restart(WalkthroughState *wt, SimContext *ctx) {
-    walkthrough_apply(wt, ctx);
+    wt->step = 0;
+    apply_step(wt);
+    apply_scene(wt, ctx);
+    open_popup(wt);
+}
+
+void walkthrough_apply(WalkthroughState *wt, SimContext *ctx) {
+    apply_step(wt);
+    apply_scene(wt, ctx);
 }
 
 void walkthrough_exit(WalkthroughState *wt) {
@@ -265,6 +373,27 @@ void walkthrough_exit(WalkthroughState *wt) {
 
 bool walkthrough_handle_input(WalkthroughState *wt, SimContext *ctx) {
     if (!wt->active) return false;
+
+    // While popup is showing, only Ok/Enter/Space can dismiss it
+    if (wt->popup_active) {
+        bool dismiss = IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE);
+        if (!dismiss && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            // Ok button: centred, below text box
+            int bw = 100, bh = 32;
+            int bx = (SCREEN_W - bw) / 2;
+            int by = SCREEN_H / 2 + 80;
+            Vector2 m = GetMousePosition();
+            dismiss = m.x >= bx && m.x <= bx + bw && m.y >= by && m.y <= by + bh;
+        }
+        if (dismiss) {
+            wt->popup_active = false;
+            g_sim.paused = false;
+        }
+        return false;
+    }
+
+    if (IsKeyPressed(KEY_SPACE)) { g_sim.paused = !g_sim.paused; return false; }
+
     if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_N)) {
         walkthrough_next_step(wt, ctx); return true;
     }
@@ -279,19 +408,15 @@ bool walkthrough_handle_input(WalkthroughState *wt, SimContext *ctx) {
     }
     Vector2 m = GetMousePosition();
     if (!IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) return false;
-    // Prev button: x 10..80, y 2..32
     if (m.x >= 10 && m.x <= 80 && m.y >= 2 && m.y <= 32) {
         walkthrough_prev_step(wt, ctx); return true;
     }
-    // Next button
     if (m.x >= SCREEN_W-80 && m.x <= SCREEN_W-10 && m.y >= 2 && m.y <= 32) {
         walkthrough_next_step(wt, ctx); return true;
     }
-    // Restart button
     if (m.x >= SCREEN_W-170 && m.x <= SCREEN_W-90 && m.y >= 2 && m.y <= 32) {
         walkthrough_restart(wt, ctx); return true;
     }
-    // Exit button
     if (m.x >= SCREEN_W-260 && m.x <= SCREEN_W-180 && m.y >= 2 && m.y <= 32) {
         walkthrough_exit(wt); return true;
     }
@@ -344,56 +469,82 @@ static void draw_wrapped_text(const char *text, int x, int y, int maxW,
 
 void walkthrough_render_overlay(const WalkthroughState *wt) {
     if (!wt->active) return;
-    const StepDef   *s  = current_step(wt);
-    const SceneDef  *sc = &CHAPTERS[wt->chapter].scenes[wt->scene];
-    const ChapterDef*ch = &CHAPTERS[wt->chapter];
+    const StepDef  *s  = current_step(wt);
+    const SceneDef *sc = &SCENES[wt->scene];
 
-    // Nav bar background
     DrawRectangle(0, 0, SCREEN_W, WTHROUGH_NAV_H, (Color){18, 26, 40, 240});
     DrawLine(0, WTHROUGH_NAV_H, SCREEN_W, WTHROUGH_NAV_H, (Color){70, 90, 120, 255});
 
     Vector2 mouse = GetMousePosition();
 
-    // Prev button
     bool hPrev = mouse.x>=10&&mouse.x<=80&&mouse.y>=4&&mouse.y<=WTHROUGH_NAV_H-4;
     DrawRectangle(10, 4, 70, WTHROUGH_NAV_H-8, hPrev?(Color){60,90,140,255}:(Color){35,55,90,255});
     DrawRectangleLines(10, 4, 70, WTHROUGH_NAV_H-8, (Color){80,120,180,200});
     DrawText("< Prev", 14, 10, 13, hPrev ? WHITE : (Color){180,190,210,255});
 
-    // Next button
     bool hNext = mouse.x>=SCREEN_W-80&&mouse.x<=SCREEN_W-10&&mouse.y>=4&&mouse.y<=WTHROUGH_NAV_H-4;
     DrawRectangle(SCREEN_W-80, 4, 70, WTHROUGH_NAV_H-8, hNext?(Color){60,90,140,255}:(Color){35,55,90,255});
     DrawRectangleLines(SCREEN_W-80, 4, 70, WTHROUGH_NAV_H-8, (Color){80,120,180,200});
     DrawText("Next >", SCREEN_W-76, 10, 13, hNext ? WHITE : (Color){180,190,210,255});
 
-    // Restart button
     bool hRes = mouse.x>=SCREEN_W-170&&mouse.x<=SCREEN_W-90&&mouse.y>=4&&mouse.y<=WTHROUGH_NAV_H-4;
     DrawRectangle(SCREEN_W-170, 4, 70, WTHROUGH_NAV_H-8, hRes?(Color){80,50,20,255}:(Color){50,32,12,255});
     DrawRectangleLines(SCREEN_W-170, 4, 70, WTHROUGH_NAV_H-8, (Color){160,100,40,200});
     DrawText("Restart", SCREEN_W-166, 10, 13, hRes ? WHITE : (Color){180,140,80,255});
 
-    // Exit button
     bool hExit = mouse.x>=SCREEN_W-260&&mouse.x<=SCREEN_W-180&&mouse.y>=4&&mouse.y<=WTHROUGH_NAV_H-4;
     DrawRectangle(SCREEN_W-260, 4, 70, WTHROUGH_NAV_H-8, hExit?(Color){80,20,20,255}:(Color){50,12,12,255});
     DrawRectangleLines(SCREEN_W-260, 4, 70, WTHROUGH_NAV_H-8, (Color){160,60,60,200});
     DrawText("Exit", SCREEN_W-248, 10, 13, hExit ? WHITE : (Color){200,100,100,255});
 
-    // Centre label
     char label[128];
-    snprintf(label, sizeof(label), "%s  -  %s  -  Step %d/%d",
-             ch->title, sc->title, wt->step + 1, sc->stepCount);
+    snprintf(label, sizeof(label), "%s  -  Step %d/%d",
+             sc->title, wt->step + 1, sc->stepCount);
     int lw = MeasureText(label, 12);
     DrawText(label, (SCREEN_W - lw) / 2, 6, 12, (Color){200,210,230,255});
 
-    // Step title below centre label
     int stw = MeasureText(s->title, 11);
     DrawText(s->title, (SCREEN_W - stw) / 2, 21, 11, (Color){120,160,220,200});
 
-    // Text box at bottom of world viewport
     int textY = WTHROUGH_NAV_H + WORLD_VIEW_H - 75;
     DrawRectangle(0, textY, SCREEN_W, 75, (Color){0, 0, 0, 160});
     DrawLine(0, textY, SCREEN_W, textY, (Color){70, 90, 120, 200});
-
     draw_wrapped_text(s->text, 20, textY + 8, SCREEN_W - 40, 13,
                       (Color){200, 210, 230, 240});
+
+    // Step intro popup
+    if (wt->popup_active) {
+        // Dim background
+        DrawRectangle(0, 0, SCREEN_W, SCREEN_H, (Color){0, 0, 0, 160});
+
+        // Popup box
+        int pw = 680, ph = 240;
+        int px = (SCREEN_W - pw) / 2;
+        int py = SCREEN_H / 2 - ph / 2;
+        DrawRectangle(px, py, pw, ph, (Color){18, 26, 40, 250});
+        DrawRectangleLines(px, py, pw, ph, (Color){80, 120, 180, 255});
+
+        // Scene + step title
+        char title[128];
+        snprintf(title, sizeof(title), "%s — %s", sc->title, s->title);
+        int tw = MeasureText(title, 16);
+        DrawText(title, (SCREEN_W - tw) / 2, py + 18, 16, (Color){180, 200, 240, 255});
+        DrawLine(px + 20, py + 42, px + pw - 20, py + 42, (Color){60, 80, 120, 200});
+
+        // Body text
+        draw_wrapped_text(s->text, px + 24, py + 52, pw - 48, 14,
+                          (Color){200, 210, 230, 240});
+
+        // Ok button
+        int bw = 100, bh = 32;
+        int bx = (SCREEN_W - bw) / 2;
+        int by = py + ph - bh - 16;
+        Vector2 mouse = GetMousePosition();
+        bool hover = mouse.x >= bx && mouse.x <= bx + bw &&
+                     mouse.y >= by && mouse.y <= by + bh;
+        DrawRectangle(bx, by, bw, bh, hover ? (Color){60,90,140,255} : (Color){35,55,90,255});
+        DrawRectangleLines(bx, by, bw, bh, (Color){80,120,180,200});
+        int ow = MeasureText("Ok", 15);
+        DrawText("Ok", bx + (bw - ow) / 2, by + 8, 15, hover ? WHITE : (Color){180,190,210,255});
+    }
 }

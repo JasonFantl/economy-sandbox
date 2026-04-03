@@ -34,7 +34,9 @@
       "Bash(__NEW_LINE_010a00dec1cf6211__ cd:*)",
       "Bash(ls -1 *.png)",
       "Bash(identify /home/jasonfantl/Documents/Projects/C/economy-sandbox/src/assets/MiniWorldSprites/Characters/Workers/CyanWorker/FarmerCyan.png)",
-      "Bash(identify:*)"
+      "Bash(identify:*)",
+      "Bash(wc -l /home/jasonfantl/Documents/Projects/C/economy-sandbox/src/*.c /home/jasonfantl/Documents/Projects/C/economy-sandbox/src/*.h)",
+      "Bash(cd:*)"
     ]
   }
 }
