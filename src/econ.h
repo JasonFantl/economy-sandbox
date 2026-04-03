@@ -3,6 +3,15 @@
 
 #include "agent_types.h"
 #include <math.h>
+#include <stdbool.h>
+
+// ---------------------------------------------------------------------------
+// Feature flags (defined in econ.c)
+// ---------------------------------------------------------------------------
+extern bool g_diminishing_returns;  // false = flat utility curve
+extern bool g_production_enabled;   // false = agents only choose leisure
+extern bool g_leisure_enabled;      // false = leisure_utility always returns 0
+extern bool g_two_goods;            // false = chair market inactive
 
 // ---------------------------------------------------------------------------
 // Inline utility / value functions
@@ -10,18 +19,21 @@
 
 // Marginal utility of buying one more unit (willingness to pay, in utility ₴)
 static inline float marginal_buy_utility(const AgentMarket *m) {
+    if (!g_diminishing_returns) return m->maxUtility;
     float r = (float)(m->goods + 1) / m->halfSaturation;
     return m->minUtility + (m->maxUtility - m->minUtility) / (r * r * r + 1.0f);
 }
 
 // Marginal utility of the last unit owned (minimum acceptable sell price, in utility ₴)
 static inline float marginal_sell_utility(const AgentMarket *m) {
+    if (!g_diminishing_returns) return m->maxUtility;
     float r = (float)m->goods / m->halfSaturation;
     return m->minUtility + (m->maxUtility - m->minUtility) / (r * r * r + 1.0f);
 }
 
 // Leisure utility (diminishes the longer the agent has been idle)
 static inline float leisure_utility(const LeisureState *l) {
+    if (!g_leisure_enabled) return 0.0f;
     float r = l->idleTime / l->halfSaturation;
     return l->minUtility + (l->maxUtility - l->minUtility) / (r * r * r + 1.0f);
 }

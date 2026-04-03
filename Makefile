@@ -7,6 +7,7 @@ SHARED_SRC = src/world.c src/tileset.c
 
 # Game simulation
 GAME_SRC   = main.c src/agent.c src/econ.c src/nav.c src/market.c src/render.c \
+             src/panels.c src/walkthrough.c \
              src/agent_render.c src/inspector.c src/controls.c src/assets.c $(SHARED_SRC)
 
 # Map builder tool (lives in its own folder; binary at mapbuilder/mapbuilder)

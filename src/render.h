@@ -47,7 +47,17 @@ void render_world(const WorldMap *map, const TileAtlas *tiles,
                   const Assets *assets,
                   float camX, float camY, float camZoom);
 
-// Render the bottom plot area
+// World viewport Y offset — 0 in free play, NAV_H in walkthrough mode
+extern int g_world_view_y;
+
+// Render the bottom plot area (free-play 4-panel cycling mode)
+void render_panels_freeplay(const AgentValueHistory avh[MARKET_COUNT],
+                             const AgentValueHistory pvh[MARKET_COUNT],
+                             const AgentValueHistory gvh[MARKET_COUNT],
+                             const Agent *agents, int agentCount,
+                             PanelState panels[NUM_PANELS]);
+
+// Legacy alias
 void render_plot(const AgentValueHistory avh[MARKET_COUNT],
                  const AgentValueHistory pvh[MARKET_COUNT],
                  const AgentValueHistory gvh[MARKET_COUNT],

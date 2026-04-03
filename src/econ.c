@@ -1,29 +1,38 @@
 #include "econ.h"
 #include "market.h"
 #include "raylib.h"
+#include <stdbool.h>
 
 int g_chop_yield = 5;
+
+// ---------------------------------------------------------------------------
+// Feature flags
+// ---------------------------------------------------------------------------
+bool g_diminishing_returns = true;
+bool g_production_enabled  = true;
+bool g_leisure_enabled     = true;
+bool g_two_goods           = true;
 
 // ---------------------------------------------------------------------------
 // Production decision — called once per production period
 // ---------------------------------------------------------------------------
 
-// Decide what to do next.  Work actions (CHOP/BUILD) are stored as pendingWork
-// and executed later when the agent physically arrives at the work site.
 static void choose_action(Agent *a) {
     AgentMarket *wood  = AGENT_MKT(a, MARKET_WOOD);
     AgentMarket *chair = AGENT_MKT(a, MARKET_CHAIR);
 
-    float idle_util    = leisure_utility(&a->econ.leisure);
-    float money_util   = money_marginal_utility(a->econ.money);
+    float idle_util  = leisure_utility(&a->econ.leisure);
+    float money_util = money_marginal_utility(a->econ.money);
 
-    // Scale chop value by exact yield — agents know precisely how much wood they get
-    float chop_util  = marginal_buy_utility(wood) * (float)g_chop_yield;
-    float sell_wood  = wood->priceExpectation * money_util * (float)g_chop_yield;
-    if (sell_wood > chop_util) chop_util = sell_wood;
+    float chop_util = -999.0f;
+    if (g_production_enabled) {
+        chop_util = marginal_buy_utility(wood) * (float)g_chop_yield;
+        float sell_wood = wood->priceExpectation * money_util * (float)g_chop_yield;
+        if (sell_wood > chop_util) chop_util = sell_wood;
+    }
 
     float build_util = -999.0f;
-    if (wood->goods >= WOOD_PER_CHAIR) {
+    if (g_production_enabled && g_two_goods && wood->goods >= WOOD_PER_CHAIR) {
         float chair_gain = marginal_buy_utility(chair);
         float sell_chair = chair->priceExpectation * money_util;
         if (sell_chair > chair_gain) chair_gain = sell_chair;
@@ -39,7 +48,6 @@ static void choose_action(Agent *a) {
         a->econ.lastAction = ACTION_LEISURE;
         a->econ.leisure.idleTime += a->econ.productionPeriod;
     } else {
-        // Don't overwrite an existing pending work decision
         if (a->econ.pendingWork == ACTION_LEISURE)
             a->econ.pendingWork = best;
     }
@@ -91,9 +99,9 @@ void agent_econ_update(Agent *a, float dt) {
     }
 
     // Frustration: when unable to trade, drift price expectation toward own indifference price.
-    // Buyers raise their offer; sellers lower their ask.
     float money_util = money_marginal_utility(a->econ.money);
-    for (int mid = 0; mid < MARKET_COUNT; mid++) {
+    int marketCount = g_two_goods ? MARKET_COUNT : 1;
+    for (int mid = 0; mid < marketCount; mid++) {
         AgentMarket *m        = &a->econ.markets[mid];
         int          willing_buyer = wants_to_buy(m, a->econ.money)
                                      && (g_allow_debt || a->econ.money >= m->priceExpectation);
@@ -102,7 +110,6 @@ void agent_econ_update(Agent *a, float dt) {
             m->frustrationTimer += dt;
             if (m->frustrationTimer > m->frustrationThreshold) {
                 m->frustrationTimer = 0.0f;
-                // Indifference price = personal utility / money_marginal_utility (₴ / ₴/$ = $)
                 float indifference_price = (willing_buyer
                                              ? marginal_buy_utility(m)
                                              : marginal_sell_utility(m))

@@ -1,4 +1,5 @@
 #include "render.h"
+#include "panels.h"
 #include "agent_render.h"
 #include "raylib.h"
 #include <stdio.h>
@@ -6,11 +7,14 @@
 #include <string.h>
 
 // ---------------------------------------------------------------------------
-// Bounds state — per (PlotType × MarketId); survives plot cycling
+// World viewport Y offset — 0 in free play, NAV_H in walkthrough mode
 // ---------------------------------------------------------------------------
+int g_world_view_y = 0;
 
-typedef struct { float xMax; float yMax; } PlotBounds;  // 0 = auto
-static PlotBounds g_bounds[PLOT_COUNT][MARKET_COUNT];
+// ---------------------------------------------------------------------------
+// Bounds editing state — per (PlotType x MarketId); survives plot cycling
+// ---------------------------------------------------------------------------
+// g_bounds is defined in panels.c; we use it via the extern in panels.h
 
 // At most one bounds field is being edited at a time
 static int      g_bnd_side = -1;   // panel index 0-3, or -1=none
@@ -40,7 +44,7 @@ void render_world(const WorldMap *map, const TileAtlas *tiles,
                   float camX, float camY, float camZoom) {
     // Camera: world point (camX, camY) is centred in the viewport.
     Camera2D cam = {0};
-    cam.offset   = (Vector2){ (float)SCREEN_W * 0.5f, (float)WORLD_VIEW_H * 0.5f };
+    cam.offset   = (Vector2){ (float)SCREEN_W * 0.5f, (float)g_world_view_y + (float)WORLD_VIEW_H * 0.5f };
     cam.target   = (Vector2){ camX, camY };
     cam.zoom     = camZoom;
 
@@ -55,7 +59,7 @@ void render_world(const WorldMap *map, const TileAtlas *tiles,
     int txMax = (int)(worldRight  / tileW) + 2;
     int tyMax = (int)(worldBottom / tileW) + 2;
 
-    BeginScissorMode(0, 0, SCREEN_W, WORLD_VIEW_H);
+    BeginScissorMode(0, g_world_view_y, SCREEN_W, WORLD_VIEW_H);
     BeginMode2D(cam);
 
     if (map) {
@@ -104,434 +108,23 @@ void render_world(const WorldMap *map, const TileAtlas *tiles,
     EndScissorMode();
 
     // Divider between world and plots
-    DrawRectangle(0, WORLD_VIEW_H, SCREEN_W, 2, DARKGRAY);
+    DrawRectangle(0, g_world_view_y + WORLD_VIEW_H, SCREEN_W, 2, DARKGRAY);
 
     // Legend
-    DrawRectangle(0, 0, 440, 26, (Color){0,0,0,120});
-    DrawCircle( 10,13,4,(Color){150,150,150,255}); DrawText("Leisure", 18, 6,13,WHITE);
-    DrawCircle( 90,13,4,(Color){160,100, 40,255}); DrawText("Chopping",98, 6,13,WHITE);
-    DrawCircle(190,13,4,(Color){220,140, 60,255}); DrawText("Building",198, 6,13,WHITE);
-    DrawCircle(285,13,4,YELLOW);                   DrawText("Trading",293, 6,13,WHITE);
+    DrawRectangle(0, g_world_view_y, 440, 26, (Color){0,0,0,120});
+    DrawCircle( 10, g_world_view_y+13, 4,(Color){150,150,150,255}); DrawText("Leisure",  18, g_world_view_y+6, 13, WHITE);
+    DrawCircle( 90, g_world_view_y+13, 4,(Color){160,100, 40,255}); DrawText("Chopping", 98, g_world_view_y+6, 13, WHITE);
+    DrawCircle(190, g_world_view_y+13, 4,(Color){220,140, 60,255}); DrawText("Building",198, g_world_view_y+6, 13, WHITE);
+    DrawCircle(285, g_world_view_y+13, 4, YELLOW);                  DrawText("Trading", 293, g_world_view_y+6, 13, WHITE);
 
     // Speed indicator
     char speedBuf[32]; Color speedCol;
     if      (paused)       { snprintf(speedBuf,sizeof(speedBuf),"PAUSED");              speedCol=RED;    }
     else if (simSteps > 1) { snprintf(speedBuf,sizeof(speedBuf),"Speed: %dx",simSteps); speedCol=ORANGE; }
     else                   { snprintf(speedBuf,sizeof(speedBuf),"Speed: 1x");           speedCol=WHITE;  }
-    DrawRectangle(SCREEN_W-200,0,200,40,(Color){0,0,0,100});
-    DrawText(speedBuf,    SCREEN_W-108, 4,16,speedCol);
-    DrawText("[SPACE]/[F]",SCREEN_W-186,24,11,(Color){200,200,200,255});
-}
-
-// ---------------------------------------------------------------------------
-// Plot helpers
-// ---------------------------------------------------------------------------
-
-static Color emv_color(float maxUtility, unsigned char alpha) {
-    float t = maxUtility / 150.0f;
-    if (t < 0.0f) t = 0.0f;
-    if (t > 1.0f) t = 1.0f;
-    return (Color){(unsigned char)(55+t*200),30,(unsigned char)(255-t*200),alpha};
-}
-
-static void draw_axes_y(int px, int py, int pw, int ph, float yMax, float refLine) {
-    DrawLine(px,py,px,py+ph,LIGHTGRAY);
-    DrawLine(px,py+ph,px+pw,py+ph,LIGHTGRAY);
-    for (int step=0;step<=4;step++) {
-        float v=yMax*(float)step/4.0f;
-        int y=py+ph-(int)((float)step/4.0f*(float)ph);
-        DrawLine(px-4,y,px,y,LIGHTGRAY);
-        char buf[12]; snprintf(buf,sizeof(buf),"%.0f",v);
-        DrawText(buf,px-28,y-7,11,LIGHTGRAY);
-        DrawLine(px,y,px+pw,y,(Color){50,50,60,255});
-    }
-    if (refLine>0.0f && refLine<=yMax) {
-        int ry=py+ph-(int)(refLine/yMax*(float)ph);
-        DrawLine(px,ry,px+pw,ry,(Color){255,200,0,110});
-        DrawText("equil.",px+pw-46,ry-13,11,(Color){255,200,0,180});
-    }
-}
-
-static float compute_ymax(float rawMax) {
-    return (float)(((int)(rawMax/20)+2)*20);
-}
-
-// Clip a line segment to the screen-Y band [yMin, yMax] before drawing.
-// Screen Y increases downward: yMin=plot_top, yMax=plot_bottom.
-static void draw_line_yclip(int x0, int y0, int x1, int y1,
-                             int yMin, int yMax, Color col) {
-    // Quick reject: both endpoints on the same side
-    if (y0 < yMin && y1 < yMin) return;
-    if (y0 > yMax && y1 > yMax) return;
-
-    float t0 = 0.0f, t1 = 1.0f;
-    float dy = (float)(y1 - y0);
-
-    if (dy != 0.0f) {
-        // Clip start point
-        if      (y0 < yMin) t0 = ((float)yMin - (float)y0) / dy;
-        else if (y0 > yMax) t0 = ((float)yMax - (float)y0) / dy;
-        // Clip end point (parametrize from original P0)
-        if      (y1 < yMin) t1 = ((float)yMin - (float)y0) / dy;
-        else if (y1 > yMax) t1 = ((float)yMax - (float)y0) / dy;
-        if (t0 > t1) { float tmp=t0; t0=t1; t1=tmp; }
-    }
-
-    float dx = (float)(x1 - x0);
-    DrawLine((int)((float)x0 + t0*dx), (int)((float)y0 + t0*dy),
-             (int)((float)x0 + t1*dx), (int)((float)y0 + t1*dy), col);
-}
-
-// ---------------------------------------------------------------------------
-// PLOT_WEALTH
-// ---------------------------------------------------------------------------
-
-static void draw_wealth_panel(const Agent *agents, int count, int marketId,
-                               int px, int py, int pw, int ph) {
-    PlotBounds *b = &g_bounds[PLOT_WEALTH][marketId];
-
-    float dynMoney=1.0f; int dynGoods=1;
-    for (int i=0;i<count;i++) {
-        if (agents[i].econ.money>dynMoney) dynMoney=agents[i].econ.money;
-        if (agents[i].econ.markets[marketId].goods>dynGoods) dynGoods=agents[i].econ.markets[marketId].goods;
-    }
-    dynMoney=(float)(((int)(dynMoney/50)+1)*50);
-    if (dynGoods%5!=0) dynGoods=(dynGoods/5+1)*5;
-
-    float maxMoney=(b->yMax>0.0f)?b->yMax:dynMoney;
-    int   maxGoods=(b->xMax>0.0f)?(int)b->xMax:dynGoods;
-
-    DrawLine(px,py,px,py+ph,LIGHTGRAY);
-    DrawLine(px,py+ph,px+pw,py+ph,LIGHTGRAY);
-    for (int step=0;step<=4;step++) {
-        float v=maxMoney*(float)step/4.0f;
-        int y=py+ph-(int)((float)step/4.0f*(float)ph);
-        DrawLine(px-4,y,px,y,LIGHTGRAY);
-        char buf[12]; snprintf(buf,sizeof(buf),"%.0f",v);
-        DrawText(buf,px-28,y-7,11,LIGHTGRAY);
-        DrawLine(px,y,px+pw,y,(Color){50,50,60,255});
-    }
-    for (int step=0;step<=4;step++) {
-        int gv=maxGoods*step/4;
-        int x=px+(int)((float)step/4.0f*(float)pw);
-        DrawLine(x,py+ph,x,py+ph+4,LIGHTGRAY);
-        char buf[16]; snprintf(buf,sizeof(buf),"%d",gv);
-        DrawText(buf,x-5,py+ph+6,11,LIGHTGRAY);
-        DrawLine(x,py,x,py+ph,(Color){50,50,60,255});
-    }
-    DrawText("$",px-12,py-2,13,LIGHTGRAY);
-    DrawText("goods →",px+pw-52,py+ph+6,11,LIGHTGRAY);
-
-    for (int i=0;i<count;i++) {
-        float gx=(float)agents[i].econ.markets[marketId].goods/(float)maxGoods;
-        float gy=agents[i].econ.money/maxMoney;
-        // Skip dots outside plot bounds (no line to draw to edge for scatter)
-        if (gx < 0.0f || gx > 1.0f || gy < 0.0f || gy > 1.0f) continue;
-        int sx=px+(int)(gx*(float)pw), sy=py+ph-(int)(gy*(float)ph);
-        AgentAction act=agents[i].econ.lastAction;
-        Color col;
-        if      (agents[i].sprite.tradeFlash>0.0f) col=YELLOW;
-        else if (act==ACTION_CHOP)          col=(Color){160,100, 40,220};
-        else if (act==ACTION_BUILD)         col=(Color){220,140, 60,220};
-        else                                col=(Color){150,150,150,180};
-        DrawCircle(sx,sy,3,col);
-    }
-}
-
-// ---------------------------------------------------------------------------
-// PLOT_AGENT_VALUES
-// ---------------------------------------------------------------------------
-
-static const Agent *s_sort_agents   = NULL;
-static int          s_sort_marketId = 0;
-static int cmp_by_max_utility(const void *a, const void *b) {
-    float fa=s_sort_agents[*(const int*)a].econ.markets[s_sort_marketId].maxUtility;
-    float fb=s_sort_agents[*(const int*)b].econ.markets[s_sort_marketId].maxUtility;
-    return (fa>fb)-(fa<fb);
-}
-
-static void draw_agent_panel(const Agent *agents, int count, int marketId,
-                              int px, int py, int pw, int ph, float equilibrium) {
-    PlotBounds *b=&g_bounds[PLOT_VALUATION_DISTRIBUTION][marketId];
-    float rawMax=1.0f;
-    for (int i=0;i<count;i++) {
-        const AgentMarket *m=&agents[i].econ.markets[marketId];
-        float v=m->maxUtility;
-        if (m->priceExpectation>v) v=m->priceExpectation;
-        if (v>rawMax) rawMax=v;
-    }
-    float yMax=(b->yMax>0.0f)?b->yMax:compute_ymax(rawMax);
-    draw_axes_y(px,py,pw,ph,yMax,equilibrium);
-
-    int indices[MAX_AGENTS];
-    for (int i=0;i<count;i++) indices[i]=i;
-    s_sort_agents=agents; s_sort_marketId=marketId;
-    qsort(indices,(size_t)count,sizeof(int),cmp_by_max_utility);
-
-    float xStep=(float)pw/(float)(count-1);
-    for (int rank=0;rank<count;rank++) {
-        const Agent      *a=&agents[indices[rank]];
-        const AgentMarket *m=&a->econ.markets[marketId];
-        int x=px+(int)((float)rank*xStep);
-        float sellPrice=marginal_sell_utility(m), buyPrice=marginal_buy_utility(m);
-        float base=m->maxUtility, emv=m->priceExpectation;
-
-        int y_base=(int)(py+ph-base     /yMax*(float)ph);
-        int y_sell=(int)(py+ph-sellPrice/yMax*(float)ph);
-        int y_buy =(int)(py+ph-buyPrice /yMax*(float)ph);
-        int y_emv =(int)(py+ph-emv      /yMax*(float)ph);
-
-        // Connector line clipped to plot area
-        draw_line_yclip(x,y_base,x,y_emv, py,py+ph, (Color){80,80,90,120});
-
-        // Hold-zone band clipped to plot area
-        int band_top_raw = y_buy<y_sell?y_buy:y_sell;
-        int band_bot_raw = (y_sell<y_buy?y_buy:y_sell);
-        if (band_bot_raw < band_top_raw+1) band_bot_raw = band_top_raw+1;
-        int band_top = band_top_raw < py     ? py     : band_top_raw;
-        int band_bot = band_bot_raw > py+ph  ? py+ph  : band_bot_raw;
-        if (band_bot > band_top)
-            DrawRectangle(x-1,band_top,3,band_bot-band_top,(Color){180,180,100,40});
-
-        // Only draw circles that are within the plot area
-        if (y_base>=py && y_base<=py+ph) DrawCircle(x,y_base,3,(Color){ 80,140,255,220});
-        if (y_sell>=py && y_sell<=py+ph) DrawCircle(x,y_sell,2,(Color){255,160, 60,200});
-        if (y_buy >=py && y_buy <=py+ph) DrawCircle(x,y_buy, 2,(Color){ 80,220,220,200});
-        Color emvCol=(a->sprite.tradeFlash>0.0f)?YELLOW
-                    :(wants_to_buy(m, a->econ.money) ?(Color){ 60,210, 90,220}
-                     :wants_to_sell(m, a->econ.money)?(Color){220, 70, 70,220}
-                                                      :(Color){150,150,150,200});
-        if (y_emv>=py && y_emv<=py+ph) DrawCircle(x,y_emv,3,emvCol);
-    }
-
-    int lx=px+pw-200,ly=py+4;
-    DrawCircle(lx,   ly+4, 3,(Color){ 80,140,255,220}); DrawText("Max utility",  lx+7,  ly-1, 10,(Color){ 80,140,255,220});
-    DrawCircle(lx,   ly+16,2,(Color){255,160, 60,200}); DrawText("Sell util",    lx+7,  ly+11,10,(Color){255,160, 60,200});
-    DrawCircle(lx+100,ly+4, 2,(Color){ 80,220,220,200}); DrawText("Buy util",    lx+107,ly-1, 10,(Color){ 80,220,220,200});
-    DrawCircle(lx+100,ly+16,3,(Color){ 60,210, 90,220}); DrawText("Price expect",lx+107,ly+11,10,(Color){ 60,210, 90,220});
-}
-
-// ---------------------------------------------------------------------------
-// PLOT_EMV_HISTORY
-// ---------------------------------------------------------------------------
-
-static void draw_timeseries_panel(const AgentValueHistory *avh,
-                                   const AgentValueHistory *pvh,
-                                   const Agent *agents, int marketId,
-                                   int px, int py, int pw, int ph,
-                                   float equilibrium) {
-    PlotBounds *b=&g_bounds[PLOT_PRICE_HISTORY][marketId];
-    float rawMax=1.0f;
-    for (int s=0;s<avh->count;s++) { float v=avh_avg(avh,s); if(v>rawMax) rawMax=v; }
-    for (int ag=0;ag<avh->agentCount;ag++) {
-        float v=agents[ag].econ.markets[marketId].maxUtility;
-        if (v>rawMax) rawMax=v;
-    }
-    float yMax=(b->yMax>0.0f)?b->yMax:compute_ymax(rawMax);
-    draw_axes_y(px,py,pw,ph,yMax,equilibrium);
-    if (avh->count<2) return;
-    float xScale=(float)pw/(float)(PRICE_HISTORY_SIZE-1);
-
-    if (pvh->count>=2) {
-        for (int ag=0;ag<pvh->agentCount;ag++) {
-            Color col={50,180,100,30};
-            for (int s=1;s<pvh->count;s++) {
-                float v0=avh_get(pvh,ag,s-1), v1=avh_get(pvh,ag,s);
-                draw_line_yclip(px+(int)((float)(s-1)*xScale),py+ph-(int)(v0/yMax*(float)ph),
-                                px+(int)((float)s    *xScale),py+ph-(int)(v1/yMax*(float)ph),
-                                py,py+ph,col);
-            }
-        }
-        for (int s=1;s<pvh->count;s++) {
-            float v0=avh_avg(pvh,s-1), v1=avh_avg(pvh,s);
-            draw_line_yclip(px+(int)((float)(s-1)*xScale),py+ph-(int)(v0/yMax*(float)ph),
-                            px+(int)((float)s    *xScale),py+ph-(int)(v1/yMax*(float)ph),
-                            py,py+ph,(Color){80,230,130,230});
-        }
-    }
-    for (int ag=0;ag<avh->agentCount;ag++) {
-        Color col=emv_color(agents[ag].econ.markets[marketId].maxUtility,55);
-        for (int s=1;s<avh->count;s++) {
-            float v0=avh_get(avh,ag,s-1), v1=avh_get(avh,ag,s);
-            draw_line_yclip(px+(int)((float)(s-1)*xScale),py+ph-(int)(v0/yMax*(float)ph),
-                            px+(int)((float)s    *xScale),py+ph-(int)(v1/yMax*(float)ph),
-                            py,py+ph,col);
-        }
-    }
-    for (int s=1;s<avh->count;s++) {
-        float v0=avh_avg(avh,s-1), v1=avh_avg(avh,s);
-        draw_line_yclip(px+(int)((float)(s-1)*xScale),py+ph-(int)(v0/yMax*(float)ph),
-                        px+(int)((float)s    *xScale),py+ph-(int)(v1/yMax*(float)ph),
-                        py,py+ph,WHITE);
-    }
-
-    int lx=px+pw-200,ly=py+4;
-    DrawLine(lx,   ly+4, lx+12, ly+4, emv_color(50.0f,200));     DrawText("Price/agent",lx+16,ly-1, 10,(Color){200,200,200,255});
-    DrawLine(lx+100,ly+4, lx+112,ly+4, (Color){50,180,100,200}); DrawText("Util/agent", lx+116,ly-1, 10,(Color){80,210,130,255});
-    DrawLine(lx,   ly+15,lx+12, ly+15,WHITE);                    DrawText("Price avg",  lx+16, ly+10,10,WHITE);
-    DrawLine(lx+100,ly+15,lx+112,ly+15,(Color){80,230,130,230}); DrawText("Util avg",   lx+116,ly+10,10,(Color){80,230,130,255});
-}
-
-// ---------------------------------------------------------------------------
-// PLOT_GOODS_HISTORY
-// ---------------------------------------------------------------------------
-
-static void draw_goods_panel(const AgentValueHistory *gvh,
-                              int marketId,
-                              int px, int py, int pw, int ph) {
-    PlotBounds *b = &g_bounds[PLOT_GOODS_HISTORY][marketId];
-    float rawMax = 1.0f;
-    for (int s = 0; s < gvh->count; s++) {
-        float v = avh_avg(gvh, s);
-        if (v > rawMax) rawMax = v;
-    }
-    for (int ag = 0; ag < gvh->agentCount; ag++) {
-        for (int s = 0; s < gvh->count; s++) {
-            float v = avh_get(gvh, ag, s);
-            if (v > rawMax) rawMax = v;
-        }
-    }
-    float yMax = (b->yMax > 0.0f) ? b->yMax : compute_ymax(rawMax);
-    draw_axes_y(px, py, pw, ph, yMax, 0.0f);
-    if (gvh->count < 2) return;
-
-    float xScale = (float)pw / (float)(PRICE_HISTORY_SIZE - 1);
-
-    // Individual agent lines (dim)
-    for (int ag = 0; ag < gvh->agentCount; ag++) {
-        Color col = {80, 160, 220, 35};
-        for (int s = 1; s < gvh->count; s++) {
-            float v0 = avh_get(gvh, ag, s-1), v1 = avh_get(gvh, ag, s);
-            draw_line_yclip(px + (int)((float)(s-1) * xScale), py + ph - (int)(v0 / yMax * (float)ph),
-                            px + (int)((float) s    * xScale), py + ph - (int)(v1 / yMax * (float)ph),
-                            py, py + ph, col);
-        }
-    }
-    // Average line (bright)
-    for (int s = 1; s < gvh->count; s++) {
-        float v0 = avh_avg(gvh, s-1), v1 = avh_avg(gvh, s);
-        draw_line_yclip(px + (int)((float)(s-1) * xScale), py + ph - (int)(v0 / yMax * (float)ph),
-                        px + (int)((float) s    * xScale), py + ph - (int)(v1 / yMax * (float)ph),
-                        py, py + ph, WHITE);
-    }
-
-    int lx = px + pw - 160, ly = py + 4;
-    DrawLine(lx, ly+4, lx+12, ly+4, (Color){80,160,220,180});
-    DrawText("goods/agent", lx+16, ly-1, 10, (Color){160,200,220,255});
-    DrawLine(lx, ly+15, lx+12, ly+15, WHITE);
-    DrawText("avg goods",   lx+16, ly+10, 10, WHITE);
-}
-
-// ---------------------------------------------------------------------------
-// PLOT_SUPPLY_DEMAND
-// ---------------------------------------------------------------------------
-
-static int cmp_float_desc(const void *a, const void *b) {
-    float fa = *(const float*)a, fb = *(const float*)b;
-    return (fa < fb) - (fa > fb);
-}
-static int cmp_float_asc(const void *a, const void *b) {
-    float fa = *(const float*)a, fb = *(const float*)b;
-    return (fa > fb) - (fa < fb);
-}
-
-static void draw_supply_demand_panel(const Agent *agents, int count, int marketId,
-                                      int px, int py, int pw, int ph) {
-    PlotBounds *b = &g_bounds[PLOT_SUPPLY_DEMAND][marketId];
-
-    // Demand: buy utility of every agent, sorted highest to lowest
-    float demand[MAX_AGENTS];
-    int nDemand = 0;
-    for (int i = 0; i < count; i++)
-        demand[nDemand++] = marginal_buy_utility(&agents[i].econ.markets[marketId]);
-    qsort(demand, (size_t)nDemand, sizeof(float), cmp_float_desc);
-
-    // Supply: sell utility of agents who currently hold that good, sorted lowest to highest
-    float supply[MAX_AGENTS];
-    int nSupply = 0;
-    for (int i = 0; i < count; i++) {
-        const AgentMarket *m = &agents[i].econ.markets[marketId];
-        if (m->goods > 0)
-            supply[nSupply++] = marginal_sell_utility(m);
-    }
-    qsort(supply, (size_t)nSupply, sizeof(float), cmp_float_asc);
-
-    float rawMax = 1.0f;
-    for (int i = 0; i < nDemand; i++) if (demand[i] > rawMax) rawMax = demand[i];
-    for (int i = 0; i < nSupply; i++) if (supply[i] > rawMax) rawMax = supply[i];
-    float yMax = (b->yMax > 0.0f) ? b->yMax : compute_ymax(rawMax);
-
-    // Equilibrium: walk both curves; last index where demand[i] >= supply[i]
-    float eqPrice = 0.0f;
-    int   eqQty   = 0;
-    {
-        int n = nDemand < nSupply ? nDemand : nSupply;
-        for (int i = 0; i < n; i++) {
-            if (demand[i] >= supply[i]) {
-                eqPrice = (demand[i] + supply[i]) * 0.5f;
-                eqQty   = i + 1;
-            } else break;
-        }
-    }
-
-    draw_axes_y(px, py, pw, ph, yMax, eqPrice);
-
-    // X-axis quantity ticks
-    for (int step = 0; step <= 4; step++) {
-        int gv = count * step / 4;
-        int x  = px + (int)((float)step / 4.0f * (float)pw);
-        DrawLine(x, py+ph, x, py+ph+4, LIGHTGRAY);
-        char buf[16]; snprintf(buf, sizeof(buf), "%d", gv);
-        DrawText(buf, x-5, py+ph+6, 11, LIGHTGRAY);
-        DrawLine(x, py, x, py+ph, (Color){50,50,60,255});
-    }
-    DrawText("agents →", px+pw-56, py+ph+6, 11, LIGHTGRAY);
-
-    // Draw demand curve (staircase, descending)
-    Color demandCol = {80, 180, 255, 220};
-    for (int i = 0; i < nDemand; i++) {
-        int x0 = px + (int)((float) i      / (float)count * (float)pw);
-        int x1 = px + (int)((float)(i + 1) / (float)count * (float)pw);
-        int y  = py + ph - (int)(demand[i] / yMax * (float)ph);
-        if (y < py) y = py;
-        if (y > py+ph) y = py+ph;
-        DrawLine(x0, y, x1, y, demandCol);
-        if (i + 1 < nDemand) {
-            int y1 = py + ph - (int)(demand[i+1] / yMax * (float)ph);
-            if (y1 < py) y1 = py;
-            if (y1 > py+ph) y1 = py+ph;
-            DrawLine(x1, y, x1, y1, demandCol);
-        }
-    }
-
-    // Draw supply curve (staircase, ascending)
-    Color supplyCol = {255, 110, 80, 220};
-    for (int i = 0; i < nSupply; i++) {
-        int x0 = px + (int)((float) i      / (float)count * (float)pw);
-        int x1 = px + (int)((float)(i + 1) / (float)count * (float)pw);
-        int y  = py + ph - (int)(supply[i] / yMax * (float)ph);
-        if (y < py) y = py;
-        if (y > py+ph) y = py+ph;
-        DrawLine(x0, y, x1, y, supplyCol);
-        if (i + 1 < nSupply) {
-            int y1 = py + ph - (int)(supply[i+1] / yMax * (float)ph);
-            if (y1 < py) y1 = py;
-            if (y1 > py+ph) y1 = py+ph;
-            DrawLine(x1, y, x1, y1, supplyCol);
-        }
-    }
-
-    // Equilibrium quantity marker
-    if (eqQty > 0) {
-        int eqX = px + (int)((float)eqQty / (float)count * (float)pw);
-        DrawLine(eqX, py, eqX, py+ph, (Color){255,200,0,70});
-        char buf[16]; snprintf(buf, sizeof(buf), "Q*=%d", eqQty);
-        DrawText(buf, eqX+3, py+4, 10, (Color){255,200,0,200});
-    }
-
-    int lx = px + pw - 160, ly = py + 4;
-    DrawLine(lx,    ly+4,  lx+12, ly+4,  demandCol); DrawText("Demand (buy util)",  lx+16, ly-1,  10, demandCol);
-    DrawLine(lx,    ly+16, lx+12, ly+16, supplyCol); DrawText("Supply (sell util)",  lx+16, ly+11, 10, supplyCol);
+    DrawRectangle(SCREEN_W-200, g_world_view_y, 200, 40, (Color){0,0,0,100});
+    DrawText(speedBuf,    SCREEN_W-108, g_world_view_y+4,  16, speedCol);
+    DrawText("[SPACE]/[F]",SCREEN_W-186, g_world_view_y+24, 11, (Color){200,200,200,255});
 }
 
 // ---------------------------------------------------------------------------
@@ -632,15 +225,15 @@ static void draw_panel(const PanelState *ps,
     int mid=ps->marketId;
     switch (ps->plotType) {
         case PLOT_WEALTH:
-            draw_wealth_panel(agents,agentCount,mid,px,py,pw,ph); break;
+            panel_wealth(agents, agentCount, mid, px, py, pw, ph); break;
         case PLOT_VALUATION_DISTRIBUTION:
-            draw_agent_panel(agents,agentCount,mid,px,py,pw,ph,equilibrium); break;
+            panel_valuation_dist(agents, agentCount, mid, px, py, pw, ph, equilibrium); break;
         case PLOT_PRICE_HISTORY:
-            draw_timeseries_panel(&avh[mid],&pvh[mid],agents,mid,px,py,pw,ph,equilibrium); break;
+            panel_price_history(&avh[mid], &pvh[mid], agents, agentCount, mid, px, py, pw, ph, equilibrium, true); break;
         case PLOT_GOODS_HISTORY:
-            draw_goods_panel(&gvh[mid],mid,px,py,pw,ph); break;
+            panel_goods_history(&gvh[mid], mid, px, py, pw, ph); break;
         case PLOT_SUPPLY_DEMAND:
-            draw_supply_demand_panel(agents,agentCount,mid,px,py,pw,ph); break;
+            panel_supply_demand(agents, agentCount, mid, px, py, pw, ph); break;
         default: break;
     }
 }
@@ -650,7 +243,7 @@ static void panel_geom(int panelIdx,
                        int *out_px, int *out_strip_y, int *out_py, int *out_ph) {
     int half     = (SCREEN_W - PLOT_MARGIN_L - PLOT_MARGIN_R - PANEL_GAP) / 2;
     int px_col[2] = { PLOT_MARGIN_L, PLOT_MARGIN_L + half + PANEL_GAP };
-    int plots_y  = WORLD_VIEW_H + 2;
+    int plots_y  = g_world_view_y + WORLD_VIEW_H + 2;
     int plots_h  = SCREEN_H - plots_y;
     int row_h    = (plots_h - PANEL_ROW_GAP) / 2;
     int row_y[2] = { plots_y, plots_y + row_h + PANEL_ROW_GAP };
@@ -665,13 +258,13 @@ static void panel_geom(int panelIdx,
     (void)half;  // stored in px_col
 }
 
-void render_plot(const AgentValueHistory avh[MARKET_COUNT],
-                 const AgentValueHistory pvh[MARKET_COUNT],
-                 const AgentValueHistory gvh[MARKET_COUNT],
-                 const Agent *agents, int agentCount,
-                 PanelState panels[NUM_PANELS]) {
+void render_panels_freeplay(const AgentValueHistory avh[MARKET_COUNT],
+                             const AgentValueHistory pvh[MARKET_COUNT],
+                             const AgentValueHistory gvh[MARKET_COUNT],
+                             const Agent *agents, int agentCount,
+                             PanelState panels[NUM_PANELS]) {
     int half     = (SCREEN_W - PLOT_MARGIN_L - PLOT_MARGIN_R - PANEL_GAP) / 2;
-    int plots_y  = WORLD_VIEW_H + 2;
+    int plots_y  = g_world_view_y + WORLD_VIEW_H + 2;
     int plots_h  = SCREEN_H - plots_y;
     int row_h    = (plots_h - PANEL_ROW_GAP) / 2;
     int px_right = PLOT_MARGIN_L + half + PANEL_GAP;
@@ -698,6 +291,15 @@ void render_plot(const AgentValueHistory avh[MARKET_COUNT],
 
         draw_panel(&panels[pi], avh, pvh, gvh, agents, agentCount, ppx, py, half, ph, eq);
     }
+}
+
+// Keep old name as alias for backward compatibility
+void render_plot(const AgentValueHistory avh[MARKET_COUNT],
+                 const AgentValueHistory pvh[MARKET_COUNT],
+                 const AgentValueHistory gvh[MARKET_COUNT],
+                 const Agent *agents, int agentCount,
+                 PanelState panels[NUM_PANELS]) {
+    render_panels_freeplay(avh, pvh, gvh, agents, agentCount, panels);
 }
 
 // ---------------------------------------------------------------------------

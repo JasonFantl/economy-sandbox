@@ -122,9 +122,9 @@ bool inspector_update(Inspector *ins, Agent *agents, int agentCount,
 
     // Agent sprite hit-test (only in world area).
     // Convert screen mouse to world coordinates using the camera transform.
-    if (m.y <= WORLD_VIEW_H) {
+    if (m.y >= g_world_view_y && m.y <= g_world_view_y + WORLD_VIEW_H) {
         float worldMx = (m.x - (float)SCREEN_W   * 0.5f) / camZoom + camX;
-        float worldMy = (m.y - (float)WORLD_VIEW_H * 0.5f) / camZoom + camY;
+        float worldMy = (m.y - ((float)g_world_view_y + (float)WORLD_VIEW_H * 0.5f)) / camZoom + camY;
         // hit radius in world pixels (AGENT_DISP is at zoom=1)
         float hitR = (float)AGENT_DISP * 0.5f;
         for (int i = 0; i < agentCount; i++) {
@@ -193,7 +193,7 @@ void inspector_render(const Inspector *ins, const Agent *agents,
 
     // Highlight ring — convert world pos to screen pos
     float sx = (a->body.x - camX) * camZoom + (float)SCREEN_W   * 0.5f;
-    float sy = (a->body.y - camY) * camZoom + (float)WORLD_VIEW_H * 0.5f;
+    float sy = (a->body.y - camY) * camZoom + (float)g_world_view_y + (float)WORLD_VIEW_H * 0.5f;
     DrawCircleLines((int)sx, (int)sy, (float)(AGENT_DISP / 2 + 3) * camZoom, WHITE);
 
     // Panel shadow + background
