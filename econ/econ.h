@@ -9,9 +9,10 @@
 // Feature flags (defined in econ.c)
 // ---------------------------------------------------------------------------
 extern bool g_diminishing_returns;  // false = flat utility curve
-extern bool g_production_enabled;   // false = agents only choose leisure
-extern bool g_leisure_enabled;      // false = leisure_utility always returns 0
-extern bool g_two_goods;            // false = chair market inactive
+extern bool  g_chop_wood_enabled;    // false = agents cannot chop wood
+extern bool  g_build_chairs_enabled; // false = agents cannot build chairs (chair market inactive)
+extern bool  g_leisure_enabled;      // false = leisure_utility always returns 0
+extern bool  g_inflation_enabled;    // true = money utility diminishes with wealth
 
 // ---------------------------------------------------------------------------
 // Inline utility / value functions
@@ -40,18 +41,21 @@ static inline float leisure_utility(const LeisureState *l) {
     return l->minUtility + (l->maxUtility - l->minUtility) / (r * r * r + 1.0f);
 }
 
-// Marginal utility of $1 given the agent's current wealth
+// Marginal utility of $1 given the agent's current wealth.
+// With inflation enabled, utility diminishes with wealth (richer agents value money less).
+// Without inflation, money has flat constant utility.
 static inline float money_marginal_utility(float money) {
-    return MONEY_MAX_UTILITY / (money + 1.0f);
+    if (g_inflation_enabled) return MONEY_MAX_UTILITY / (money + 1.0f);
+    return 1.0f;
 }
 
-// True if buying would yield more utility than spending the money elsewhere
-static inline int wants_to_buy(const AgentMarket *m, float money) {
+// True if agent values buying at their own expected price (they are in the buyer role)
+static inline int is_buyer(const AgentMarket *m, float money) {
     return marginal_buy_utility(m) > m->priceExpectation * money_marginal_utility(money);
 }
 
-// True if selling would yield more utility than keeping the good
-static inline int wants_to_sell(const AgentMarket *m, float money) {
+// True if agent values selling at their own expected price (they are in the seller role)
+static inline int is_seller(const AgentMarket *m, float money) {
     return marginal_sell_utility(m) < m->priceExpectation * money_marginal_utility(money);
 }
 

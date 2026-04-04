@@ -138,10 +138,15 @@ void agent_attempt_trade(Agent *agents, int i, int count, float worldW, float wo
             for (int mid = 0; mid < MARKET_COUNT; mid++) {
                 MarketId m = (MarketId)mid;
                 market_gossip(a, b, m);
-                if (wants_to_buy(AGENT_MKT(a, m), a->econ.money) && wants_to_sell(AGENT_MKT(b, m), b->econ.money))
-                    market_trade(a, b, m);
-                else if (wants_to_buy(AGENT_MKT(b, m), b->econ.money) && wants_to_sell(AGENT_MKT(a, m), a->econ.money))
-                    market_trade(b, a, m);
+                int traded = 0;
+                if (is_buyer(AGENT_MKT(a, m), a->econ.money) && is_seller(AGENT_MKT(b, m), b->econ.money))
+                    traded = market_trade(a, b, m);
+                else if (is_buyer(AGENT_MKT(b, m), b->econ.money) && is_seller(AGENT_MKT(a, m), a->econ.money))
+                    traded = market_trade(b, a, m);
+                if (!traded) {
+                    market_frustration_nudge(a, m, 0.02f);
+                    market_frustration_nudge(b, m, 0.02f);
+                }
             }
             agents_pick_new_target(agents, i,  count, worldW, worldH);
             agents_pick_new_target(agents, bi, count, worldW, worldH);

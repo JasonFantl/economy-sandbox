@@ -98,12 +98,13 @@ void walkthrough_apply(WalkthroughState *wt, SimContext *ctx) {
 void walkthrough_exit(WalkthroughState *wt) {
     wt->active = false;
     g_diminishing_returns = true;
-    g_production_enabled  = true;
+    g_chop_wood_enabled    = true;
     g_leisure_enabled     = true;
-    g_two_goods           = true;
+    g_build_chairs_enabled = true;
     g_allow_debt          = 0;
     g_wood_decay_rate     = 0.000f;
     g_chair_decay_rate    = 0.003f;
+    g_inflation_enabled   = false;
 }
 
 // ---------------------------------------------------------------------------

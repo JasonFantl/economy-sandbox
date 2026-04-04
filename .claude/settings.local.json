@@ -37,7 +37,15 @@
       "Bash(identify:*)",
       "Bash(wc -l /home/jasonfantl/Documents/Projects/C/economy-sandbox/src/*.c /home/jasonfantl/Documents/Projects/C/economy-sandbox/src/*.h)",
       "Bash(cd:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(find /home/jasonfantl/Documents/Projects/C/economy-sandbox -name *.png)",
+      "Bash(cp:*)",
+      "WebFetch(domain:www.raylib.com)",
+      "Bash(fc-list)",
+      "Bash(curl -L -o /home/jasonfantl/Documents/Projects/C/economy-sandbox/assets/fonts/Silkscreen-Regular.ttf \"https://github.com/koeberlin/Silkscreen/raw/main/fonts/TTF/Silkscreen-Regular.ttf\")",
+      "Bash(grep -oP 'F\\\\\\([^,]+\\(?:,[^,]+\\){3}')",
+      "Bash(grep -oP '\\\\d+$')",
+      "Bash(curl -L -o /home/jasonfantl/Documents/Projects/C/economy-sandbox/assets/fonts/romulus.png \"https://raw.githubusercontent.com/raysan5/raylib/master/examples/text/resources/sprite_fonts/romulus.png\")"
     ]
   }
 }

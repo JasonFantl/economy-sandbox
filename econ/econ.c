@@ -9,9 +9,10 @@ int g_chop_yield = 5;
 // Feature flags
 // ---------------------------------------------------------------------------
 bool g_diminishing_returns = true;
-bool g_production_enabled  = true;
-bool g_leisure_enabled     = true;
-bool g_two_goods           = true;
+bool  g_chop_wood_enabled    = true;
+bool  g_build_chairs_enabled = true;
+bool  g_leisure_enabled      = true;
+bool  g_inflation_enabled    = false;
 
 // ---------------------------------------------------------------------------
 // Production decision — called once per production period
@@ -25,14 +26,14 @@ static void choose_action(Agent *a) {
     float money_util = money_marginal_utility(a->econ.money);
 
     float chop_util = -999.0f;
-    if (g_production_enabled) {
+    if (g_chop_wood_enabled) {
         chop_util = marginal_buy_utility(wood) * (float)g_chop_yield;
         float sell_wood = wood->priceExpectation * money_util * (float)g_chop_yield;
         if (sell_wood > chop_util) chop_util = sell_wood;
     }
 
     float build_util = -999.0f;
-    if (g_production_enabled && g_two_goods && wood->goods >= WOOD_PER_CHAIR) {
+    if (g_build_chairs_enabled && wood->goods >= WOOD_PER_CHAIR) {
         float chair_gain = marginal_buy_utility(chair);
         float sell_chair = chair->priceExpectation * money_util;
         if (sell_chair > chair_gain) chair_gain = sell_chair;
@@ -98,26 +99,15 @@ void agent_econ_update(Agent *a) {
             a->econ.markets[MARKET_CHAIR].goods--;
     }
 
-    // Frustration: when unable to trade, drift price expectation toward own indifference price.
-    float money_util = money_marginal_utility(a->econ.money);
-    int marketCount = g_two_goods ? MARKET_COUNT : 1;
+    // Frustration: when the frustration threshold is reached, drift price expectation
+    // toward own indifference price. The tick is incremented in market_trade when
+    // the buyer's price expectation is below the asking price.
+    int marketCount = g_build_chairs_enabled ? MARKET_COUNT : 1;
     for (int mid = 0; mid < marketCount; mid++) {
-        AgentMarket *m           = &a->econ.markets[mid];
-        int          willing_buyer  = wants_to_buy(m, a->econ.money)
-                                      && (g_allow_debt || a->econ.money >= m->priceExpectation);
-        int          willing_seller = wants_to_sell(m, a->econ.money) && m->goods > 0;
-        if (willing_buyer || willing_seller) {
-            m->frustrationTick++;
-            if (m->frustrationTick >= m->frustrationThresholdTicks) {
-                m->frustrationTick = 0;
-                float indifference_price = (willing_buyer
-                                             ? marginal_buy_utility(m)
-                                             : marginal_sell_utility(m))
-                                           / money_util;
-                m->priceExpectation = nerlove_update(m->priceExpectation,
-                                                     indifference_price,
-                                                     a->econ.beliefUpdateRate);
-            }
+        AgentMarket *m = &a->econ.markets[mid];
+        if (m->frustrationTick >= m->frustrationThresholdTicks) {
+            m->frustrationTick = 0;
+            market_frustration_nudge(a, (MarketId)mid, a->econ.beliefUpdateRate);
         }
     }
 

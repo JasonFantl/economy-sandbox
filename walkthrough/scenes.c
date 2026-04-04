@@ -84,82 +84,90 @@ static void render_s2p7(const SimContext *ctx, int x, int y, int w, int h) {
 
 static void step_s1p1(void) {
     g_diminishing_returns = false;
-    g_production_enabled  = false;
+    g_chop_wood_enabled    = false;
     g_leisure_enabled     = false;
-    g_two_goods           = false;
+    g_build_chairs_enabled = false;
     g_allow_debt          = 1;
     g_wood_decay_rate     = 0.0f;
     g_chair_decay_rate    = 0.0f;
+    g_inflation_enabled   = false;
 }
 
 static void step_s2p1(void) {
     g_diminishing_returns = false;
-    g_production_enabled  = false;
+    g_chop_wood_enabled    = false;
     g_leisure_enabled     = false;
-    g_two_goods           = false;
+    g_build_chairs_enabled = false;
     g_allow_debt          = 1;
     g_wood_decay_rate     = 0.0f;
     g_chair_decay_rate    = 0.0f;
+    g_inflation_enabled   = false;
 }
 
 static void step_s2p2(void) {
     g_diminishing_returns = false;
-    g_production_enabled  = false;
+    g_chop_wood_enabled    = false;
     g_leisure_enabled     = false;
-    g_two_goods           = false;
+    g_build_chairs_enabled = false;
     g_allow_debt          = 1;
     g_wood_decay_rate     = 0.0f;
     g_chair_decay_rate    = 0.0f;
+    g_inflation_enabled   = false;
 }
 
 static void step_s2p3(void) {
     g_diminishing_returns = false;
-    g_production_enabled  = false;
+    g_chop_wood_enabled    = false;
     g_leisure_enabled     = false;
-    g_two_goods           = false;
+    g_build_chairs_enabled = false;
     g_allow_debt          = 0;
     g_wood_decay_rate     = 0.0f;
     g_chair_decay_rate    = 0.0f;
+    g_inflation_enabled   = false;
 }
 
 static void step_s2p4(void) {
     g_diminishing_returns = true;
-    g_production_enabled  = false;
+    g_chop_wood_enabled    = false;
     g_leisure_enabled     = false;
-    g_two_goods           = false;
+    g_build_chairs_enabled = false;
     g_allow_debt          = 0;
     g_wood_decay_rate     = 0.0f;
     g_chair_decay_rate    = 0.0f;
+    g_inflation_enabled   = false;
 }
 
 static void step_s2p5(void) {
     g_diminishing_returns = true;
-    g_production_enabled  = false;
+    g_chop_wood_enabled    = false;
     g_leisure_enabled     = false;
-    g_two_goods           = false;
+    g_build_chairs_enabled = false;
     g_allow_debt          = 0;
     g_wood_decay_rate     = 0.003f;
     g_chair_decay_rate    = 0.003f;
+    g_inflation_enabled   = false;
 }
 
 static void step_s2p6(void) {
     g_diminishing_returns = true;
-    g_production_enabled  = true;
+    g_chop_wood_enabled    = true;
     g_leisure_enabled     = false;
-    g_two_goods           = false;
+    g_build_chairs_enabled = false;
     g_allow_debt          = 0;
     g_wood_decay_rate     = 0.003f;
     g_chair_decay_rate    = 0.003f;
+    g_inflation_enabled   = false;
 }
 
 static void step_s2p7(void) {
     g_diminishing_returns = true;
-    g_production_enabled  = true;
+    g_chop_wood_enabled    = true;
     g_leisure_enabled     = true;
-    g_two_goods           = false;
+    g_build_chairs_enabled = false;
     g_allow_debt          = 0;
     g_wood_decay_rate     = 0.003f;
     g_chair_decay_rate    = 0.003f;
+    g_inflation_enabled   = false;
 }
 
 // ---------------------------------------------------------------------------

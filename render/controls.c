@@ -118,7 +118,8 @@ void influence_panel_render(InfluencePanel *p, Agent *agents, int agentCount) {
 #define BR_ROW2_Y  (BR_ROW1_Y + ROW_H)
 #define BR_ROW3_Y  (BR_ROW2_Y + ROW_H)
 #define BR_ROW4_Y  (BR_ROW3_Y + ROW_H)
-#define BR_H       (BR_ROW4_Y - BR_Y + ROW_H + PAD/2)
+#define BR_ROW5_Y  (BR_ROW4_Y + ROW_H)
+#define BR_H       (BR_ROW5_Y - BR_Y + ROW_H + PAD/2)
 
 void decay_rate_panel_init(DecayRatePanel *p) {
     p->expanded = false;
@@ -160,4 +161,8 @@ void decay_rate_panel_render(DecayRatePanel *p) {
     GuiCheckBox((Rectangle){BR_X + PAD, BR_ROW4_Y + 4, ROW_H - 8, ROW_H - 8},
                 "Allow Debt", &debt);
     g_allow_debt = (int)debt;
+
+    // Inflation toggle (flat money utility)
+    GuiCheckBox((Rectangle){BR_X + PAD, BR_ROW5_Y + 4, ROW_H - 8, ROW_H - 8},
+                "Inflation", &g_inflation_enabled);
 }

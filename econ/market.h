@@ -29,6 +29,9 @@ void market_gossip(Agent *a, Agent *b, MarketId mid);
 // Returns 1 if a transaction occurred.
 int  market_trade(Agent *buyer, Agent *seller, MarketId mid);
 
+// Nudge a's price expectation toward their indifference price at the given rate.
+void market_frustration_nudge(Agent *a, MarketId mid, float rate);
+
 // History recording
 void avh_record_prices(AgentValueHistory *h, const Agent *agents, int count, MarketId mid);
 void avh_record_personal_valuations(AgentValueHistory *h, const Agent *agents, int count, MarketId mid);

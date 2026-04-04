@@ -190,9 +190,9 @@ void panel_valuation_dist(const Agent *agents, int count, int marketId,
         if (y_buy >=py && y_buy <=py+ph) DrawCircle(x,y_buy, 2,(Color){ 80,220,220,200});
 
         Color emvCol=(a->sprite.tradeFlashTick>0)?YELLOW
-                    :(wants_to_buy(m, a->econ.money) ?(Color){ 60,210, 90,220}
-                     :wants_to_sell(m, a->econ.money)?(Color){220, 70, 70,220}
-                                                      :(Color){150,150,150,200});
+                    :(is_buyer(m, a->econ.money) ?(Color){ 60,210, 90,220}
+                     :is_seller(m, a->econ.money)?(Color){220, 70, 70,220}
+                                                  :(Color){150,150,150,200});
         if (y_emv>=py && y_emv<=py+ph) DrawCircle(x,y_emv,3,emvCol);
     }
 

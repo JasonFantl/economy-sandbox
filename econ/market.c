@@ -20,7 +20,10 @@ int market_trade(Agent *buyer, Agent *seller, MarketId mid) {
 
     if (seller_mkt->goods <= 0) return 0;
     if (!g_allow_debt && buyer->econ.money < price) return 0;
-    if (buyer_mkt->priceExpectation < price) return 0;
+    if (buyer_mkt->priceExpectation < price) {
+        buyer_mkt->frustrationTick++;
+        return 0;
+    }
 
     buyer->econ.money  -= price;
     seller->econ.money += price;
@@ -36,6 +39,14 @@ int market_trade(Agent *buyer, Agent *seller, MarketId mid) {
     buyer->sprite.tradeFlashTick  = TRADE_FLASH_TICKS;
     seller->sprite.tradeFlashTick = TRADE_FLASH_TICKS;
     return 1;
+}
+
+void market_frustration_nudge(Agent *a, MarketId mid, float rate) {
+    AgentMarket *m = AGENT_MKT(a, mid);
+    float money_util = money_marginal_utility(a->econ.money);
+    float indifference_price = (marginal_buy_utility(m) + marginal_sell_utility(m))
+                               / (2.0f * money_util);
+    m->priceExpectation = nerlove_update(m->priceExpectation, indifference_price, rate);
 }
 
 void avh_record_prices(AgentValueHistory *h, const Agent *agents, int count, MarketId mid) {
