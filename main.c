@@ -1,7 +1,6 @@
 #include "raylib.h"
 #include "sim.h"
 #include "render/camera.h"
-#include "render/input.h"
 #include "render/hud.h"
 #include "render/render.h"
 #include "world/world.h"
@@ -40,7 +39,6 @@ int main(void) {
 
     while (!WindowShouldClose()) {
         g_world_view_y = wt.active ? WTHROUGH_NAV_H : 0;
-        input_handle_speed();
         camera_update(g_world_view_y);
         sim_update();
 
