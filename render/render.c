@@ -65,7 +65,6 @@ static int cmp_agent_y(const void *a, const void *b) {
 
 void render_world(const WorldMap *map, const TileAtlas *tiles,
                   const Agent *agents, int count,
-                  bool paused, int simSteps,
                   const Assets *assets,
                   float camX, float camY, float camZoom) {
     // Camera: world point (camX, camY) is centred in the viewport.
@@ -132,25 +131,6 @@ void render_world(const WorldMap *map, const TileAtlas *tiles,
 
     EndMode2D();
     EndScissorMode();
-
-    // Divider between world and plots
-    DrawRectangle(0, g_world_view_y + WORLD_VIEW_H, SCREEN_W, 2, DARKGRAY);
-
-    // Legend
-    DrawRectangle(0, g_world_view_y, 440, 26, (Color){0,0,0,120});
-    DrawCircle( 10, g_world_view_y+13, 4,(Color){150,150,150,255}); DrawTextF("Leisure",  18, g_world_view_y+6, 13, WHITE);
-    DrawCircle( 90, g_world_view_y+13, 4,(Color){160,100, 40,255}); DrawTextF("Chopping", 98, g_world_view_y+6, 13, WHITE);
-    DrawCircle(190, g_world_view_y+13, 4,(Color){220,140, 60,255}); DrawTextF("Building",198, g_world_view_y+6, 13, WHITE);
-    DrawCircle(285, g_world_view_y+13, 4, YELLOW);                  DrawTextF("Trading", 293, g_world_view_y+6, 13, WHITE);
-
-    // Speed indicator
-    char speedBuf[32]; Color speedCol;
-    if      (paused)       { snprintf(speedBuf,sizeof(speedBuf),"PAUSED");              speedCol=RED;    }
-    else if (simSteps > 1) { snprintf(speedBuf,sizeof(speedBuf),"Speed: %dx",simSteps); speedCol=ORANGE; }
-    else                   { snprintf(speedBuf,sizeof(speedBuf),"Speed: 1x");           speedCol=WHITE;  }
-    DrawRectangle(SCREEN_W-200, g_world_view_y, 200, 40, (Color){0,0,0,100});
-    DrawTextF(speedBuf,    SCREEN_W-108, g_world_view_y+4,  16, speedCol);
-    DrawTextF("[SPACE]/[F]",SCREEN_W-186, g_world_view_y+24, 11, (Color){200,200,200,255});
 }
 
 // ---------------------------------------------------------------------------

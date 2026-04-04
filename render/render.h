@@ -53,7 +53,6 @@ typedef struct {
 // camX/camY: world coordinate at the centre of the viewport; camZoom: scale factor
 void render_world(const WorldMap *map, const TileAtlas *tiles,
                   const Agent *agents, int count,
-                  bool paused, int simSteps,
                   const Assets *assets,
                   float camX, float camY, float camZoom);
 

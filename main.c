@@ -50,8 +50,7 @@ int main(void) {
         BeginDrawing();
         ClearBackground(BLACK);
         render_world(map, &tiles, g_simulation.agents, g_simulation.count,
-                     g_simulation.paused, g_simulation.ticks_per_frame, &g_assets,
-                     g_camX, g_camY, g_camZoom);
+                     &g_assets, g_camX, g_camY, g_camZoom);
 
         if (wt.active)
             hud_walkthrough_frame(&wt, &ctx);

@@ -3,8 +3,10 @@
 #include "render/camera.h"
 #include "render/input.h"
 #include "econ/econ.h"
+#include "sim.h"
 #include "raygui.h"
 #include "raylib.h"
+#include <stdio.h>
 #include <string.h>
 
 #define FONT_PATH "assets/fonts/romulus.png"
@@ -48,6 +50,28 @@ void hud_unload(void) {
 }
 
 // ---------------------------------------------------------------------------
+// World-viewport HUD overlay: legend and speed indicator
+// ---------------------------------------------------------------------------
+
+static void render_world_hud(void) {
+    // Legend
+    DrawRectangle(0, g_world_view_y, 440, 26, (Color){0,0,0,120});
+    DrawCircle( 10, g_world_view_y+13, 4,(Color){150,150,150,255}); DrawTextF("Leisure",  18, g_world_view_y+6, 13, WHITE);
+    DrawCircle( 90, g_world_view_y+13, 4,(Color){160,100, 40,255}); DrawTextF("Chopping", 98, g_world_view_y+6, 13, WHITE);
+    DrawCircle(190, g_world_view_y+13, 4,(Color){220,140, 60,255}); DrawTextF("Building",198, g_world_view_y+6, 13, WHITE);
+    DrawCircle(285, g_world_view_y+13, 4, YELLOW);                  DrawTextF("Trading", 293, g_world_view_y+6, 13, WHITE);
+
+    // Speed indicator
+    char speedBuf[32]; Color speedCol;
+    if      (g_simulation.paused)                 { snprintf(speedBuf,sizeof(speedBuf),"PAUSED");                          speedCol=RED;    }
+    else if (g_simulation.ticks_per_frame > 1)    { snprintf(speedBuf,sizeof(speedBuf),"Speed: %dx",g_simulation.ticks_per_frame); speedCol=ORANGE; }
+    else                                          { snprintf(speedBuf,sizeof(speedBuf),"Speed: 1x");                       speedCol=WHITE;  }
+    DrawRectangle(SCREEN_W-200, g_world_view_y, 200, 40, (Color){0,0,0,100});
+    DrawTextF(speedBuf,     SCREEN_W-108, g_world_view_y+4,  16, speedCol);
+    DrawTextF("[SPACE]/[F]",SCREEN_W-186, g_world_view_y+24, 11, (Color){200,200,200,255});
+}
+
+// ---------------------------------------------------------------------------
 // Free-play frame: input then render (raygui panels handle their own input)
 // ---------------------------------------------------------------------------
 
@@ -59,6 +83,8 @@ void hud_freeplay_frame(void) {
     if (!consumed) inspector_update(&s_inspector, g_simulation.agents, g_simulation.count,
                                     g_camX, g_camY, g_camZoom);
 
+    render_world_hud();
+    DrawRectangle(0, g_world_view_y + WORLD_VIEW_H, SCREEN_W, 2, DARKGRAY);
     render_panels_freeplay(g_simulation.avh, g_simulation.pvh, g_simulation.gvh,
                            g_simulation.agents, g_simulation.count, s_panels);
     influence_panel_render(&g_influence, g_simulation.agents, g_simulation.count);
@@ -80,6 +106,8 @@ void hud_walkthrough_frame(WalkthroughState *wt, SimContext *ctx) {
         memset(g_simulation.gvh, 0, sizeof(g_simulation.gvh));
         g_simulation.priceTick = 0;
     }
+
+    render_world_hud();
 
     int plotY = g_world_view_y + WORLD_VIEW_H + 2;
     int plotH = SCREEN_H - plotY;
