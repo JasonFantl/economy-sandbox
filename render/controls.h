@@ -22,6 +22,7 @@ typedef struct {
     char     bufValuation[16];
     bool     editN;
     bool     editGoods;
+    bool     editMarket;
 } InfluencePanel;
 
 void influence_panel_init(InfluencePanel *p);

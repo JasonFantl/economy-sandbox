@@ -40,7 +40,7 @@ void influence_panel_init(InfluencePanel *p) {
     p->valuationDelta = 5.0f;
     p->goodsDelta     = 10;
     p->marketId       = MARKET_WOOD;
-    p->editN = p->editMoney = p->editValuation = p->editGoods = false;
+    p->editN = p->editMoney = p->editValuation = p->editGoods = p->editMarket = false;
     snprintf(p->bufMoney,     sizeof(p->bufMoney),     "%.1f", p->moneyDelta);
     snprintf(p->bufValuation, sizeof(p->bufValuation), "%.1f", p->valuationDelta);
 }
@@ -71,12 +71,6 @@ void influence_panel_render(InfluencePanel *p, Agent *agents, int agentCount) {
                          "Money:", p->bufMoney, &p->moneyDelta, p->editMoney))
         p->editMoney = !p->editMoney;
 
-    // Market selector
-    int mkt = (int)p->marketId;
-    GuiToggleGroup((Rectangle){PNL_X + PAD, MKT_Y, PNL_W - 2*PAD, MKT_H},
-                   "Wood;Chair", &mkt);
-    p->marketId = (MarketId)mkt;
-
     // Delta valuation
     if (GuiValueBoxFloat((Rectangle){BOX_X, ROW3_Y, BOX_W, ROW_H-2},
                          "Valuation:", p->bufValuation, &p->valuationDelta, p->editValuation))
@@ -90,6 +84,7 @@ void influence_panel_render(InfluencePanel *p, Agent *agents, int agentCount) {
     // Apply button
     if (GuiButton((Rectangle){PNL_X + PAD, BTN_Y, PNL_W - 2*PAD, BTN_H},
                   "Apply Influence")) {
+        p->editMarket = false;  // close dropdown on apply
         if (p->moneyDelta != 0.0f)
             agents_inject_money(agents, agentCount, p->numAgents, p->moneyDelta);
         if (p->valuationDelta != 0.0f)
@@ -99,6 +94,13 @@ void influence_panel_render(InfluencePanel *p, Agent *agents, int agentCount) {
             agents_inject_goods(agents, agentCount, p->numAgents,
                                 p->goodsDelta, p->marketId);
     }
+
+    // Market dropdown drawn last so it overlays other widgets when open
+    int mkt = (int)p->marketId;
+    if (GuiDropdownBox((Rectangle){PNL_X + PAD, MKT_Y, PNL_W - 2*PAD, MKT_H},
+                       "Wood;Chair", &mkt, p->editMarket))
+        p->editMarket = !p->editMarket;
+    p->marketId = (MarketId)mkt;
 }
 
 // ---------------------------------------------------------------------------
