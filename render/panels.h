@@ -44,10 +44,7 @@ void panel_goods_history(const AgentValueHistory *gvh, int marketId,
 // Control panels (update + render combined; return true if input consumed)
 // ---------------------------------------------------------------------------
 
-bool panel_ctrl_influence(InfluencePanel *p, Agent *agents, int count, int px, int py);
-void panel_ctrl_influence_render(const InfluencePanel *p, int px, int py);
-
-bool panel_ctrl_decay(DecayRatePanel *p, int px, int py);
-void panel_ctrl_decay_render(const DecayRatePanel *p, int px, int py);
+void panel_ctrl_influence_render(InfluencePanel *p, Agent *agents, int count, int px, int py);
+void panel_ctrl_decay_render(DecayRatePanel *p, int px, int py);
 
 #endif

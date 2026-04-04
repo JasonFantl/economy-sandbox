@@ -4,26 +4,27 @@
 #include "econ/agent.h"
 #include <stdbool.h>
 
-typedef enum {
-    EDIT_NONE         = -1,
-    EDIT_WOOD_UTILITY =  0,
-    EDIT_WOOD_PRICE   =  1,
-    EDIT_CHAIR_UTILITY =  2,
-    EDIT_CHAIR_PRICE  =  3,
-} EditField;
-
 typedef struct {
-    int       selectedId;
-    EditField editField;
-    char      inputBuf[32];
-    int       inputLen;
+    int  selectedId;
+    // raygui ValueBoxFloat edit state for the four editable fields
+    bool editWoodUtil;
+    char bufWoodUtil[16];
+    bool editWoodPrice;
+    char bufWoodPrice[16];
+    bool editChairUtil;
+    char bufChairUtil[16];
+    bool editChairPrice;
+    char bufChairPrice[16];
 } Inspector;
 
 void inspector_init(Inspector *ins);
-// camX/camY: world coord at viewport centre; camZoom: current zoom
+
+// World-space agent click detection only (field editing handled in render)
 bool inspector_update(Inspector *ins, Agent *agents, int agentCount,
                       float camX, float camY, float camZoom);
-void inspector_render(const Inspector *ins, const Agent *agents,
+
+// Render panel; also handles field edits and close button (immediate-mode)
+void inspector_render(Inspector *ins, Agent *agents,
                       float camX, float camY, float camZoom);
 
 #endif

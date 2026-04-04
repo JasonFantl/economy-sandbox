@@ -75,7 +75,7 @@ static void render_c1s2p6(const SimContext *ctx, int x, int y, int w, int h) {
 
 static void render_c1s2p7(const SimContext *ctx, int x, int y, int w, int h) {
     render_c1s2p4(ctx, x, y, w, h);
-    panel_ctrl_influence_render(ctx->inf, 0, 0);
+    panel_ctrl_influence_render(ctx->inf, ctx->sim->agents, ctx->sim->count, 0, 0);
 }
 
 // ---------------------------------------------------------------------------

@@ -1,3 +1,8 @@
+#define RAYGUI_IMPLEMENTATION
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#include "raygui.h"
+#pragma GCC diagnostic pop
 #include "raylib.h"
 #include "sim.h"
 #include "render/camera.h"

@@ -78,7 +78,7 @@ void walkthrough_exit(WalkthroughState *wt);
 
 bool walkthrough_handle_input(WalkthroughState *wt, SimContext *ctx);
 
-void walkthrough_render_overlay(const WalkthroughState *wt);
+void walkthrough_render_overlay(WalkthroughState *wt, SimContext *ctx);
 
 void walkthrough_apply(WalkthroughState *wt, SimContext *ctx);
 
