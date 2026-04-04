@@ -1,4 +1,5 @@
 #include "econ/market.h"
+#include <stddef.h>
 
 int g_allow_debt = 0;
 
@@ -14,28 +15,31 @@ void market_gossip(Agent *a, Agent *b, MarketId mid) {
 }
 
 int market_trade(Agent *a, Agent *b, MarketId mid) {
-    Agent *buyer, *seller;
-    if      (is_buyer(a, mid) && is_seller(b, mid)) { buyer = a; seller = b; }
-    else if (is_buyer(b, mid) && is_seller(a, mid)) { buyer = b; seller = a; }
-    else {
-        // No buyer+seller pair — frustrate whichever agent wants to trade
-        // but their counterpart can participate and simply won't.
-        // Seller frustrated: the other can afford it but won't buy.
-        if (is_seller(a, mid) && able_to_buy(b, AGENT_MKT(a, mid)->priceExpectation, mid) && !is_buyer(b, mid))
+    float price_b = AGENT_MKT(b, mid)->priceExpectation;
+    float price_a = AGENT_MKT(a, mid)->priceExpectation;
+
+    Agent *buyer = NULL, *seller = NULL;
+    if (able_to_buy(a, price_b, mid) && wants_to_buy(a, price_b, mid) &&
+        able_to_sell(b, mid)         && wants_to_sell(b, price_b, mid)) {
+        buyer = a; seller = b;
+    } else if (able_to_buy(b, price_a, mid) && wants_to_buy(b, price_a, mid) &&
+               able_to_sell(a, mid)          && wants_to_sell(a, price_a, mid)) {
+        buyer = b; seller = a;
+    } else {
+        // No pair. Check both directions: if one can buy but won't,
+        // and the other can and wants to sell, frustrate the one who can buy.
+        if (able_to_buy(a, price_b, mid) && !wants_to_buy(a, price_b, mid) &&
+            able_to_sell(b, mid) && wants_to_sell(b, price_b, mid))
             market_frustration_nudge(a, mid, 0.02f);
-        if (is_seller(b, mid) && able_to_buy(a, AGENT_MKT(b, mid)->priceExpectation, mid) && !is_buyer(a, mid))
-            market_frustration_nudge(b, mid, 0.02f);
-        // Buyer frustrated: the other has goods but won't sell.
-        if (is_buyer(a, mid) && able_to_sell(b, mid) && !is_seller(b, mid))
-            market_frustration_nudge(a, mid, 0.02f);
-        if (is_buyer(b, mid) && able_to_sell(a, mid) && !is_seller(a, mid))
+        if (able_to_buy(b, price_a, mid) && !wants_to_buy(b, price_a, mid) &&
+            able_to_sell(a, mid) && wants_to_sell(a, price_a, mid))
             market_frustration_nudge(b, mid, 0.02f);
         return 0;
     }
 
     AgentMarket *buyer_mkt  = AGENT_MKT(buyer,  mid);
     AgentMarket *seller_mkt = AGENT_MKT(seller, mid);
-    float price = seller_mkt->priceExpectation;
+    float price = seller_mkt->priceExpectation;  // == price_b or price_a
 
     if (seller_mkt->goods <= 0) return 0;
     if (!g_allow_debt && buyer->econ.money < price) return 0;
