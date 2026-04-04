@@ -2,17 +2,14 @@ CC     = gcc
 CFLAGS = -Wall -Wextra -O2 -I.
 LIBS   = $(shell pkg-config --libs raylib) -lm
 
-# Shared source files used by both executables
-SHARED_SRC = src/world.c src/tileset.c
+ECON_SRC     = econ/agent.c econ/econ.c econ/market.c econ/nav.c
+RENDER_SRC   = render/render.c render/panels.c render/controls.c render/inspector.c
+WTHROUGH_SRC = walkthrough/walkthrough.c walkthrough/scenes.c
+WORLD_SRC    = world/world.c world/tileset.c
 
-# Game simulation
-GAME_SRC   = main.c src/agent.c src/econ.c src/nav.c src/market.c src/render.c \
-             src/panels.c src/walkthrough.c \
-             src/agent_render.c src/inspector.c src/controls.c src/assets.c $(SHARED_SRC)
-
-# Map builder tool (lives in its own folder; binary at mapbuilder/mapbuilder)
-BUILDER_SRC = mapbuilder/mapbuilder.c $(SHARED_SRC)
-BUILDER_BIN = mapbuilder/mapbuilder
+GAME_SRC     = main.c $(ECON_SRC) $(RENDER_SRC) $(WTHROUGH_SRC) $(WORLD_SRC)
+BUILDER_SRC  = mapbuilder/mapbuilder.c world/world.c world/tileset.c
+BUILDER_BIN  = mapbuilder/mapbuilder
 
 all: game $(BUILDER_BIN)
 

@@ -1,12 +1,12 @@
 #include "raylib.h"
-#include "src/sim.h"
-#include "src/render.h"
-#include "src/inspector.h"
-#include "src/controls.h"
-#include "src/assets.h"
-#include "src/world.h"
-#include "src/tileset.h"
-#include "src/walkthrough.h"
+#include "sim.h"
+#include "econ/nav.h"
+#include "render/render.h"
+#include "render/inspector.h"
+#include "render/controls.h"
+#include "world/world.h"
+#include "world/tileset.h"
+#include "walkthrough/walkthrough.h"
 #include <math.h>
 #include <string.h>
 

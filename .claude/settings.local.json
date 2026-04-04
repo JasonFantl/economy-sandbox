@@ -36,7 +36,8 @@
       "Bash(identify /home/jasonfantl/Documents/Projects/C/economy-sandbox/src/assets/MiniWorldSprites/Characters/Workers/CyanWorker/FarmerCyan.png)",
       "Bash(identify:*)",
       "Bash(wc -l /home/jasonfantl/Documents/Projects/C/economy-sandbox/src/*.c /home/jasonfantl/Documents/Projects/C/economy-sandbox/src/*.h)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(git rm:*)"
     ]
   }
 }

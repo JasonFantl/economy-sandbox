@@ -21,8 +21,8 @@
 // File:    Ctrl+S save  Ctrl+O load  Ctrl+N new  Ctrl+Z undo
 
 #include "raylib.h"
-#include "src/world.h"
-#include "src/tileset.h"
+#include "world/world.h"
+#include "world/tileset.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
