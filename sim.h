@@ -9,7 +9,7 @@
 
 typedef struct {
     bool  paused;
-    int   steps;     // sim steps per frame (speed multiplier)
+    int   ticks_per_frame;     // sim steps per frame (speed multiplier)
     int   count;     // active agent count
     float worldW, worldH;
     int   priceTick;
@@ -19,6 +19,8 @@ typedef struct {
     AgentValueHistory gvh[MARKET_COUNT];
 } SimState;
 
-extern SimState g_sim;
+extern SimState g_simulation;
+
+void sim_update(void);
 
 #endif
