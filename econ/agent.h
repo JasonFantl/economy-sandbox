@@ -107,7 +107,6 @@ void agents_init(Agent *agents, int count, float worldWidth, float worldHeight);
 // Per-tick update functions (called once per tick per agent)
 void agent_move(Agent *a);
 void agent_update_sprite(Agent *a);
-void agents_update(Agent *agents, int count);
 
 // Interaction — checks proximity, gossips, trades, picks new targets
 void agent_attempt_trade(Agent *agents, int i, int count, float worldW, float worldH);

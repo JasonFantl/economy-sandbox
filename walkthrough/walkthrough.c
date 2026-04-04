@@ -37,7 +37,7 @@ static void apply_step(const WalkthroughState *wt) {
 
 static void open_popup(WalkthroughState *wt) {
     wt->popup_active = true;
-    g_sim.paused = true;
+    g_simulation.paused = true;
 }
 
 void walkthrough_init(WalkthroughState *wt, SimContext *ctx) {
@@ -127,12 +127,10 @@ bool walkthrough_handle_input(WalkthroughState *wt, SimContext *ctx) {
         }
         if (dismiss) {
             wt->popup_active = false;
-            g_sim.paused = false;
+            g_simulation.paused = false;
         }
         return false;
     }
-
-    if (IsKeyPressed(KEY_SPACE)) { g_sim.paused = !g_sim.paused; return false; }
 
     if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_N)) {
         walkthrough_next_step(wt, ctx); return true;

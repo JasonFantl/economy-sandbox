@@ -123,18 +123,6 @@ void agent_update_sprite(Agent *a) {
 }
 
 // ---------------------------------------------------------------------------
-// Combined per-agent update (move + sprite + econ)
-// ---------------------------------------------------------------------------
-
-void agents_update(Agent *agents, int count) {
-    for (int i = 0; i < count; i++) {
-        agent_move(&agents[i]);
-        agent_update_sprite(&agents[i]);
-        agent_econ_update(&agents[i]);
-    }
-}
-
-// ---------------------------------------------------------------------------
 // Proximity check, gossip, trade, and target selection
 // ---------------------------------------------------------------------------
 
