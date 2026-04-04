@@ -228,25 +228,3 @@ void tileatlas_draw_cell(const TileAtlas *a, const MapCell *cell,
     tileatlas_draw(a, (TileType)cell->type, (int)cell->variant, px, py, scale);
 }
 
-// ---------------------------------------------------------------------------
-// Asset loading (merged from assets.c)
-// ---------------------------------------------------------------------------
-
-static const char *WORKER_PATHS[WORKER_TYPE_COUNT] = {
-    "assets/MiniWorldSprites/Characters/Workers/CyanWorker/FarmerCyan.png",
-    "assets/MiniWorldSprites/Characters/Workers/LimeWorker/FarmerLime.png",
-    "assets/MiniWorldSprites/Characters/Workers/PurpleWorker/FarmerPurple.png",
-    "assets/MiniWorldSprites/Characters/Workers/RedWorker/FarmerRed.png",
-};
-
-void assets_load(Assets *a) {
-    for (int i = 0; i < WORKER_TYPE_COUNT; i++) {
-        a->workers[i] = LoadTexture(WORKER_PATHS[i]);
-        SetTextureFilter(a->workers[i], TEXTURE_FILTER_POINT);
-    }
-}
-
-void assets_unload(Assets *a) {
-    for (int i = 0; i < WORKER_TYPE_COUNT; i++)
-        UnloadTexture(a->workers[i]);
-}

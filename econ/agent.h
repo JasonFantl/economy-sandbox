@@ -9,10 +9,14 @@
 
 #define MAX_AGENTS        200
 #define AGENT_RADIUS      5.0f
-#define AGENT_SPEED       120.0f
 #define MAX_PATH_LEN      256
 #define WOOD_PER_CHAIR    4
 #define MONEY_MAX_UTILITY 1000.0f
+
+#define TICKS_PER_SECOND    60
+#define AGENT_SPEED_PER_TICK 2.0f   // pixels per tick (120 px/s ÷ 60)
+#define ANIM_TICKS           9      // frames between sprite frame advance (0.15s)
+#define TRADE_FLASH_TICKS   24      // ticks the trade highlight lasts (0.4s)
 
 // Per-unit, per-second decay probabilities (editable at runtime)
 extern float g_wood_decay_rate;
@@ -33,15 +37,15 @@ typedef struct {
     float  minUtility;
     float  halfSaturation;
     float  priceExpectation;
-    float  frustrationTimer;
-    float  frustrationThreshold;
+    int    frustrationTick;
+    int    frustrationThresholdTicks;
 } AgentMarket;
 
 typedef struct {
     float  maxUtility;
     float  minUtility;
-    float  halfSaturation;
-    float  idleTime;
+    int    halfSaturationTicks;
+    int    idleTicks;
 } LeisureState;
 
 typedef enum { DIR_SOUTH = 0, DIR_WEST = 1, DIR_EAST = 2, DIR_NORTH = 3 } FacingDir;
@@ -65,15 +69,26 @@ typedef struct {
     AgentAction  lastAction;
     AgentAction  pendingWork;
     float        beliefUpdateRate;
-    float        productionTimer;
-    float        productionPeriod;
+    int          productionTick;
+    int          productionPeriodTicks;
 } AgentEcon;
 
+// ---------------------------------------------------------------------------
+// Worker sprite sheet constants
+// Sheet: 80x192 px = 5 cols x 12 rows of 16x16 frames
+// ---------------------------------------------------------------------------
+#define WORKER_FRAME_W     16
+#define WORKER_FRAME_H     16
+#define WORKER_COLS         5
+#define WORKER_WALK_FRAMES  3
+#define WORKER_DIR_ROWS     3
+#define WORKER_TYPE_COUNT   4
+
 typedef struct {
-    float     tradeFlash;
+    int       tradeFlashTick;
     int       spriteType;
     int       animFrame;
-    float     animTimer;
+    int       animTick;
     FacingDir facing;
 } AgentSprite;
 
@@ -88,9 +103,20 @@ typedef struct {
 
 // Agent lifecycle
 void agents_init(Agent *agents, int count, float worldWidth, float worldHeight);
-void agents_update(Agent *agents, int count, float dt);
+
+// Per-tick update functions (called once per tick per agent)
+void agent_move(Agent *a);
+void agent_update_sprite(Agent *a);
+void agents_update(Agent *agents, int count);
+
+// Interaction — checks proximity, gossips, trades, picks new targets
+void agent_attempt_trade(Agent *agents, int i, int count, float worldW, float worldH);
 
 // Sprite rendering (call inside BeginMode2D/EndMode2D)
 void draw_agent(const Agent *a, const Assets *assets);
+
+// Asset loading
+void assets_load(Assets *a);
+void assets_unload(Assets *a);
 
 #endif

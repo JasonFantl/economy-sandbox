@@ -46,7 +46,7 @@ static void choose_action(Agent *a) {
 
     if (best == ACTION_LEISURE) {
         a->econ.lastAction = ACTION_LEISURE;
-        a->econ.leisure.idleTime += a->econ.productionPeriod;
+        a->econ.leisure.idleTicks += a->econ.productionPeriodTicks;
     } else {
         if (a->econ.pendingWork == ACTION_LEISURE)
             a->econ.pendingWork = best;
@@ -61,7 +61,7 @@ void agent_execute_chop(Agent *a) {
     AgentMarket *wood = AGENT_MKT(a, MARKET_WOOD);
     wood->goods += g_chop_yield;
     a->econ.lastAction = ACTION_CHOP;
-    a->econ.leisure.idleTime = 0.0f;
+    a->econ.leisure.idleTicks = 0;
 }
 
 void agent_execute_build(Agent *a) {
@@ -71,7 +71,7 @@ void agent_execute_build(Agent *a) {
         wood->goods  -= WOOD_PER_CHAIR;
         chair->goods++;
         a->econ.lastAction = ACTION_BUILD;
-        a->econ.leisure.idleTime = 0.0f;
+        a->econ.leisure.idleTicks = 0;
     } else {
         // Wood decayed before arrival — treat as leisure
         a->econ.lastAction = ACTION_LEISURE;
@@ -82,18 +82,18 @@ void agent_execute_build(Agent *a) {
 // Per-agent economic update — called every frame from agent.c
 // ---------------------------------------------------------------------------
 
-void agent_econ_update(Agent *a, float dt) {
-    // Goods decay
+void agent_econ_update(Agent *a) {
+    // Goods decay — rates are per-second; convert to per-tick probability
     int woods = a->econ.markets[MARKET_WOOD].goods;
     if (woods > 0 && g_wood_decay_rate > 0.0f) {
-        float p = g_wood_decay_rate * dt * (float)woods;
+        float p = g_wood_decay_rate / (float)TICKS_PER_SECOND * (float)woods;
         if ((float)GetRandomValue(0, 100000) * 0.00001f < p)
             a->econ.markets[MARKET_WOOD].goods--;
     }
 
     int chairs = a->econ.markets[MARKET_CHAIR].goods;
     if (chairs > 0 && g_chair_decay_rate > 0.0f) {
-        float p = g_chair_decay_rate * dt * (float)chairs;
+        float p = g_chair_decay_rate / (float)TICKS_PER_SECOND * (float)chairs;
         if ((float)GetRandomValue(0, 100000) * 0.00001f < p)
             a->econ.markets[MARKET_CHAIR].goods--;
     }
@@ -102,14 +102,14 @@ void agent_econ_update(Agent *a, float dt) {
     float money_util = money_marginal_utility(a->econ.money);
     int marketCount = g_two_goods ? MARKET_COUNT : 1;
     for (int mid = 0; mid < marketCount; mid++) {
-        AgentMarket *m        = &a->econ.markets[mid];
-        int          willing_buyer = wants_to_buy(m, a->econ.money)
-                                     && (g_allow_debt || a->econ.money >= m->priceExpectation);
+        AgentMarket *m           = &a->econ.markets[mid];
+        int          willing_buyer  = wants_to_buy(m, a->econ.money)
+                                      && (g_allow_debt || a->econ.money >= m->priceExpectation);
         int          willing_seller = wants_to_sell(m, a->econ.money) && m->goods > 0;
         if (willing_buyer || willing_seller) {
-            m->frustrationTimer += dt;
-            if (m->frustrationTimer > m->frustrationThreshold) {
-                m->frustrationTimer = 0.0f;
+            m->frustrationTick++;
+            if (m->frustrationTick >= m->frustrationThresholdTicks) {
+                m->frustrationTick = 0;
                 float indifference_price = (willing_buyer
                                              ? marginal_buy_utility(m)
                                              : marginal_sell_utility(m))
@@ -122,9 +122,9 @@ void agent_econ_update(Agent *a, float dt) {
     }
 
     // Production decision
-    a->econ.productionTimer -= dt;
-    if (a->econ.productionTimer <= 0.0f) {
-        a->econ.productionTimer = a->econ.productionPeriod;
+    a->econ.productionTick--;
+    if (a->econ.productionTick <= 0) {
+        a->econ.productionTick = a->econ.productionPeriodTicks;
         choose_action(a);
     }
 }

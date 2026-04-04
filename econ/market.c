@@ -31,10 +31,10 @@ int market_trade(Agent *buyer, Agent *seller, MarketId mid) {
     buyer_mkt->priceExpectation  = nerlove_update(buyer_mkt->priceExpectation,  price, buyer->econ.beliefUpdateRate);
     seller_mkt->priceExpectation = nerlove_update(seller_mkt->priceExpectation, price, seller->econ.beliefUpdateRate);
 
-    buyer_mkt->frustrationTimer  = 0.0f;
-    seller_mkt->frustrationTimer = 0.0f;
-    buyer->sprite.tradeFlash     = 0.4f;
-    seller->sprite.tradeFlash    = 0.4f;
+    buyer_mkt->frustrationTick   = 0;
+    seller_mkt->frustrationTick  = 0;
+    buyer->sprite.tradeFlashTick  = TRADE_FLASH_TICKS;
+    seller->sprite.tradeFlashTick = TRADE_FLASH_TICKS;
     return 1;
 }
 

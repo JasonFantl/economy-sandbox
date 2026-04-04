@@ -34,7 +34,9 @@ static inline float marginal_sell_utility(const AgentMarket *m) {
 // Leisure utility (diminishes the longer the agent has been idle)
 static inline float leisure_utility(const LeisureState *l) {
     if (!g_leisure_enabled) return 0.0f;
-    float r = l->idleTime / l->halfSaturation;
+    float r = (l->halfSaturationTicks > 0)
+              ? (float)l->idleTicks / (float)l->halfSaturationTicks
+              : 0.0f;
     return l->minUtility + (l->maxUtility - l->minUtility) / (r * r * r + 1.0f);
 }
 
@@ -60,7 +62,7 @@ static inline int wants_to_sell(const AgentMarket *m, float money) {
 // Exact wood gained per chop action (agents know this value when making decisions)
 extern int g_chop_yield;
 
-void agent_econ_update(Agent *a, float dt);
+void agent_econ_update(Agent *a);
 void agent_execute_chop(Agent *a);   // adds 1..g_chop_yield wood
 void agent_execute_build(Agent *a);  // spends WOOD_PER_CHAIR wood, gains 1 chair
 

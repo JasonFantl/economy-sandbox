@@ -15,8 +15,8 @@
 // ---------------------------------------------------------------------------
 SimState g_sim = { .paused = false, .steps = 1 };
 
-#define PRICE_RECORD_INTERVAL 0.25f
-#define MAP_FILE              "map.emap"
+#define PRICE_RECORD_TICKS 15   // record prices every 15 ticks (0.25s at 60 ticks/s)
+#define MAP_FILE           "map.emap"
 
 // ---------------------------------------------------------------------------
 // Camera (viewport state, not sim state)
@@ -24,70 +24,34 @@ SimState g_sim = { .paused = false, .steps = 1 };
 static float g_camX    = 0.0f;
 static float g_camY    = 0.0f;
 static float g_camZoom = 1.0f;
+
 #define CAM_ZOOM_MIN 0.25f
 #define CAM_ZOOM_MAX 6.0f
 
 // ---------------------------------------------------------------------------
 // Sim update
 // ---------------------------------------------------------------------------
-static void sim_step(float dt) {
-    agents_update(g_sim.agents, g_sim.count, dt);
+static void sim_step(void) {
+    agents_update(g_sim.agents, g_sim.count);
 
-    for (int i = 0; i < g_sim.count; i++) {
-        Agent *a = &g_sim.agents[i];
-        if (a->body.targetType == TARGET_AGENT) {
-            int bi = a->body.targetId;
-            Agent *b = &g_sim.agents[bi];
-            float dx = a->body.x - b->body.x;
-            float dy = a->body.y - b->body.y;
-            if (dx*dx + dy*dy < (AGENT_RADIUS * 2.0f) * (AGENT_RADIUS * 2.0f)) {
-                for (int mid = 0; mid < MARKET_COUNT; mid++) {
-                    MarketId m = (MarketId)mid;
-                    market_gossip(a, b, m);
-                    if (wants_to_buy(AGENT_MKT(a, m), a->econ.money) && wants_to_sell(AGENT_MKT(b, m), b->econ.money))
-                        market_trade(a, b, m);
-                    else if (wants_to_buy(AGENT_MKT(b, m), b->econ.money) && wants_to_sell(AGENT_MKT(a, m), a->econ.money))
-                        market_trade(b, a, m);
-                }
-                agents_pick_new_target(g_sim.agents, i,  g_sim.count, g_sim.worldW, g_sim.worldH);
-                agents_pick_new_target(g_sim.agents, bi, g_sim.count, g_sim.worldW, g_sim.worldH);
-            }
-        } else if (a->body.targetType == TARGET_WORK_CHOP ||
-                   a->body.targetType == TARGET_WORK_BUILD) {
-            float dx = a->body.x - a->body.targetX;
-            float dy = a->body.y - a->body.targetY;
-            if (dx*dx + dy*dy < (AGENT_RADIUS * 2.0f) * (AGENT_RADIUS * 2.0f)) {
-                if (a->body.targetType == TARGET_WORK_CHOP)
-                    agent_execute_chop(a);
-                else
-                    agent_execute_build(a);
-                agents_pick_new_target(g_sim.agents, i, g_sim.count, g_sim.worldW, g_sim.worldH);
-            }
-        } else {
-            float dx = a->body.x - a->body.targetX;
-            float dy = a->body.y - a->body.targetY;
-            if (dx*dx + dy*dy < (AGENT_RADIUS * 2.0f) * (AGENT_RADIUS * 2.0f))
-                agents_pick_new_target(g_sim.agents, i, g_sim.count, g_sim.worldW, g_sim.worldH);
-        }
-    }
+    for (int i = 0; i < g_sim.count; i++)
+        agent_attempt_trade(g_sim.agents, i, g_sim.count, g_sim.worldW, g_sim.worldH);
 
-    g_sim.priceTimer += dt;
-    if (g_sim.priceTimer >= PRICE_RECORD_INTERVAL) {
+    if (++g_sim.priceTick >= PRICE_RECORD_TICKS) {
         for (int mid = 0; mid < MARKET_COUNT; mid++) {
             MarketId m = (MarketId)mid;
             avh_record_prices(&g_sim.avh[mid], g_sim.agents, g_sim.count, m);
             avh_record_personal_valuations(&g_sim.pvh[mid], g_sim.agents, g_sim.count, m);
             avh_record_goods(&g_sim.gvh[mid], g_sim.agents, g_sim.count, m);
         }
-        g_sim.priceTimer = 0.0f;
+        g_sim.priceTick = 0;
     }
 }
 
 static void sim_update(void) {
     if (g_sim.paused) return;
-    float dt = GetFrameTime();
     for (int s = 0; s < g_sim.steps; s++)
-        sim_step(dt);
+        sim_step();
 }
 
 // ---------------------------------------------------------------------------
@@ -146,32 +110,19 @@ int main(void) {
             }
         }
 
-        if (wt.active) {
-            g_world_view_y = WTHROUGH_NAV_H;
-            bool consumed = walkthrough_handle_input(&wt, &ctx);
-            if (consumed) {
-                memset(g_sim.avh, 0, sizeof(g_sim.avh));
-                memset(g_sim.pvh, 0, sizeof(g_sim.pvh));
-                memset(g_sim.gvh, 0, sizeof(g_sim.gvh));
-                g_sim.priceTimer = 0.0f;
-            }
-            if (!consumed) {
-                if (g_wood_decay_rate > 0.0f || g_chair_decay_rate > 0.0f)
-                    decay_rate_panel_update(&decayRates);
-                if (g_production_enabled || g_leisure_enabled)
-                    influence_panel_update(&influence, g_sim.agents, g_sim.count);
-            }
-        } else {
-            g_world_view_y = 0;
-            if (IsKeyPressed(KEY_SPACE)) g_sim.paused = !g_sim.paused;
+        g_world_view_y = wt.active ? WTHROUGH_NAV_H : 0;
 
+        // --- Camera pan (middle-mouse drag) and zoom — always active ---
+        {
             Vector2 mouse = GetMousePosition();
             bool inWorld = mouse.y >= g_world_view_y && mouse.y <= g_world_view_y + (float)WORLD_VIEW_H;
+
             if (inWorld && IsMouseButtonDown(MOUSE_MIDDLE_BUTTON)) {
                 Vector2 delta = GetMouseDelta();
                 g_camX -= delta.x / g_camZoom;
                 g_camY -= delta.y / g_camZoom;
             }
+
             if (inWorld) {
                 float wheel = GetMouseWheelMove();
                 if (wheel != 0.0f) {
@@ -185,6 +136,24 @@ int main(void) {
                     g_camY = preWy - (mouse.y - ((float)g_world_view_y + (float)WORLD_VIEW_H * 0.5f)) / g_camZoom;
                 }
             }
+        }
+
+        if (wt.active) {
+            bool consumed = walkthrough_handle_input(&wt, &ctx);
+            if (consumed) {
+                memset(g_sim.avh, 0, sizeof(g_sim.avh));
+                memset(g_sim.pvh, 0, sizeof(g_sim.pvh));
+                memset(g_sim.gvh, 0, sizeof(g_sim.gvh));
+                g_sim.priceTick = 0;
+            }
+            if (!consumed) {
+                if (g_wood_decay_rate > 0.0f || g_chair_decay_rate > 0.0f)
+                    decay_rate_panel_update(&decayRates);
+                if (g_production_enabled || g_leisure_enabled)
+                    influence_panel_update(&influence, g_sim.agents, g_sim.count);
+            }
+        } else {
+            if (IsKeyPressed(KEY_SPACE)) g_sim.paused = !g_sim.paused;
             panel_handle_bounds_keyboard();
             bool consumed = panel_handle_click(panels);
             if (!consumed) consumed = influence_panel_update(&influence, g_sim.agents, g_sim.count);

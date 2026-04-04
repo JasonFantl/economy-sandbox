@@ -131,7 +131,7 @@ void panel_wealth(const Agent *agents, int count, int marketId,
         int sx=px+(int)(gx*(float)pw), sy=py+ph-(int)(gy*(float)ph);
         AgentAction act=agents[i].econ.lastAction;
         Color col;
-        if      (agents[i].sprite.tradeFlash>0.0f) col=YELLOW;
+        if      (agents[i].sprite.tradeFlashTick>0) col=YELLOW;
         else if (act==ACTION_CHOP)          col=(Color){160,100, 40,220};
         else if (act==ACTION_BUILD)         col=(Color){220,140, 60,220};
         else                                col=(Color){150,150,150,180};
@@ -189,7 +189,7 @@ void panel_valuation_dist(const Agent *agents, int count, int marketId,
         if (y_sell>=py && y_sell<=py+ph) DrawCircle(x,y_sell,2,(Color){255,160, 60,200});
         if (y_buy >=py && y_buy <=py+ph) DrawCircle(x,y_buy, 2,(Color){ 80,220,220,200});
 
-        Color emvCol=(a->sprite.tradeFlash>0.0f)?YELLOW
+        Color emvCol=(a->sprite.tradeFlashTick>0)?YELLOW
                     :(wants_to_buy(m, a->econ.money) ?(Color){ 60,210, 90,220}
                      :wants_to_sell(m, a->econ.money)?(Color){220, 70, 70,220}
                                                       :(Color){150,150,150,200});
