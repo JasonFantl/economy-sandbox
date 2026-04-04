@@ -138,10 +138,7 @@ void agent_attempt_trade(Agent *agents, int i, int count, float worldW, float wo
             for (int mid = 0; mid < MARKET_COUNT; mid++) {
                 MarketId m = (MarketId)mid;
                 market_gossip(a, b, m);
-                if (!market_trade(a, b, m)) {
-                    market_frustration_nudge(a, m, 0.02f);
-                    market_frustration_nudge(b, m, 0.02f);
-                }
+                market_trade(a, b, m);
             }
             agents_pick_new_target(agents, i,  count, worldW, worldH);
             agents_pick_new_target(agents, bi, count, worldW, worldH);

@@ -17,7 +17,21 @@ int market_trade(Agent *a, Agent *b, MarketId mid) {
     Agent *buyer, *seller;
     if      (is_buyer(a, mid) && is_seller(b, mid)) { buyer = a; seller = b; }
     else if (is_buyer(b, mid) && is_seller(a, mid)) { buyer = b; seller = a; }
-    else return 0;
+    else {
+        // No buyer+seller pair — frustrate whichever agent wants to trade
+        // but their counterpart can participate and simply won't.
+        // Seller frustrated: the other can afford it but won't buy.
+        if (is_seller(a, mid) && able_to_buy(b, AGENT_MKT(a, mid)->priceExpectation, mid) && !is_buyer(b, mid))
+            market_frustration_nudge(a, mid, 0.02f);
+        if (is_seller(b, mid) && able_to_buy(a, AGENT_MKT(b, mid)->priceExpectation, mid) && !is_buyer(a, mid))
+            market_frustration_nudge(b, mid, 0.02f);
+        // Buyer frustrated: the other has goods but won't sell.
+        if (is_buyer(a, mid) && able_to_sell(b, mid) && !is_seller(b, mid))
+            market_frustration_nudge(a, mid, 0.02f);
+        if (is_buyer(b, mid) && able_to_sell(a, mid) && !is_seller(a, mid))
+            market_frustration_nudge(b, mid, 0.02f);
+        return 0;
+    }
 
     AgentMarket *buyer_mkt  = AGENT_MKT(buyer,  mid);
     AgentMarket *seller_mkt = AGENT_MKT(seller, mid);
