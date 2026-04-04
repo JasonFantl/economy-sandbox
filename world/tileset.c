@@ -99,7 +99,7 @@ Rectangle tileatlas_src_rect(TileType type, int variant) {
 // Atlas load / unload
 // ---------------------------------------------------------------------------
 
-#define ASSET_BASE "src/assets/MiniWorldSprites/"
+#define ASSET_BASE "assets/MiniWorldSprites/"
 
 void tileatlas_load(TileAtlas *a) {
     // Ground
@@ -233,10 +233,10 @@ void tileatlas_draw_cell(const TileAtlas *a, const MapCell *cell,
 // ---------------------------------------------------------------------------
 
 static const char *WORKER_PATHS[WORKER_TYPE_COUNT] = {
-    "src/assets/MiniWorldSprites/Characters/Workers/CyanWorker/FarmerCyan.png",
-    "src/assets/MiniWorldSprites/Characters/Workers/LimeWorker/FarmerLime.png",
-    "src/assets/MiniWorldSprites/Characters/Workers/PurpleWorker/FarmerPurple.png",
-    "src/assets/MiniWorldSprites/Characters/Workers/RedWorker/FarmerRed.png",
+    "assets/MiniWorldSprites/Characters/Workers/CyanWorker/FarmerCyan.png",
+    "assets/MiniWorldSprites/Characters/Workers/LimeWorker/FarmerLime.png",
+    "assets/MiniWorldSprites/Characters/Workers/PurpleWorker/FarmerPurple.png",
+    "assets/MiniWorldSprites/Characters/Workers/RedWorker/FarmerRed.png",
 };
 
 void assets_load(Assets *a) {
