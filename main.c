@@ -2,9 +2,8 @@
 #include "sim.h"
 #include "render/camera.h"
 #include "render/input.h"
+#include "render/hud.h"
 #include "render/render.h"
-#include "render/inspector.h"
-#include "render/controls.h"
 #include "world/world.h"
 #include "world/tileset.h"
 #include "walkthrough/walkthrough.h"
@@ -29,66 +28,32 @@ int main(void) {
         if (g_simulation.worldH > (float)WORLD_VIEW_H) g_simulation.worldH = (float)WORLD_VIEW_H;
     }
     camera_init();
+    hud_init();
 
     agents_nav_init(map);
     g_simulation.count = NUM_AGENTS;
     agents_init(g_simulation.agents, g_simulation.count, g_simulation.worldW, g_simulation.worldH);
 
-    PanelState panels[NUM_PANELS] = {
-        { PLOT_WEALTH,                 MARKET_WOOD  },
-        { PLOT_PRICE_HISTORY,          MARKET_WOOD  },
-        { PLOT_VALUATION_DISTRIBUTION, MARKET_WOOD  },
-        { PLOT_PRICE_HISTORY,          MARKET_CHAIR },
-    };
-    Inspector      inspector;
-    InfluencePanel influence;
-    DecayRatePanel decayRates;
-    Assets         assets;
-    inspector_init(&inspector);
-    influence_panel_init(&influence);
-    decay_rate_panel_init(&decayRates);
-    assets_load(&assets);
-
-    SimContext ctx = { .sim = &g_simulation, .inf = &influence, .decay = &decayRates };
+    SimContext ctx = { .sim = &g_simulation, .inf = &g_influence, .decay = &g_decay_rates };
     WalkthroughState wt;
     walkthrough_init(&wt, &ctx);
 
     while (!WindowShouldClose()) {
         g_world_view_y = wt.active ? WTHROUGH_NAV_H : 0;
-
         input_handle_speed();
         camera_update(g_world_view_y);
-
-        if (wt.active)
-            input_handle_walkthrough(&wt, &ctx);
-        else
-            input_handle_freeplay(panels, &influence, &decayRates, &inspector);
-
         sim_update();
 
         BeginDrawing();
         ClearBackground(BLACK);
         render_world(map, &tiles, g_simulation.agents, g_simulation.count,
-                     g_simulation.paused, g_simulation.ticks_per_frame, &assets,
+                     g_simulation.paused, g_simulation.ticks_per_frame, &g_assets,
                      g_camX, g_camY, g_camZoom);
 
-        if (wt.active) {
-            int plotY = g_world_view_y + WORLD_VIEW_H + 2;
-            int plotH = SCREEN_H - plotY;
-            DrawRectangle(0, plotY, SCREEN_W, plotH, (Color){20, 20, 30, 255});
-            const StepDef *step = walkthrough_current_step(&wt);
-            if (step->render_panels)
-                step->render_panels(&ctx, PLOT_MARGIN_L, plotY,
-                                    SCREEN_W - PLOT_MARGIN_L - PLOT_MARGIN_R,
-                                    plotH - PLOT_MARGIN_B);
-            walkthrough_render_overlay(&wt);
-        } else {
-            render_panels_freeplay(g_simulation.avh, g_simulation.pvh, g_simulation.gvh,
-                                   g_simulation.agents, g_simulation.count, panels);
-            influence_panel_render(&influence);
-            decay_rate_panel_render(&decayRates);
-            inspector_render(&inspector, g_simulation.agents, g_camX, g_camY, g_camZoom);
-        }
+        if (wt.active)
+            hud_walkthrough_frame(&wt, &ctx);
+        else
+            hud_freeplay_frame();
 
         DrawFPS(4, wt.active ? WTHROUGH_NAV_H + 4 : 4);
         EndDrawing();
@@ -96,7 +61,7 @@ int main(void) {
 
     tileatlas_unload(&tiles);
     if (map) worldmap_free(map);
-    assets_unload(&assets);
+    hud_unload();
     CloseWindow();
     return 0;
 }
