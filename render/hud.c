@@ -7,8 +7,7 @@
 #include "raylib.h"
 #include <string.h>
 
-#define FONT_PATH "assets/fonts/Silkscreen-Regular.ttf"
-#define FONT_BASE_SIZE 8
+#define FONT_PATH "assets/fonts/romulus.png"
 
 // ---------------------------------------------------------------------------
 // Panel state
@@ -33,7 +32,7 @@ Assets         g_assets;
 
 void hud_init(void) {
     GuiLoadStyleDefault();
-    g_font = LoadFontEx(FONT_PATH, FONT_BASE_SIZE, 0, 250);
+    g_font = LoadFont(FONT_PATH);
     SetTextureFilter(g_font.texture, TEXTURE_FILTER_POINT);
     GuiSetFont(g_font);
     GuiSetStyle(DEFAULT, TEXT_SIZE, 16);

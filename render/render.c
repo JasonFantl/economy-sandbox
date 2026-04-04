@@ -11,12 +11,12 @@
 // ---------------------------------------------------------------------------
 Font g_font = {0};
 
-// Snap a requested size to the nearest multiple of the font's base size (8px)
-// so Silkscreen renders at integer scale and stays crisp.
-// 1–11 → 8, 12–19 → 16, 20–27 → 24, etc.
+// Snap a requested size to the nearest integer multiple of the font's native
+// base size so bitmap/pixel fonts render at integer scale and stay crisp.
 static int snap_size(int sz) {
-    int base = 8;
-    return ((sz + base / 2) / base) * base;
+    int base = (g_font.baseSize > 0) ? g_font.baseSize : 8;
+    int snapped = ((sz + base / 2) / base) * base;
+    return (snapped > 0) ? snapped : base;
 }
 
 void DrawTextF(const char *text, int x, int y, int fontSize, Color color) {
