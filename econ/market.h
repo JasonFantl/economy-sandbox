@@ -56,9 +56,9 @@ static inline int able_to_sell(const Agent *a, MarketId mid) {
 // Price belief exchange: each agent nudges their price expectation toward the other's
 void market_gossip(Agent *a, Agent *b, MarketId mid);
 
-// Trade attempt for market mid between a willing buyer and a willing seller.
-// Returns 1 if a transaction occurred.
-int  market_trade(Agent *buyer, Agent *seller, MarketId mid);
+// Attempt a trade between two agents for market mid.
+// Determines buyer/seller roles internally; returns 1 if a transaction occurred.
+int  market_trade(Agent *a, Agent *b, MarketId mid);
 
 // Nudge a's price expectation toward their indifference price at the given rate.
 void market_frustration_nudge(Agent *a, MarketId mid, float rate);

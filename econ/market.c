@@ -13,7 +13,7 @@ void market_gossip(Agent *a, Agent *b, MarketId mid) {
     mb->priceExpectation = nerlove_update(b_price, a_price, b->econ.beliefUpdateRate);
 }
 
-int market_trade(Agent *buyer, Agent *seller, MarketId mid) {
+static int execute_trade(Agent *buyer, Agent *seller, MarketId mid) {
     AgentMarket *buyer_mkt  = AGENT_MKT(buyer,  mid);
     AgentMarket *seller_mkt = AGENT_MKT(seller, mid);
     float price = seller_mkt->priceExpectation;
@@ -30,7 +30,6 @@ int market_trade(Agent *buyer, Agent *seller, MarketId mid) {
     buyer_mkt->goods++;
     seller_mkt->goods--;
 
-    // Both agents update their price expectation toward the actual trade price
     buyer_mkt->priceExpectation  = nerlove_update(buyer_mkt->priceExpectation,  price, buyer->econ.beliefUpdateRate);
     seller_mkt->priceExpectation = nerlove_update(seller_mkt->priceExpectation, price, seller->econ.beliefUpdateRate);
 
@@ -39,6 +38,14 @@ int market_trade(Agent *buyer, Agent *seller, MarketId mid) {
     buyer->sprite.tradeFlashTick  = TRADE_FLASH_TICKS;
     seller->sprite.tradeFlashTick = TRADE_FLASH_TICKS;
     return 1;
+}
+
+int market_trade(Agent *a, Agent *b, MarketId mid) {
+    if (is_buyer(a, mid) && is_seller(b, mid))
+        return execute_trade(a, b, mid);
+    if (is_buyer(b, mid) && is_seller(a, mid))
+        return execute_trade(b, a, mid);
+    return 0;
 }
 
 void market_frustration_nudge(Agent *a, MarketId mid, float rate) {
