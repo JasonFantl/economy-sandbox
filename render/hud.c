@@ -7,8 +7,8 @@
 #include "raylib.h"
 #include <string.h>
 
-#define FONT_PATH "/usr/share/fonts/open-sans/OpenSans-Regular.ttf"
-#define FONT_BASE_SIZE 20
+#define FONT_PATH "assets/fonts/Silkscreen-Regular.ttf"
+#define FONT_BASE_SIZE 8
 
 // ---------------------------------------------------------------------------
 // Panel state
@@ -34,9 +34,9 @@ Assets         g_assets;
 void hud_init(void) {
     GuiLoadStyleDefault();
     g_font = LoadFontEx(FONT_PATH, FONT_BASE_SIZE, 0, 250);
-    SetTextureFilter(g_font.texture, TEXTURE_FILTER_BILINEAR);
+    SetTextureFilter(g_font.texture, TEXTURE_FILTER_POINT);
     GuiSetFont(g_font);
-    GuiSetStyle(DEFAULT, TEXT_SIZE, 14);
+    GuiSetStyle(DEFAULT, TEXT_SIZE, 16);
     inspector_init(&s_inspector);
     influence_panel_init(&g_influence);
     decay_rate_panel_init(&g_decay_rates);
