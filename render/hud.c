@@ -44,7 +44,7 @@ void hud_unload(void) {
 void hud_freeplay_frame(void) {
     // Input
     input_handle_speed();
-    if (IsKeyPressed(KEY_SPACE)) g_simulation.paused = !g_simulation.paused;
+    input_handle_pause();
     panel_handle_bounds_keyboard();
     bool consumed = panel_handle_click(s_panels);
     if (!consumed) consumed = influence_panel_update(&g_influence, g_simulation.agents, g_simulation.count);
@@ -67,6 +67,7 @@ void hud_freeplay_frame(void) {
 void hud_walkthrough_frame(WalkthroughState *wt, SimContext *ctx) {
     // Input
     input_handle_speed();
+    input_handle_pause();
     bool consumed = walkthrough_handle_input(wt, ctx);
     if (consumed) {
         memset(g_simulation.avh, 0, sizeof(g_simulation.avh));
