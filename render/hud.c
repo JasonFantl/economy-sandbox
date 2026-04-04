@@ -1,10 +1,14 @@
 #include "render/hud.h"
+#include "render/render.h"
 #include "render/camera.h"
 #include "render/input.h"
 #include "econ/econ.h"
 #include "raygui.h"
 #include "raylib.h"
 #include <string.h>
+
+#define FONT_PATH "/usr/share/fonts/open-sans/OpenSans-Regular.ttf"
+#define FONT_BASE_SIZE 20
 
 // ---------------------------------------------------------------------------
 // Panel state
@@ -29,6 +33,10 @@ Assets         g_assets;
 
 void hud_init(void) {
     GuiLoadStyleDefault();
+    g_font = LoadFontEx(FONT_PATH, FONT_BASE_SIZE, 0, 250);
+    SetTextureFilter(g_font.texture, TEXTURE_FILTER_BILINEAR);
+    GuiSetFont(g_font);
+    GuiSetStyle(DEFAULT, TEXT_SIZE, 14);
     inspector_init(&s_inspector);
     influence_panel_init(&g_influence);
     decay_rate_panel_init(&g_decay_rates);
@@ -36,6 +44,7 @@ void hud_init(void) {
 }
 
 void hud_unload(void) {
+    UnloadFont(g_font);
     assets_unload(&g_assets);
 }
 

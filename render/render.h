@@ -6,7 +6,17 @@
 #include "world/tileset.h"
 #include "world/world.h"
 #include "world/tileset.h"
+#include "raylib.h"
 #include <stdbool.h>
+
+// ---------------------------------------------------------------------------
+// Global font — loaded in hud_init, used everywhere via helpers below
+// ---------------------------------------------------------------------------
+extern Font g_font;
+
+// Drop-in replacements for DrawText/MeasureText using g_font
+void DrawTextF(const char *text, int x, int y, int fontSize, Color color);
+int  MeasureTextF(const char *text, int fontSize);
 
 #define SCREEN_W        1200
 #define SCREEN_H         700

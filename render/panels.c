@@ -32,13 +32,13 @@ static void draw_axes_y(int px, int py, int pw, int ph, float yMax, float refLin
         int y=py+ph-(int)((float)step/4.0f*(float)ph);
         DrawLine(px-4,y,px,y,LIGHTGRAY);
         char buf[12]; snprintf(buf,sizeof(buf),"%.0f",v);
-        DrawText(buf,px-28,y-7,11,LIGHTGRAY);
+        DrawTextF(buf,px-28,y-7,11,LIGHTGRAY);
         DrawLine(px,y,px+pw,y,(Color){50,50,60,255});
     }
     if (refLine>0.0f && refLine<=yMax) {
         int ry=py+ph-(int)(refLine/yMax*(float)ph);
         DrawLine(px,ry,px+pw,ry,(Color){255,200,0,110});
-        DrawText("equil.",px+pw-46,ry-13,11,(Color){255,200,0,180});
+        DrawTextF("equil.",px+pw-46,ry-13,11,(Color){255,200,0,180});
     }
 }
 
@@ -110,7 +110,7 @@ void panel_wealth(const Agent *agents, int count, int marketId,
         int y=py+ph-(int)((float)step/4.0f*(float)ph);
         DrawLine(px-4,y,px,y,LIGHTGRAY);
         char buf[12]; snprintf(buf,sizeof(buf),"%.0f",v);
-        DrawText(buf,px-28,y-7,11,LIGHTGRAY);
+        DrawTextF(buf,px-28,y-7,11,LIGHTGRAY);
         DrawLine(px,y,px+pw,y,(Color){50,50,60,255});
     }
     for (int step=0;step<=4;step++) {
@@ -118,11 +118,11 @@ void panel_wealth(const Agent *agents, int count, int marketId,
         int x=px+(int)((float)step/4.0f*(float)pw);
         DrawLine(x,py+ph,x,py+ph+4,LIGHTGRAY);
         char buf[16]; snprintf(buf,sizeof(buf),"%d",gv);
-        DrawText(buf,x-5,py+ph+6,11,LIGHTGRAY);
+        DrawTextF(buf,x-5,py+ph+6,11,LIGHTGRAY);
         DrawLine(x,py,x,py+ph,(Color){50,50,60,255});
     }
-    DrawText("$",px-12,py-2,13,LIGHTGRAY);
-    DrawText("goods →",px+pw-52,py+ph+6,11,LIGHTGRAY);
+    DrawTextF("$",px-12,py-2,13,LIGHTGRAY);
+    DrawTextF("goods →",px+pw-52,py+ph+6,11,LIGHTGRAY);
 
     for (int i=0;i<count;i++) {
         float gx=(float)agents[i].econ.markets[marketId].goods/(float)maxGoods;
@@ -197,10 +197,10 @@ void panel_valuation_dist(const Agent *agents, int count, int marketId,
     }
 
     int lx=px+pw-200,ly=py+4;
-    DrawCircle(lx,   ly+4, 3,(Color){ 80,140,255,220}); DrawText("Max utility",  lx+7,  ly-1, 10,(Color){ 80,140,255,220});
-    DrawCircle(lx,   ly+16,2,(Color){255,160, 60,200}); DrawText("Sell util",    lx+7,  ly+11,10,(Color){255,160, 60,200});
-    DrawCircle(lx+100,ly+4, 2,(Color){ 80,220,220,200}); DrawText("Buy util",    lx+107,ly-1, 10,(Color){ 80,220,220,200});
-    DrawCircle(lx+100,ly+16,3,(Color){ 60,210, 90,220}); DrawText("Price expect",lx+107,ly+11,10,(Color){ 60,210, 90,220});
+    DrawCircle(lx,   ly+4, 3,(Color){ 80,140,255,220}); DrawTextF("Max utility",  lx+7,  ly-1, 10,(Color){ 80,140,255,220});
+    DrawCircle(lx,   ly+16,2,(Color){255,160, 60,200}); DrawTextF("Sell util",    lx+7,  ly+11,10,(Color){255,160, 60,200});
+    DrawCircle(lx+100,ly+4, 2,(Color){ 80,220,220,200}); DrawTextF("Buy util",    lx+107,ly-1, 10,(Color){ 80,220,220,200});
+    DrawCircle(lx+100,ly+16,3,(Color){ 60,210, 90,220}); DrawTextF("Price expect",lx+107,ly+11,10,(Color){ 60,210, 90,220});
 }
 
 // ---------------------------------------------------------------------------
@@ -257,13 +257,13 @@ void panel_price_history(const AgentValueHistory *avh, const AgentValueHistory *
     }
 
     int lx=px+pw-200,ly=py+4;
-    DrawLine(lx,   ly+4, lx+12, ly+4, emv_color(50.0f,200));     DrawText("Price/agent",lx+16,ly-1, 10,(Color){200,200,200,255});
+    DrawLine(lx,   ly+4, lx+12, ly+4, emv_color(50.0f,200));     DrawTextF("Price/agent",lx+16,ly-1, 10,(Color){200,200,200,255});
     if (showIndividualUtil) {
-        DrawLine(lx+100,ly+4, lx+112,ly+4, (Color){50,180,100,200}); DrawText("Util/agent", lx+116,ly-1, 10,(Color){80,210,130,255});
+        DrawLine(lx+100,ly+4, lx+112,ly+4, (Color){50,180,100,200}); DrawTextF("Util/agent", lx+116,ly-1, 10,(Color){80,210,130,255});
     }
-    DrawLine(lx,   ly+15,lx+12, ly+15,WHITE);                    DrawText("Price avg",  lx+16, ly+10,10,WHITE);
+    DrawLine(lx,   ly+15,lx+12, ly+15,WHITE);                    DrawTextF("Price avg",  lx+16, ly+10,10,WHITE);
     if (showIndividualUtil) {
-        DrawLine(lx+100,ly+15,lx+112,ly+15,(Color){80,230,130,230}); DrawText("Util avg",   lx+116,ly+10,10,(Color){80,230,130,255});
+        DrawLine(lx+100,ly+15,lx+112,ly+15,(Color){80,230,130,230}); DrawTextF("Util avg",   lx+116,ly+10,10,(Color){80,230,130,255});
     }
 }
 
@@ -309,9 +309,9 @@ void panel_goods_history(const AgentValueHistory *gvh, int marketId,
 
     int lx = px + pw - 160, ly = py + 4;
     DrawLine(lx, ly+4, lx+12, ly+4, (Color){80,160,220,180});
-    DrawText("goods/agent", lx+16, ly-1, 10, (Color){160,200,220,255});
+    DrawTextF("goods/agent", lx+16, ly-1, 10, (Color){160,200,220,255});
     DrawLine(lx, ly+15, lx+12, ly+15, WHITE);
-    DrawText("avg goods",   lx+16, ly+10, 10, WHITE);
+    DrawTextF("avg goods",   lx+16, ly+10, 10, WHITE);
 }
 
 // ---------------------------------------------------------------------------
@@ -361,10 +361,10 @@ void panel_supply_demand(const Agent *agents, int count, int marketId,
         int x  = px + (int)((float)step / 4.0f * (float)pw);
         DrawLine(x, py+ph, x, py+ph+4, LIGHTGRAY);
         char buf[16]; snprintf(buf, sizeof(buf), "%d", gv);
-        DrawText(buf, x-5, py+ph+6, 11, LIGHTGRAY);
+        DrawTextF(buf, x-5, py+ph+6, 11, LIGHTGRAY);
         DrawLine(x, py, x, py+ph, (Color){50,50,60,255});
     }
-    DrawText("agents →", px+pw-56, py+ph+6, 11, LIGHTGRAY);
+    DrawTextF("agents →", px+pw-56, py+ph+6, 11, LIGHTGRAY);
 
     Color demandCol = {80, 180, 255, 220};
     for (int i = 0; i < nDemand; i++) {
@@ -402,12 +402,12 @@ void panel_supply_demand(const Agent *agents, int count, int marketId,
         int eqX = px + (int)((float)eqQty / (float)count * (float)pw);
         DrawLine(eqX, py, eqX, py+ph, (Color){255,200,0,70});
         char buf[16]; snprintf(buf, sizeof(buf), "Q*=%d", eqQty);
-        DrawText(buf, eqX+3, py+4, 10, (Color){255,200,0,200});
+        DrawTextF(buf, eqX+3, py+4, 10, (Color){255,200,0,200});
     }
 
     int lx = px + pw - 160, ly = py + 4;
-    DrawLine(lx,    ly+4,  lx+12, ly+4,  demandCol); DrawText("Demand (buy util)",  lx+16, ly-1,  10, demandCol);
-    DrawLine(lx,    ly+16, lx+12, ly+16, supplyCol); DrawText("Supply (sell util)",  lx+16, ly+11, 10, supplyCol);
+    DrawLine(lx,    ly+4,  lx+12, ly+4,  demandCol); DrawTextF("Demand (buy util)",  lx+16, ly-1,  10, demandCol);
+    DrawLine(lx,    ly+16, lx+12, ly+16, supplyCol); DrawTextF("Supply (sell util)",  lx+16, ly+11, 10, supplyCol);
 }
 
 // ---------------------------------------------------------------------------

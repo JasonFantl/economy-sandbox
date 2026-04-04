@@ -153,7 +153,7 @@ static void draw_wrapped_text(const char *text, int x, int y, int maxW,
             int copyLen = lineLen < 255 ? lineLen : 255;
             strncpy(line, text + lineStart, (size_t)copyLen);
             line[copyLen] = '\0';
-            DrawText(line, x, ly, fontSize, col);
+            DrawTextF(line, x, ly, fontSize, col);
             ly += fontSize + 4;
             if (c == '\0') break;
             lineStart = i + 1; lineLen = 0; lastSpace = -1;
@@ -163,12 +163,12 @@ static void draw_wrapped_text(const char *text, int x, int y, int maxW,
             int copyLen = lineLen < 255 ? lineLen : 255;
             strncpy(line, text + lineStart, (size_t)copyLen);
             line[copyLen] = '\0';
-            if (MeasureText(line, fontSize) > maxW && lastSpace >= 0) {
+            if (MeasureTextF(line, fontSize) > maxW && lastSpace >= 0) {
                 int cutLen = lastSpace - lineStart;
                 if (cutLen > 255) cutLen = 255;
                 strncpy(line, text + lineStart, (size_t)cutLen);
                 line[cutLen] = '\0';
-                DrawText(line, x, ly, fontSize, col);
+                DrawTextF(line, x, ly, fontSize, col);
                 ly += fontSize + 4;
                 lineStart = lastSpace + 1;
                 lineLen = i - lineStart + 1;
@@ -205,10 +205,10 @@ void walkthrough_render_overlay(WalkthroughState *wt, SimContext *ctx) {
     char label[128];
     snprintf(label, sizeof(label), "%s  -  Step %d/%d",
              sc->title, wt->step + 1, sc->stepCount);
-    int lw = MeasureText(label, 12);
-    DrawText(label, (SCREEN_W - lw) / 2, 6, 12, (Color){200, 210, 230, 255});
-    int stw = MeasureText(s->title, 11);
-    DrawText(s->title, (SCREEN_W - stw) / 2, 21, 11, (Color){120, 160, 220, 200});
+    int lw = MeasureTextF(label, 12);
+    DrawTextF(label, (SCREEN_W - lw) / 2, 6, 12, (Color){200, 210, 230, 255});
+    int stw = MeasureTextF(s->title, 11);
+    DrawTextF(s->title, (SCREEN_W - stw) / 2, 21, 11, (Color){120, 160, 220, 200});
 
     // Step description text strip
     int textY = WTHROUGH_NAV_H + WORLD_VIEW_H - 75;
@@ -229,8 +229,8 @@ void walkthrough_render_overlay(WalkthroughState *wt, SimContext *ctx) {
 
         char title[128];
         snprintf(title, sizeof(title), "%s — %s", sc->title, s->title);
-        int tw = MeasureText(title, 16);
-        DrawText(title, (SCREEN_W - tw) / 2, py + 18, 16, (Color){180, 200, 240, 255});
+        int tw = MeasureTextF(title, 16);
+        DrawTextF(title, (SCREEN_W - tw) / 2, py + 18, 16, (Color){180, 200, 240, 255});
         DrawLine(px + 20, py + 42, px + pw - 20, py + 42, (Color){60, 80, 120, 200});
 
         draw_wrapped_text(s->text, px + 24, py + 52, pw - 48, 14,

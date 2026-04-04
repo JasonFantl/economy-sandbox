@@ -7,6 +7,20 @@
 #include <string.h>
 
 // ---------------------------------------------------------------------------
+// Global font
+// ---------------------------------------------------------------------------
+Font g_font = {0};
+
+void DrawTextF(const char *text, int x, int y, int fontSize, Color color) {
+    DrawTextEx(g_font, text, (Vector2){(float)x, (float)y}, (float)fontSize, 0.0f, color);
+}
+
+int MeasureTextF(const char *text, int fontSize) {
+    Vector2 s = MeasureTextEx(g_font, text, (float)fontSize, 0.0f);
+    return (int)s.x;
+}
+
+// ---------------------------------------------------------------------------
 // World viewport Y offset — 0 in free play, NAV_H in walkthrough mode
 // ---------------------------------------------------------------------------
 int g_world_view_y = 0;
@@ -112,10 +126,10 @@ void render_world(const WorldMap *map, const TileAtlas *tiles,
 
     // Legend
     DrawRectangle(0, g_world_view_y, 440, 26, (Color){0,0,0,120});
-    DrawCircle( 10, g_world_view_y+13, 4,(Color){150,150,150,255}); DrawText("Leisure",  18, g_world_view_y+6, 13, WHITE);
-    DrawCircle( 90, g_world_view_y+13, 4,(Color){160,100, 40,255}); DrawText("Chopping", 98, g_world_view_y+6, 13, WHITE);
-    DrawCircle(190, g_world_view_y+13, 4,(Color){220,140, 60,255}); DrawText("Building",198, g_world_view_y+6, 13, WHITE);
-    DrawCircle(285, g_world_view_y+13, 4, YELLOW);                  DrawText("Trading", 293, g_world_view_y+6, 13, WHITE);
+    DrawCircle( 10, g_world_view_y+13, 4,(Color){150,150,150,255}); DrawTextF("Leisure",  18, g_world_view_y+6, 13, WHITE);
+    DrawCircle( 90, g_world_view_y+13, 4,(Color){160,100, 40,255}); DrawTextF("Chopping", 98, g_world_view_y+6, 13, WHITE);
+    DrawCircle(190, g_world_view_y+13, 4,(Color){220,140, 60,255}); DrawTextF("Building",198, g_world_view_y+6, 13, WHITE);
+    DrawCircle(285, g_world_view_y+13, 4, YELLOW);                  DrawTextF("Trading", 293, g_world_view_y+6, 13, WHITE);
 
     // Speed indicator
     char speedBuf[32]; Color speedCol;
@@ -123,8 +137,8 @@ void render_world(const WorldMap *map, const TileAtlas *tiles,
     else if (simSteps > 1) { snprintf(speedBuf,sizeof(speedBuf),"Speed: %dx",simSteps); speedCol=ORANGE; }
     else                   { snprintf(speedBuf,sizeof(speedBuf),"Speed: 1x");           speedCol=WHITE;  }
     DrawRectangle(SCREEN_W-200, g_world_view_y, 200, 40, (Color){0,0,0,100});
-    DrawText(speedBuf,    SCREEN_W-108, g_world_view_y+4,  16, speedCol);
-    DrawText("[SPACE]/[F]",SCREEN_W-186, g_world_view_y+24, 11, (Color){200,200,200,255});
+    DrawTextF(speedBuf,    SCREEN_W-108, g_world_view_y+4,  16, speedCol);
+    DrawTextF("[SPACE]/[F]",SCREEN_W-186, g_world_view_y+24, 11, (Color){200,200,200,255});
 }
 
 // ---------------------------------------------------------------------------
@@ -153,8 +167,8 @@ static void draw_plot_strip(int px, int py_strip, int pw, PlotType t) {
     DrawRectangle(px,py_strip,pw,STRIP_H,bg);
     DrawRectangleLines(px,py_strip,pw,STRIP_H,bdr);
     char lbl[64]; snprintf(lbl,sizeof(lbl),"< %s >",plot_title(t));
-    int tw=MeasureText(lbl,12);
-    DrawText(lbl,px+(pw-tw)/2,py_strip+2,12,hover?WHITE:(Color){180,190,210,255});
+    int tw=MeasureTextF(lbl,12);
+    DrawTextF(lbl,px+(pw-tw)/2,py_strip+2,12,hover?WHITE:(Color){180,190,210,255});
 }
 
 static void draw_market_strip(int px, int py_strip, int pw, int marketId) {
@@ -166,8 +180,8 @@ static void draw_market_strip(int px, int py_strip, int pw, int marketId) {
     DrawRectangle(px,py_strip,pw,STRIP_H,bg);
     DrawRectangleLines(px,py_strip,pw,STRIP_H,bdr);
     char lbl[32]; snprintf(lbl,sizeof(lbl),"< %s >",market_title(marketId));
-    int tw=MeasureText(lbl,12);
-    DrawText(lbl,px+(pw-tw)/2,py_strip+2,12,hover?WHITE:mktColor);
+    int tw=MeasureTextF(lbl,12);
+    DrawTextF(lbl,px+(pw-tw)/2,py_strip+2,12,hover?WHITE:mktColor);
 }
 
 static void draw_bounds_strip(int px, int py_strip, int pw,
@@ -194,21 +208,21 @@ static void draw_bounds_strip(int px, int py_strip, int pw,
         Color xCol=(editing&&g_bnd_axis==1)?WHITE:(b->xMax>0?(Color){200,220,100,255}:(Color){100,120,80,200});
         Color yCol=(editing&&g_bnd_axis==0)?WHITE:(b->yMax>0?(Color){200,220,100,255}:(Color){100,120,80,200});
         char lbl[24]; snprintf(lbl,sizeof(lbl),"X: %s",xs);
-        int lw=MeasureText(lbl,11); DrawText(lbl,px+(half-lw)/2,py_strip+3,11,xCol);
+        int lw=MeasureTextF(lbl,11); DrawTextF(lbl,px+(half-lw)/2,py_strip+3,11,xCol);
         snprintf(lbl,sizeof(lbl),"Y: %s",ys);
-        int rw=MeasureText(lbl,11); DrawText(lbl,px+half+(half-rw)/2,py_strip+3,11,yCol);
+        int rw=MeasureTextF(lbl,11); DrawTextF(lbl,px+half+(half-rw)/2,py_strip+3,11,yCol);
     } else {
         char ys[20];
         if (editing) snprintf(ys,sizeof(ys),"%s%s",g_bnd_buf,cur?"|":" ");
         else snprintf(ys,sizeof(ys),b->yMax>0?"%.0f":"auto",b->yMax);
         Color yCol=editing?WHITE:(b->yMax>0?(Color){200,220,100,255}:(Color){100,120,80,200});
         char lbl[32]; snprintf(lbl,sizeof(lbl),"Y max: %s",ys);
-        int tw=MeasureText(lbl,11);
-        DrawText(lbl,px+(pw-tw)/2,py_strip+3,11,yCol);
+        int tw=MeasureTextF(lbl,11);
+        DrawTextF(lbl,px+(pw-tw)/2,py_strip+3,11,yCol);
     }
     if (!editing) {
         const char *hint="(0=auto)";
-        DrawText(hint,px+pw-MeasureText(hint,9)-3,py_strip+4,9,(Color){60,80,60,200});
+        DrawTextF(hint,px+pw-MeasureTextF(hint,9)-3,py_strip+4,9,(Color){60,80,60,200});
     }
 }
 

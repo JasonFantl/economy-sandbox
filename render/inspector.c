@@ -47,24 +47,24 @@
 
 static void draw_row(int y, const char *label, const char *value, Color valueColor) {
     DrawRectangle(INS_X, y, INS_W, ROW_H - 1, (Color){22, 30, 40, 255});
-    DrawText(label, INS_X + 8, y + 5, 12, (Color){170, 175, 185, 255});
-    DrawText(value, INS_X + INS_W - MeasureText(value, 12) - 8, y + 5, 12, valueColor);
+    DrawTextF(label, INS_X + 8, y + 5, 12, (Color){170, 175, 185, 255});
+    DrawTextF(value, INS_X + INS_W - MeasureTextF(value, 12) - 8, y + 5, 12, valueColor);
 }
 
 static void draw_split_row(int y, const char *labelL, const char *valL, Color colL,
                                    const char *labelR, const char *valR, Color colR) {
     DrawRectangle(INS_X, y, INS_W, ROW_H - 1, (Color){22, 30, 40, 255});
     int mid = INS_X + INS_W / 2;
-    DrawText(labelL, INS_X + 8,  y + 5, 12, (Color){170, 175, 185, 255});
-    DrawText(valL,   mid - MeasureText(valL, 12) - 6, y + 5, 12, colL);
-    DrawText(labelR, mid + 6,    y + 5, 12, (Color){170, 175, 185, 255});
-    DrawText(valR,   INS_X + INS_W - MeasureText(valR, 12) - 8, y + 5, 12, colR);
+    DrawTextF(labelL, INS_X + 8,  y + 5, 12, (Color){170, 175, 185, 255});
+    DrawTextF(valL,   mid - MeasureTextF(valL, 12) - 6, y + 5, 12, colL);
+    DrawTextF(labelR, mid + 6,    y + 5, 12, (Color){170, 175, 185, 255});
+    DrawTextF(valR,   INS_X + INS_W - MeasureTextF(valR, 12) - 8, y + 5, 12, colR);
 }
 
 static void draw_market_section_header(int y, const char *title, Color col) {
     DrawRectangle(INS_X, y, INS_W, MKT_HDR_H, (Color){28, 38, 55, 255});
     DrawRectangleLines(INS_X, y, INS_W, MKT_HDR_H, (Color){55, 72, 100, 200});
-    DrawText(title, INS_X + 8, y + 2, 11, col);
+    DrawTextF(title, INS_X + 8, y + 2, 11, col);
 }
 
 // ---------------------------------------------------------------------------
@@ -166,7 +166,7 @@ void inspector_render(Inspector *ins, Agent *agents,
     draw_row(ROW_Y_ACTION, "Last Action", actName, actCol);
 
     DrawRectangle(INS_X, ROW_Y_WOOD_HDR - SEP_H, INS_W, SEP_H, (Color){40, 60, 80, 255});
-    DrawText("click to edit", INS_X + INS_W - 90, ROW_Y_WOOD_HDR - SEP_H + 1,
+    DrawTextF("click to edit", INS_X + INS_W - 90, ROW_Y_WOOD_HDR - SEP_H + 1,
              10, (Color){90, 110, 130, 255});
 
     // ---- Wood market ----
