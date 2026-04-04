@@ -139,9 +139,9 @@ void agent_attempt_trade(Agent *agents, int i, int count, float worldW, float wo
                 MarketId m = (MarketId)mid;
                 market_gossip(a, b, m);
                 int traded = 0;
-                if (is_buyer(AGENT_MKT(a, m), a->econ.money) && is_seller(AGENT_MKT(b, m), b->econ.money))
+                if (is_buyer(a, m) && is_seller(b, m))
                     traded = market_trade(a, b, m);
-                else if (is_buyer(AGENT_MKT(b, m), b->econ.money) && is_seller(AGENT_MKT(a, m), a->econ.money))
+                else if (is_buyer(b, m) && is_seller(a, m))
                     traded = market_trade(b, a, m);
                 if (!traded) {
                     market_frustration_nudge(a, m, 0.02f);

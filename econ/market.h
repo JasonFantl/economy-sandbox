@@ -34,6 +34,14 @@ static inline int wants_to_sell(const Agent *a, float price, MarketId mid) {
     return marginal_sell_utility(m) < price * money_marginal_utility(a->econ.money);
 }
 
+// True if agent wants to buy/sell at their own expected price (role determination)
+static inline int is_buyer(const Agent *a, MarketId mid) {
+    return wants_to_buy(a, AGENT_MKT(a, mid)->priceExpectation, mid);
+}
+static inline int is_seller(const Agent *a, MarketId mid) {
+    return wants_to_sell(a, AGENT_MKT(a, mid)->priceExpectation, mid);
+}
+
 // True if the agent can afford to buy at this price
 static inline int able_to_buy(const Agent *a, float price, MarketId mid) {
     (void)mid;

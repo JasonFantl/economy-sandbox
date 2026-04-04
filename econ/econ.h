@@ -49,15 +49,6 @@ static inline float money_marginal_utility(float money) {
     return 1.0f;
 }
 
-// True if agent values buying at their own expected price (they are in the buyer role)
-static inline int is_buyer(const AgentMarket *m, float money) {
-    return marginal_buy_utility(m) > m->priceExpectation * money_marginal_utility(money);
-}
-
-// True if agent values selling at their own expected price (they are in the seller role)
-static inline int is_seller(const AgentMarket *m, float money) {
-    return marginal_sell_utility(m) < m->priceExpectation * money_marginal_utility(money);
-}
 
 // ---------------------------------------------------------------------------
 // econ.c — economic update and batch helpers
