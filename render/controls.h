@@ -9,6 +9,7 @@
 // ---------------------------------------------------------------------------
 
 typedef struct {
+    bool     expanded;
     int      numAgents;
     float    moneyDelta;
     float    valuationDelta;
@@ -32,6 +33,7 @@ void influence_panel_render(InfluencePanel *p, Agent *agents, int agentCount);
 // ---------------------------------------------------------------------------
 
 typedef struct {
+    bool expanded;
     bool editWood;
     char bufWood[16];
     bool editChair;

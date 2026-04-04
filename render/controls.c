@@ -20,10 +20,12 @@
 #define PAD        8
 #define LBL_W     90    // space reserved to the left of each value box
 
+#define HDR_H   24
+
 #define BOX_X   (PNL_X + PAD + LBL_W + 2)
 #define BOX_W   (PNL_W - PAD - LBL_W - 2 - PAD/2)
 
-#define ROW1_Y  (PNL_Y + 26)
+#define ROW1_Y  (PNL_Y + HDR_H + 2)
 #define ROW2_Y  (ROW1_Y + ROW_H)
 #define MKT_Y   (ROW2_Y + ROW_H + SEP)
 #define ROW3_Y  (MKT_Y  + MKT_H)
@@ -32,6 +34,7 @@
 #define PNL_H   (BTN_Y - PNL_Y + BTN_H + PAD / 2)
 
 void influence_panel_init(InfluencePanel *p) {
+    p->expanded       = false;
     p->numAgents      = 30;
     p->moneyDelta     = 100.0f;
     p->valuationDelta = 5.0f;
@@ -42,8 +45,21 @@ void influence_panel_init(InfluencePanel *p) {
     snprintf(p->bufValuation, sizeof(p->bufValuation), "%.1f", p->valuationDelta);
 }
 
+static const Color PANEL_BG   = {25, 35, 50, 240};
+static const Color PANEL_BORDER = {80, 100, 130, 255};
+
 void influence_panel_render(InfluencePanel *p, Agent *agents, int agentCount) {
-    GuiGroupBox((Rectangle){PNL_X, PNL_Y, PNL_W, PNL_H}, "Influence Market");
+    // Collapsible header button
+    if (GuiButton((Rectangle){PNL_X, PNL_Y, PNL_W, HDR_H},
+                  p->expanded ? "v  Influence Market" : ">  Influence Market"))
+        p->expanded = !p->expanded;
+
+    if (!p->expanded) return;
+
+    // Opaque background for content area
+    int contentH = PNL_H - HDR_H;
+    DrawRectangle(PNL_X, PNL_Y + HDR_H, PNL_W, contentH, PANEL_BG);
+    DrawRectangleLines(PNL_X, PNL_Y + HDR_H, PNL_W, contentH, PANEL_BORDER);
 
     // N agents
     if (GuiValueBox((Rectangle){BOX_X, ROW1_Y, BOX_W, ROW_H-2},
@@ -96,20 +112,31 @@ void influence_panel_render(InfluencePanel *p, Agent *agents, int agentCount) {
 #define BR_BOX_X  (BR_X + PAD + BR_LW + 2)
 #define BR_BOX_W  (BR_W - PAD - BR_LW - 2 - PAD/2)
 
-#define BR_ROW1_Y  (BR_Y + 26)
+#define BR_ROW1_Y  (BR_Y + HDR_H + 2)
 #define BR_ROW2_Y  (BR_ROW1_Y + ROW_H)
 #define BR_ROW3_Y  (BR_ROW2_Y + ROW_H)
 #define BR_ROW4_Y  (BR_ROW3_Y + ROW_H)
 #define BR_H       (BR_ROW4_Y - BR_Y + ROW_H + PAD/2)
 
 void decay_rate_panel_init(DecayRatePanel *p) {
+    p->expanded = false;
     p->editWood = p->editChair = p->editChop = false;
     snprintf(p->bufWood,  sizeof(p->bufWood),  "%.4f", g_wood_decay_rate);
     snprintf(p->bufChair, sizeof(p->bufChair), "%.4f", g_chair_decay_rate);
 }
 
 void decay_rate_panel_render(DecayRatePanel *p) {
-    GuiGroupBox((Rectangle){BR_X, BR_Y, BR_W, BR_H}, "Decay Rates (/unit/s)");
+    // Collapsible header button
+    if (GuiButton((Rectangle){BR_X, BR_Y, BR_W, HDR_H},
+                  p->expanded ? "v  Sim Controls" : ">  Sim Controls"))
+        p->expanded = !p->expanded;
+
+    if (!p->expanded) return;
+
+    // Opaque background for content area
+    int contentH = BR_H - HDR_H;
+    DrawRectangle(BR_X, BR_Y + HDR_H, BR_W, contentH, PANEL_BG);
+    DrawRectangleLines(BR_X, BR_Y + HDR_H, BR_W, contentH, PANEL_BORDER);
 
     // Wood decay rate
     if (GuiValueBoxFloat((Rectangle){BR_BOX_X, BR_ROW1_Y, BR_BOX_W, ROW_H-2},
