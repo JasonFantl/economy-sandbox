@@ -43,6 +43,10 @@ int market_trade(Agent *buyer, Agent *seller, MarketId mid) {
 
 void market_frustration_nudge(Agent *a, MarketId mid, float rate) {
     AgentMarket *m = AGENT_MKT(a, mid);
+    // Only nudge if the agent wants to trade and is capable of doing so
+    int frustrated = (is_buyer(m, a->econ.money) && able_to_buy(a, m->priceExpectation, mid))
+                  || (is_seller(m, a->econ.money) && able_to_sell(a, mid));
+    if (!frustrated) return;
     float money_util = money_marginal_utility(a->econ.money);
     float indifference_price = (marginal_buy_utility(m) + marginal_sell_utility(m))
                                / (2.0f * money_util);

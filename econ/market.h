@@ -22,6 +22,29 @@ typedef struct {
     int   agentCount;
 } AgentValueHistory;
 
+// True if the agent wants to buy at a specific price (utility exceeds cost)
+static inline int wants_to_buy(const Agent *a, float price, MarketId mid) {
+    const AgentMarket *m = AGENT_MKT(a, mid);
+    return marginal_buy_utility(m) > price * money_marginal_utility(a->econ.money);
+}
+
+// True if the agent wants to sell at a specific price (revenue exceeds utility of keeping)
+static inline int wants_to_sell(const Agent *a, float price, MarketId mid) {
+    const AgentMarket *m = AGENT_MKT(a, mid);
+    return marginal_sell_utility(m) < price * money_marginal_utility(a->econ.money);
+}
+
+// True if the agent can afford to buy at this price
+static inline int able_to_buy(const Agent *a, float price, MarketId mid) {
+    (void)mid;
+    return g_allow_debt || a->econ.money >= price;
+}
+
+// True if the agent has goods to sell
+static inline int able_to_sell(const Agent *a, MarketId mid) {
+    return AGENT_MKT(a, mid)->goods > 0;
+}
+
 // Price belief exchange: each agent nudges their price expectation toward the other's
 void market_gossip(Agent *a, Agent *b, MarketId mid);
 
