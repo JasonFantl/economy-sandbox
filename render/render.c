@@ -21,12 +21,14 @@ static int snap_size(int sz) {
 
 void DrawTextF(const char *text, int x, int y, int fontSize, Color color) {
     int s = snap_size(fontSize);
-    DrawTextEx(g_font, text, (Vector2){(float)x, (float)y}, (float)s, 0.0f, color);
+    float spacing = (float)s / 10.0f;   // matches raylib's own DrawText convention
+    DrawTextEx(g_font, text, (Vector2){(float)x, (float)y}, (float)s, spacing, color);
 }
 
 int MeasureTextF(const char *text, int fontSize) {
     int s = snap_size(fontSize);
-    Vector2 sz = MeasureTextEx(g_font, text, (float)s, 0.0f);
+    float spacing = (float)s / 10.0f;
+    Vector2 sz = MeasureTextEx(g_font, text, (float)s, spacing);
     return (int)sz.x;
 }
 
