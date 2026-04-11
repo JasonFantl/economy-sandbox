@@ -236,18 +236,31 @@ static void init_s1(SimContext *ctx) {
 static void init_s2(SimContext *ctx) {
     ctx->sim->count = 100;
     agents_init(ctx->sim->agents, ctx->sim->count, ctx->sim->worldW, ctx->sim->worldH);
+
+    // Three clusters with random relative sizes.
+    // Weights are drawn independently then normalised to cumulative thresholds.
+    float w1 = (float)GetRandomValue(10, 60);
+    float w2 = (float)GetRandomValue(10, 60);
+    float w3 = (float)GetRandomValue(10, 60);
+    float total = w1 + w2 + w3;
+    float p1 = w1 / total;           // threshold for cluster 1
+    float p2 = (w1 + w2) / total;    // threshold for cluster 2
+
     for (int i = 0; i < ctx->sim->count; i++) {
-        // Bimodal: ~half the agents cluster around 27, ~half around 53.
-        // Each cluster uses the average of two uniforms (triangular distribution)
-        // so the peaks are soft rather than sharp.
+        // Triangular distribution within each cluster (average of two uniforms)
         float a = (float)GetRandomValue(0, 10000) / 10000.0f;
         float b = (float)GetRandomValue(0, 10000) / 10000.0f;
-        float t = (a + b) * 0.5f;  // triangular 0–1, peak at 0.5
+        float t = (a + b) * 0.5f;
+
+        float roll = (float)GetRandomValue(0, 10000) / 10000.0f;
         float value;
-        if (GetRandomValue(0, 1) == 0)
-            value = 20.0f + t * 18.0f;  // low cluster:  ~20–38, peak ~29
+        if (roll < p1)
+            value = 20.0f + t * 14.0f;  // low cluster:  ~20–34, peak ~27
+        else if (roll < p2)
+            value = 33.0f + t * 14.0f;  // mid cluster:  ~33–47, peak ~40
         else
-            value = 42.0f + t * 18.0f;  // high cluster: ~42–60, peak ~51
+            value = 46.0f + t * 14.0f;  // high cluster: ~46–60, peak ~53
+
         ctx->sim->agents[i].econ.markets[MARKET_WOOD].maxUtility      = value;
         ctx->sim->agents[i].econ.markets[MARKET_WOOD].priceExpectation = value;
     }
