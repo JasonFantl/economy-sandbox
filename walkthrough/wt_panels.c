@@ -118,6 +118,14 @@ void wt_influence_panel_render(WtInfluencePanel *p, Agent *agents, int agentCoun
 
     // --- Leisure row (setter) ---
     if (flags & WT_INF_LEISURE) {
+        // Sync with current agent leisure value
+        if (agentCount > 0) {
+            float cur = agents[0].econ.leisureUtility;
+            if (p->leisureValue != cur) {
+                p->leisureValue = cur;
+                snprintf(p->bufLeisure, sizeof(p->bufLeisure), "%.1f", cur);
+            }
+        }
         GuiLabel((Rectangle){px + WT_LBL_DX, rowY, WT_LBL_W, WT_ROW_H - 2}, "Leisure:");
         if (GuiTextBox((Rectangle){px + WT_BOX_DX, rowY, WT_BOX_W, WT_ROW_H - 2},
                        p->bufLeisure, (int)sizeof(p->bufLeisure), p->editLeisure)) {
@@ -170,6 +178,11 @@ void wt_environment_panel_render(WtEnvironmentPanel *p, int flags, int px) {
 
     // --- Wood decay rate row ---
     if (flags & WT_ENV_WOOD_DECAY) {
+        // Sync with current global
+        if (p->woodDecayRate != g_wood_decay_rate) {
+            p->woodDecayRate = g_wood_decay_rate;
+            snprintf(p->bufWoodDecay, sizeof(p->bufWoodDecay), "%.4f", p->woodDecayRate);
+        }
         GuiLabel((Rectangle){px + WT_LBL_DX, rowY, WT_LBL_W, WT_ROW_H - 2},
                  "Decay:");
         if (GuiTextBox((Rectangle){px + WT_BOX_DX, rowY, WT_BOX_W, WT_ROW_H - 2},
@@ -185,6 +198,11 @@ void wt_environment_panel_render(WtEnvironmentPanel *p, int flags, int px) {
 
     // --- Chop yield row ---
     if (flags & WT_ENV_CHOP_YIELD) {
+        // Sync with current global
+        if (p->chopYield != g_chop_yield) {
+            p->chopYield = g_chop_yield;
+            snprintf(p->bufChopYield, sizeof(p->bufChopYield), "%d", p->chopYield);
+        }
         GuiLabel((Rectangle){px + WT_LBL_DX, rowY, WT_LBL_W, WT_ROW_H - 2},
                  "Yield:");
         if (GuiTextBox((Rectangle){px + WT_BOX_DX, rowY, WT_BOX_W, WT_ROW_H - 2},
