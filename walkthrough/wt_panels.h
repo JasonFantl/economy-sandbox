@@ -53,10 +53,11 @@ void wt_influence_panel_render(WtInfluencePanel *p, Agent *agents, int agentCoun
 
 typedef struct {
     bool  expanded;
-    float woodDecayRate;
-    bool  editWoodDecay;
-    char  bufWoodDecay[16];
-    float lastWoodDecayRate;  // last global value seen; used to detect external changes
+    float decayRate;          // current value in text box
+    bool  editDecay;
+    char  bufDecay[16];
+    float lastDecayRate;      // last global value seen; used to detect external changes
+    int   decayMarket;        // 0=Wood, 1=Chair — which decay global is shown
     int   chopYield;
     bool  editChopYield;
     char  bufChopYield[16];

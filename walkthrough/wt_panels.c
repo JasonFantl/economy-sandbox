@@ -15,16 +15,14 @@ static const Color WT_BG     = {25, 35, 50, 240};
 static const Color WT_BORDER = {80, 100, 130, 255};
 
 // ---------------------------------------------------------------------------
-// Geometry — panel width matches render/controls.h panels (210px) so it can
-// sit at x=10 alongside the decay panel at x=228 without overlapping.
-// Content width = 210 - 2*8 = 194.
+// Geometry — panel width 240px.  Content width = 240 - 2*8 = 224.
 //
-// Setter row:      [Label 54][gap 4][TextBox 76][gap 4][Set   56]          = 194
-// Delta row:       [Label 44][gap 4][TextBox 90][gap 4][Add   52]          = 194
-// Mkt-select row:  [Label 42][gap 4][TextBox 54][gap 4][Mkt 48][gap 4][Add 38] = 194
+// Setter row:      [Label 64][gap 4][TextBox 96][gap 4][Set   56]               = 224
+// Delta row:       [Label 54][gap 4][TextBox 110][gap 4][Add   52]              = 224
+// Mkt-select row:  [Label 52][gap 4][TextBox 68][gap 4][Mkt 52][gap 4][Btn 40] = 224
 // ---------------------------------------------------------------------------
 
-#define WT_W      210
+#define WT_W      240
 #define WT_Y      32
 #define WT_PAD    8
 #define WT_ROW_H  24
@@ -33,26 +31,26 @@ static const Color WT_BORDER = {80, 100, 130, 255};
 #define WT_HDR_H  24
 
 // Setter row geometry
-#define WT_LBL_W   54
-#define WT_BOX_W   76
+#define WT_LBL_W   64
+#define WT_BOX_W   96
 #define WT_APL_W   56
 #define WT_LBL_DX  (WT_PAD)
 #define WT_BOX_DX  (WT_PAD + WT_LBL_W + 4)
 #define WT_APL_DX  (WT_PAD + WT_LBL_W + 4 + WT_BOX_W + 4)
 
 // Delta row geometry
-#define WT_DLBL_W  44
-#define WT_DBOX_W  90
+#define WT_DLBL_W  54
+#define WT_DBOX_W  110
 #define WT_DAPL_W  52
 #define WT_DLBL_DX (WT_PAD)
 #define WT_DBOX_DX (WT_PAD + WT_DLBL_W + 4)
 #define WT_DAPL_DX (WT_PAD + WT_DLBL_W + 4 + WT_DBOX_W + 4)
 
-// Market-selector delta row: [Label 42][gap 4][TextBox 54][gap 4][Mkt 48][gap 4][Add 38]
-#define WT_MSLBL_W   42
-#define WT_MSBOX_W   54
-#define WT_MSMKT_W   48
-#define WT_MSAPL_W   38
+// Market-selector row: [Label 52][gap 4][TextBox 68][gap 4][Mkt 52][gap 4][Btn 40]
+#define WT_MSLBL_W   52
+#define WT_MSBOX_W   68
+#define WT_MSMKT_W   52
+#define WT_MSAPL_W   40
 #define WT_MSLBL_DX  (WT_PAD)
 #define WT_MSBOX_DX  (WT_PAD + WT_MSLBL_W + 4)
 #define WT_MSMKT_DX  (WT_PAD + WT_MSLBL_W + 4 + WT_MSBOX_W + 4)
@@ -195,19 +193,20 @@ void wt_influence_panel_render(WtInfluencePanel *p, Agent *agents, int agentCoun
 // ---------------------------------------------------------------------------
 
 void wt_environment_panel_init(WtEnvironmentPanel *p) {
-    p->expanded      = false;
-    p->woodDecayRate     = 0.003f;
-    p->editWoodDecay     = false;
-    p->lastWoodDecayRate = p->woodDecayRate;
-    p->chopYield         = 1;
+    p->expanded          = false;
+    p->decayMarket       = MARKET_WOOD;
+    p->decayRate         = g_wood_decay_rate;
+    p->editDecay         = false;
+    p->lastDecayRate     = p->decayRate;
+    p->chopYield         = g_chop_yield;
     p->editChopYield     = false;
     p->lastChopYield     = p->chopYield;
-    p->woodPerChair      = 4;
+    p->woodPerChair      = g_wood_per_chair;
     p->editWoodPerChair  = false;
     p->lastWoodPerChair  = p->woodPerChair;
-    snprintf(p->bufWoodDecay,   sizeof(p->bufWoodDecay),   "%.4f", p->woodDecayRate);
-    snprintf(p->bufChopYield,   sizeof(p->bufChopYield),   "%d",   p->chopYield);
-    snprintf(p->bufWoodPerChair,sizeof(p->bufWoodPerChair),"%d",   p->woodPerChair);
+    snprintf(p->bufDecay,        sizeof(p->bufDecay),        "%.4f", p->decayRate);
+    snprintf(p->bufChopYield,    sizeof(p->bufChopYield),    "%d",   p->chopYield);
+    snprintf(p->bufWoodPerChair, sizeof(p->bufWoodPerChair), "%d",   p->woodPerChair);
 }
 
 void wt_environment_panel_render(WtEnvironmentPanel *p, int flags, int px) {
@@ -229,24 +228,36 @@ void wt_environment_panel_render(WtEnvironmentPanel *p, int flags, int px) {
 
     int rowY = contentY + WT_SEP;
 
-    // --- Wood decay rate row ---
+    // --- Decay rate row (market-selector style) ---
     if (flags & WT_ENV_WOOD_DECAY) {
-        // Sync only when the global changed externally since last frame
-        if (g_wood_decay_rate != p->lastWoodDecayRate) {
-            p->woodDecayRate     = g_wood_decay_rate;
-            p->lastWoodDecayRate = g_wood_decay_rate;
-            snprintf(p->bufWoodDecay, sizeof(p->bufWoodDecay), "%.4f", p->woodDecayRate);
+        // Sync when the selected market's global changed externally
+        float curDecay = (p->decayMarket == MARKET_WOOD) ? g_wood_decay_rate : g_chair_decay_rate;
+        if (curDecay != p->lastDecayRate) {
+            p->decayRate     = curDecay;
+            p->lastDecayRate = curDecay;
+            snprintf(p->bufDecay, sizeof(p->bufDecay), "%.4f", curDecay);
         }
-        GuiLabel((Rectangle){px + WT_LBL_DX, rowY, WT_LBL_W, WT_ROW_H - 2},
-                 "Decay:");
-        if (GuiTextBox((Rectangle){px + WT_BOX_DX, rowY, WT_BOX_W, WT_ROW_H - 2},
-                       p->bufWoodDecay, (int)sizeof(p->bufWoodDecay), p->editWoodDecay)) {
-            p->editWoodDecay = !p->editWoodDecay;
-            if (!p->editWoodDecay)
-                p->woodDecayRate = strtof(p->bufWoodDecay, NULL);
+        GuiLabel((Rectangle){px + WT_MSLBL_DX, rowY, WT_MSLBL_W, WT_ROW_H - 2}, "Decay:");
+        if (GuiTextBox((Rectangle){px + WT_MSBOX_DX, rowY, WT_MSBOX_W, WT_ROW_H - 2},
+                       p->bufDecay, (int)sizeof(p->bufDecay), p->editDecay)) {
+            p->editDecay = !p->editDecay;
+            if (!p->editDecay)
+                p->decayRate = strtof(p->bufDecay, NULL);
         }
-        if (GuiButton((Rectangle){px + WT_APL_DX, rowY, WT_APL_W, WT_BTN_H}, "Set"))
-            g_wood_decay_rate = p->woodDecayRate;
+        if (GuiButton((Rectangle){px + WT_MSMKT_DX, rowY, WT_MSMKT_W, WT_BTN_H},
+                      p->decayMarket == MARKET_WOOD ? "Wood" : "Chair")) {
+            p->decayMarket = 1 - p->decayMarket;
+            // Reload buffer from newly selected market's global
+            float newDecay = (p->decayMarket == MARKET_WOOD) ? g_wood_decay_rate : g_chair_decay_rate;
+            p->decayRate     = newDecay;
+            p->lastDecayRate = newDecay;
+            snprintf(p->bufDecay, sizeof(p->bufDecay), "%.4f", newDecay);
+        }
+        if (GuiButton((Rectangle){px + WT_MSAPL_DX, rowY, WT_MSAPL_W, WT_BTN_H}, "Set")) {
+            if (p->decayMarket == MARKET_WOOD) g_wood_decay_rate  = p->decayRate;
+            else                               g_chair_decay_rate = p->decayRate;
+            p->lastDecayRate = p->decayRate;
+        }
         rowY += WT_ROW_H + WT_SEP;
     }
 
