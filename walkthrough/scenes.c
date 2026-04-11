@@ -237,10 +237,19 @@ static void init_s2(SimContext *ctx) {
     ctx->sim->count = 100;
     agents_init(ctx->sim->agents, ctx->sim->count, ctx->sim->worldW, ctx->sim->worldH);
     for (int i = 0; i < ctx->sim->count; i++) {
-        float t = (float)GetRandomValue(0, 10000) / 10000.0f;
-        ctx->sim->agents[i].econ.markets[MARKET_WOOD].maxUtility = 20.0f + t * 40.0f;
-        ctx->sim->agents[i].econ.markets[MARKET_WOOD].priceExpectation =
-            ctx->sim->agents[i].econ.markets[MARKET_WOOD].maxUtility;
+        // Bimodal: ~half the agents cluster around 27, ~half around 53.
+        // Each cluster uses the average of two uniforms (triangular distribution)
+        // so the peaks are soft rather than sharp.
+        float a = (float)GetRandomValue(0, 10000) / 10000.0f;
+        float b = (float)GetRandomValue(0, 10000) / 10000.0f;
+        float t = (a + b) * 0.5f;  // triangular 0–1, peak at 0.5
+        float value;
+        if (GetRandomValue(0, 1) == 0)
+            value = 20.0f + t * 18.0f;  // low cluster:  ~20–38, peak ~29
+        else
+            value = 42.0f + t * 18.0f;  // high cluster: ~42–60, peak ~51
+        ctx->sim->agents[i].econ.markets[MARKET_WOOD].maxUtility      = value;
+        ctx->sim->agents[i].econ.markets[MARKET_WOOD].priceExpectation = value;
     }
 }
 
