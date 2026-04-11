@@ -43,7 +43,7 @@ void agents_init(Agent *agents, int count, float worldWidth, float worldHeight) 
         chair->halfSaturation              = 4.0f;
         chair->priceExpectation            = marginal_buy_utility(chair);
 
-        agents[i].econ.leisureUtility = (float)GetRandomValue(25, 45);
+        agents[i].econ.leisureUtility = 5.0f;
 
         agents[i].econ.lastAction            = ACTION_LEISURE;
         agents[i].econ.pendingWork           = ACTION_LEISURE;
