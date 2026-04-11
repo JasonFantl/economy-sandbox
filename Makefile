@@ -4,7 +4,7 @@ LIBS   = $(shell pkg-config --libs raylib) -lm
 
 ECON_SRC     = econ/agent.c econ/econ.c econ/market.c econ/nav.c
 RENDER_SRC   = render/render.c render/panels.c render/controls.c render/inspector.c render/camera.c render/input.c render/hud.c
-WTHROUGH_SRC = walkthrough/walkthrough.c walkthrough/scenes.c
+WTHROUGH_SRC = walkthrough/walkthrough.c walkthrough/scenes.c walkthrough/wt_panels.c
 WORLD_SRC    = world/world.c world/tileset.c
 
 GAME_SRC     = main.c sim.c $(ECON_SRC) $(RENDER_SRC) $(WTHROUGH_SRC) $(WORLD_SRC)

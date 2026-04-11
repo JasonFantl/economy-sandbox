@@ -20,6 +20,9 @@ typedef struct {
     char     bufMoney[16];
     bool     editValuation;
     char     bufValuation[16];
+    float    leisureDelta;
+    bool     editLeisure;
+    char     bufLeisure[16];
     bool     editN;
     bool     editGoods;
     bool     editMarket;
@@ -34,12 +37,19 @@ void influence_panel_render(InfluencePanel *p, Agent *agents, int agentCount);
 // ---------------------------------------------------------------------------
 
 typedef struct {
-    bool expanded;
-    bool editWood;
-    char bufWood[16];
-    bool editChair;
-    char bufChair[16];
-    bool editChop;
+    bool  expanded;
+    // Staged values — only committed to globals when Apply is pressed
+    float pendingWoodDecay;
+    float pendingChairDecay;
+    int   pendingChopYield;
+    bool  pendingDisableExecuting;
+    bool  pendingInflation;
+    // raygui edit state
+    bool  editWood;
+    char  bufWood[16];
+    bool  editChair;
+    char  bufChair[16];
+    bool  editChop;
 } DecayRatePanel;
 
 void decay_rate_panel_init(DecayRatePanel *p);

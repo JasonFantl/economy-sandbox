@@ -4,6 +4,7 @@
 #include "sim.h"
 #include "render/controls.h"
 #include "render/panels.h"
+#include "walkthrough/wt_panels.h"
 #include <stdbool.h>
 
 // WTHROUGH_NAV_H: height of the walkthrough navigation bar at the top of the screen
@@ -13,9 +14,11 @@
 // SimContext — sim data + walkthrough UI panels, passed to step render fns
 // ---------------------------------------------------------------------------
 typedef struct {
-    SimState       *sim;
-    InfluencePanel *inf;
-    DecayRatePanel *decay;
+    SimState          *sim;
+    InfluencePanel    *inf;
+    DecayRatePanel    *decay;
+    WtInfluencePanel  *wt_inf;
+    WtEnvironmentPanel *wt_env;
 } SimContext;
 
 // ---------------------------------------------------------------------------
@@ -61,6 +64,7 @@ typedef struct {
     bool active;        // false = free-play mode
     bool scene_changed; // set true when scene changes; cleared by caller
     bool popup_active;  // true = step intro popup is showing
+    bool seen[MAX_SCENES][MAX_STEPS_PER_SCENE]; // popup shown once per step
 } WalkthroughState;
 
 // ---------------------------------------------------------------------------

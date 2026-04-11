@@ -144,6 +144,7 @@ static const char *plot_title(PlotType t) {
         case PLOT_PRICE_HISTORY:          return "Price History";
         case PLOT_GOODS_HISTORY:          return "Goods History";
         case PLOT_SUPPLY_DEMAND:          return "Supply & Demand";
+        case PLOT_MONEY_HISTORY:          return "Money History";
         default:                 return "";
     }
 }
@@ -226,6 +227,7 @@ static void draw_panel(const PanelState *ps,
                        const AgentValueHistory avh[MARKET_COUNT],
                        const AgentValueHistory pvh[MARKET_COUNT],
                        const AgentValueHistory gvh[MARKET_COUNT],
+                       const AgentValueHistory *mvh,
                        const Agent *agents, int agentCount,
                        int px, int py, int pw, int ph, float equilibrium) {
     int mid=ps->marketId;
@@ -240,6 +242,8 @@ static void draw_panel(const PanelState *ps,
             panel_goods_history(&gvh[mid], mid, px, py, pw, ph); break;
         case PLOT_SUPPLY_DEMAND:
             panel_supply_demand(agents, agentCount, mid, px, py, pw, ph); break;
+        case PLOT_MONEY_HISTORY:
+            panel_money_history(mvh, mid, px, py, pw, ph); break;
         default: break;
     }
 }
@@ -267,6 +271,7 @@ static void panel_geom(int panelIdx,
 void render_panels_freeplay(const AgentValueHistory avh[MARKET_COUNT],
                              const AgentValueHistory pvh[MARKET_COUNT],
                              const AgentValueHistory gvh[MARKET_COUNT],
+                             const AgentValueHistory *mvh,
                              const Agent *agents, int agentCount,
                              PanelState panels[NUM_PANELS]) {
     int half     = (SCREEN_W - PLOT_MARGIN_L - PLOT_MARGIN_R - PANEL_GAP) / 2;
@@ -295,7 +300,7 @@ void render_panels_freeplay(const AgentValueHistory avh[MARKET_COUNT],
         draw_market_strip(ppx, strip_y+STRIP_H,  half, panels[pi].marketId);
         draw_bounds_strip(ppx, strip_y+2*STRIP_H,half, pi, panels[pi].plotType, panels[pi].marketId);
 
-        draw_panel(&panels[pi], avh, pvh, gvh, agents, agentCount, ppx, py, half, ph, eq);
+        draw_panel(&panels[pi], avh, pvh, gvh, mvh, agents, agentCount, ppx, py, half, ph, eq);
     }
 }
 
@@ -303,9 +308,10 @@ void render_panels_freeplay(const AgentValueHistory avh[MARKET_COUNT],
 void render_plot(const AgentValueHistory avh[MARKET_COUNT],
                  const AgentValueHistory pvh[MARKET_COUNT],
                  const AgentValueHistory gvh[MARKET_COUNT],
+                 const AgentValueHistory *mvh,
                  const Agent *agents, int agentCount,
                  PanelState panels[NUM_PANELS]) {
-    render_panels_freeplay(avh, pvh, gvh, agents, agentCount, panels);
+    render_panels_freeplay(avh, pvh, gvh, mvh, agents, agentCount, panels);
 }
 
 // ---------------------------------------------------------------------------

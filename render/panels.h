@@ -40,6 +40,10 @@ void panel_valuation_dist(const Agent *agents, int count, int marketId,
 void panel_goods_history(const AgentValueHistory *gvh, int marketId,
                          int px, int py, int pw, int ph);
 
+// Money time series per agent + average.
+void panel_money_history(const AgentValueHistory *mvh, int marketId,
+                         int px, int py, int pw, int ph);
+
 // ---------------------------------------------------------------------------
 // Control panels (update + render combined; return true if input consumed)
 // ---------------------------------------------------------------------------

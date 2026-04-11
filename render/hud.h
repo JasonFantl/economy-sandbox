@@ -6,11 +6,14 @@
 #include "render/controls.h"
 #include "render/inspector.h"
 #include "world/tileset.h"
+#include "walkthrough/wt_panels.h"
 #include "walkthrough/walkthrough.h"
 
 // Shared panel state — exposed so main can wire ctx->inf / ctx->decay
 extern InfluencePanel g_influence;
 extern DecayRatePanel g_decay_rates;
+extern WtInfluencePanel  g_wt_influence;
+extern WtEnvironmentPanel g_wt_environment;
 
 // Sprite/worker assets — exposed so main can pass to render_world
 extern Assets g_assets;

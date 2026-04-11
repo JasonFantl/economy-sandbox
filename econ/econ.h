@@ -32,13 +32,9 @@ static inline float marginal_sell_utility(const AgentMarket *m) {
     return m->minUtility + (m->maxUtility - m->minUtility) / (r * r * r + 1.0f);
 }
 
-// Leisure utility (diminishes the longer the agent has been idle)
-static inline float leisure_utility(const LeisureState *l) {
-    if (!g_leisure_enabled) return 0.0f;
-    float r = (l->halfSaturationTicks > 0)
-              ? (float)l->idleTicks / (float)l->halfSaturationTicks
-              : 0.0f;
-    return l->minUtility + (l->maxUtility - l->minUtility) / (r * r * r + 1.0f);
+// Leisure utility (constant per agent)
+static inline float leisure_utility(float u) {
+    return g_leisure_enabled ? u : 0.0f;
 }
 
 // Marginal utility of $1 given the agent's current wealth.
@@ -62,6 +58,8 @@ void agent_execute_chop(Agent *a);   // adds 1..g_chop_yield wood
 void agent_execute_build(Agent *a);  // spends WOOD_PER_CHAIR wood, gains 1 chair
 
 void agents_adjust_valuations(Agent *agents, int count, int numAgents, float delta, MarketId mid);
+void agents_adjust_leisure(Agent *agents, int count, int numAgents, float delta);
+void agents_set_leisure(Agent *agents, int count, float value);
 void agents_inject_money(Agent *agents, int count, int numAgents, float delta);
 void agents_inject_goods(Agent *agents, int count, int numAgents, int delta, MarketId mid);
 

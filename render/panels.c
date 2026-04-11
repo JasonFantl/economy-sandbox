@@ -127,15 +127,35 @@ void panel_wealth(const Agent *agents, int count, int marketId,
     for (int i=0;i<count;i++) {
         float gx=(float)agents[i].econ.markets[marketId].goods/(float)maxGoods;
         float gy=agents[i].econ.money/maxMoney;
-        if (gx < 0.0f || gx > 1.0f || gy < 0.0f || gy > 1.0f) continue;
-        int sx=px+(int)(gx*(float)pw), sy=py+ph-(int)(gy*(float)ph);
         AgentAction act=agents[i].econ.lastAction;
         Color col;
         if      (agents[i].sprite.tradeFlashTick>0) col=YELLOW;
         else if (act==ACTION_CHOP)          col=(Color){160,100, 40,220};
         else if (act==ACTION_BUILD)         col=(Color){220,140, 60,220};
         else                                col=(Color){150,150,150,180};
-        DrawCircle(sx,sy,3,col);
+
+        if (gx >= 0.0f && gx <= 1.0f && gy >= 0.0f && gy <= 1.0f) {
+            int sx=px+(int)(gx*(float)pw), sy=py+ph-(int)(gy*(float)ph);
+            DrawCircle(sx,sy,3,col);
+        } else {
+            // Compute actual pixel position (may be outside plot)
+            float ax = (float)px + gx*(float)pw;
+            float ay = (float)(py+ph) - gy*(float)ph;
+            // Clamp to plot border
+            float ex = ax < (float)px ? (float)px : (ax > (float)(px+pw) ? (float)(px+pw) : ax);
+            float ey = ay < (float)py ? (float)py : (ay > (float)(py+ph) ? (float)(py+ph) : ay);
+            // Direction from clamped point toward actual point (screen coords, y-down)
+            float ddx = ax - ex, ddy = ay - ey;
+            float len = sqrtf(ddx*ddx + ddy*ddy);
+            if (len < 0.5f) continue;
+            ddx /= len; ddy /= len;
+            // Triangle pointing in direction (ddx,ddy), tip 6px out, base 4px wide
+            // Winding: DrawTriangle(tip, v_right, v_left) is CCW in screen y-down
+            Vector2 tip = {ex + ddx*6.0f,          ey + ddy*6.0f         };
+            Vector2 vr  = {ex - ddx + ddy*4.0f,    ey - ddy - ddx*4.0f  };
+            Vector2 vl  = {ex - ddx - ddy*4.0f,    ey - ddy + ddx*4.0f  };
+            DrawTriangle(tip, vr, vl, col);
+        }
     }
 }
 
@@ -408,6 +428,53 @@ void panel_supply_demand(const Agent *agents, int count, int marketId,
     int lx = px + pw - 160, ly = py + 4;
     DrawLine(lx,    ly+4,  lx+12, ly+4,  demandCol); DrawTextF("Demand (buy util)",  lx+16, ly-1,  10, demandCol);
     DrawLine(lx,    ly+16, lx+12, ly+16, supplyCol); DrawTextF("Supply (sell util)",  lx+16, ly+11, 10, supplyCol);
+}
+
+// ---------------------------------------------------------------------------
+// PLOT_MONEY_HISTORY
+// ---------------------------------------------------------------------------
+
+void panel_money_history(const AgentValueHistory *mvh, int marketId,
+                         int px, int py, int pw, int ph) {
+    PlotBounds *b = &g_bounds[PLOT_MONEY_HISTORY][marketId];
+    float rawMax = 1.0f;
+    for (int s = 0; s < mvh->count; s++) {
+        float v = avh_avg(mvh, s);
+        if (v > rawMax) rawMax = v;
+    }
+    for (int ag = 0; ag < mvh->agentCount; ag++) {
+        for (int s = 0; s < mvh->count; s++) {
+            float v = avh_get(mvh, ag, s);
+            if (v > rawMax) rawMax = v;
+        }
+    }
+    float yMax = (b->yMax > 0.0f) ? b->yMax : compute_ymax(rawMax);
+    draw_axes_y(px, py, pw, ph, yMax, 0.0f);
+    if (mvh->count < 2) return;
+
+    float xScale = (float)pw / (float)(PRICE_HISTORY_SIZE - 1);
+
+    for (int ag = 0; ag < mvh->agentCount; ag++) {
+        Color col = {100, 200, 120, 35};
+        for (int s = 1; s < mvh->count; s++) {
+            float v0 = avh_get(mvh, ag, s-1), v1 = avh_get(mvh, ag, s);
+            draw_line_yclip(px + (int)((float)(s-1) * xScale), py + ph - (int)(v0 / yMax * (float)ph),
+                            px + (int)((float) s    * xScale), py + ph - (int)(v1 / yMax * (float)ph),
+                            py, py + ph, col);
+        }
+    }
+    for (int s = 1; s < mvh->count; s++) {
+        float v0 = avh_avg(mvh, s-1), v1 = avh_avg(mvh, s);
+        draw_line_yclip(px + (int)((float)(s-1) * xScale), py + ph - (int)(v0 / yMax * (float)ph),
+                        px + (int)((float) s    * xScale), py + ph - (int)(v1 / yMax * (float)ph),
+                        py, py + ph, WHITE);
+    }
+
+    int lx = px + pw - 160, ly = py + 4;
+    DrawLine(lx, ly+4, lx+12, ly+4, (Color){100,200,120,180});
+    DrawTextF("money/agent", lx+16, ly-1, 10, (Color){160,220,180,255});
+    DrawLine(lx, ly+15, lx+12, ly+15, WHITE);
+    DrawTextF("avg money",   lx+16, ly+10, 10, WHITE);
 }
 
 // ---------------------------------------------------------------------------

@@ -34,8 +34,6 @@ void agents_init(Agent *agents, int count, float worldWidth, float worldHeight) 
         wood->maxUtility                   = (float)GetRandomValue(20, 50);
         wood->minUtility                   = 0.0f;
         wood->halfSaturation               = 16.0f;
-        wood->frustrationTick              = 0;
-        wood->frustrationThresholdTicks    = 300 + GetRandomValue(0, 50) * 6;
         wood->priceExpectation             = marginal_buy_utility(wood);
 
         AgentMarket *chair                 = &agents[i].econ.markets[MARKET_CHAIR];
@@ -43,14 +41,9 @@ void agents_init(Agent *agents, int count, float worldWidth, float worldHeight) 
         chair->maxUtility                  = (float)GetRandomValue(60, 130);
         chair->minUtility                  = 0.0f;
         chair->halfSaturation              = 4.0f;
-        chair->frustrationTick             = 0;
-        chair->frustrationThresholdTicks   = 300 + GetRandomValue(0, 50) * 6;
         chair->priceExpectation            = marginal_buy_utility(chair);
 
-        agents[i].econ.leisure.maxUtility        = (float)GetRandomValue(25, 45);
-        agents[i].econ.leisure.minUtility        = (float)GetRandomValue(3, 10);
-        agents[i].econ.leisure.halfSaturationTicks = 180; // 3.0s * 60
-        agents[i].econ.leisure.idleTicks         = 0;
+        agents[i].econ.leisureUtility = (float)GetRandomValue(25, 45);
 
         agents[i].econ.lastAction            = ACTION_LEISURE;
         agents[i].econ.pendingWork           = ACTION_LEISURE;

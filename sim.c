@@ -1,6 +1,7 @@
 #include "sim.h"
 #include "econ/agent.h"
 #include "econ/market.h"
+#include <string.h>
 
 #define PRICE_RECORD_INTERVAL 15   // record prices every 15 ticks (0.25s at 60 ticks/s)
 
@@ -23,8 +24,19 @@ static void sim_step(void) {
             avh_record_personal_valuations(&g_simulation.pvh[mid], g_simulation.agents, g_simulation.count, m);
             avh_record_goods(&g_simulation.gvh[mid], g_simulation.agents, g_simulation.count, m);
         }
+        avh_record_money(&g_simulation.mvh, g_simulation.agents, g_simulation.count);
         g_simulation.priceTick = 0;
     }
+}
+
+void sim_restart(void) {
+    agents_init(g_simulation.agents, g_simulation.count,
+                g_simulation.worldW, g_simulation.worldH);
+    memset(g_simulation.avh, 0, sizeof(g_simulation.avh));
+    memset(g_simulation.pvh, 0, sizeof(g_simulation.pvh));
+    memset(g_simulation.gvh, 0, sizeof(g_simulation.gvh));
+    memset(&g_simulation.mvh, 0, sizeof(g_simulation.mvh));
+    g_simulation.priceTick = 0;
 }
 
 void sim_update(void) {

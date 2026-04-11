@@ -1,8 +1,10 @@
 #include "render/controls.h"
 #include "econ/econ.h"
 #include "econ/market.h"
+#include <stdbool.h>
 #include "raygui.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 // ---------------------------------------------------------------------------
 // Influence Panel geometry
@@ -30,7 +32,8 @@
 #define MKT_Y   (ROW2_Y + ROW_H + SEP)
 #define ROW3_Y  (MKT_Y  + MKT_H)
 #define ROW4_Y  (ROW3_Y + ROW_H)
-#define BTN_Y   (ROW4_Y + ROW_H + SEP)
+#define ROW5_Y  (ROW4_Y + ROW_H)
+#define BTN_Y   (ROW5_Y + ROW_H + SEP)
 #define PNL_H   (BTN_Y - PNL_Y + BTN_H + PAD / 2)
 
 void influence_panel_init(InfluencePanel *p) {
@@ -40,9 +43,11 @@ void influence_panel_init(InfluencePanel *p) {
     p->valuationDelta = 5.0f;
     p->goodsDelta     = 10;
     p->marketId       = MARKET_WOOD;
-    p->editN = p->editMoney = p->editValuation = p->editGoods = p->editMarket = false;
+    p->leisureDelta   = 5.0f;
+    p->editN = p->editMoney = p->editValuation = p->editGoods = p->editMarket = p->editLeisure = false;
     snprintf(p->bufMoney,     sizeof(p->bufMoney),     "%.1f", p->moneyDelta);
     snprintf(p->bufValuation, sizeof(p->bufValuation), "%.1f", p->valuationDelta);
+    snprintf(p->bufLeisure,   sizeof(p->bufLeisure),   "%.1f", p->leisureDelta);
 }
 
 static const Color PANEL_BG   = {25, 35, 50, 240};
@@ -66,20 +71,34 @@ void influence_panel_render(InfluencePanel *p, Agent *agents, int agentCount) {
                     "N agents:", &p->numAgents, 1, agentCount, p->editN))
         p->editN = !p->editN;
 
-    // Delta money
-    if (GuiValueBoxFloat((Rectangle){BOX_X, ROW2_Y, BOX_W, ROW_H-2},
-                         "Money:", p->bufMoney, &p->moneyDelta, p->editMoney))
+    // Delta money (GuiTextBox allows '-' for negative values)
+    GuiLabel((Rectangle){PNL_X + PAD, ROW2_Y, LBL_W, ROW_H-2}, "Money:");
+    if (GuiTextBox((Rectangle){BOX_X, ROW2_Y, BOX_W, ROW_H-2},
+                   p->bufMoney, (int)sizeof(p->bufMoney), p->editMoney)) {
         p->editMoney = !p->editMoney;
+        if (!p->editMoney) p->moneyDelta = strtof(p->bufMoney, NULL);
+    }
 
-    // Delta valuation
-    if (GuiValueBoxFloat((Rectangle){BOX_X, ROW3_Y, BOX_W, ROW_H-2},
-                         "Valuation:", p->bufValuation, &p->valuationDelta, p->editValuation))
+    // Delta valuation (GuiTextBox allows '-' for negative values)
+    GuiLabel((Rectangle){PNL_X + PAD, ROW3_Y, LBL_W, ROW_H-2}, "Valuation:");
+    if (GuiTextBox((Rectangle){BOX_X, ROW3_Y, BOX_W, ROW_H-2},
+                   p->bufValuation, (int)sizeof(p->bufValuation), p->editValuation)) {
         p->editValuation = !p->editValuation;
+        if (!p->editValuation) p->valuationDelta = strtof(p->bufValuation, NULL);
+    }
 
     // Delta goods
     if (GuiValueBox((Rectangle){BOX_X, ROW4_Y, BOX_W, ROW_H-2},
                     "Goods:", &p->goodsDelta, -100, 100, p->editGoods))
         p->editGoods = !p->editGoods;
+
+    // Delta leisure
+    GuiLabel((Rectangle){PNL_X + PAD, ROW5_Y, LBL_W, ROW_H-2}, "Leisure:");
+    if (GuiTextBox((Rectangle){BOX_X, ROW5_Y, BOX_W, ROW_H-2},
+                   p->bufLeisure, (int)sizeof(p->bufLeisure), p->editLeisure)) {
+        p->editLeisure = !p->editLeisure;
+        if (!p->editLeisure) p->leisureDelta = strtof(p->bufLeisure, NULL);
+    }
 
     // Apply button
     if (GuiButton((Rectangle){PNL_X + PAD, BTN_Y, PNL_W - 2*PAD, BTN_H},
@@ -93,6 +112,8 @@ void influence_panel_render(InfluencePanel *p, Agent *agents, int agentCount) {
         if (p->goodsDelta != 0)
             agents_inject_goods(agents, agentCount, p->numAgents,
                                 p->goodsDelta, p->marketId);
+        if (p->leisureDelta != 0.0f)
+            agents_adjust_leisure(agents, agentCount, p->numAgents, p->leisureDelta);
     }
 
     // Market dropdown drawn last so it overlays other widgets when open
@@ -119,13 +140,19 @@ void influence_panel_render(InfluencePanel *p, Agent *agents, int agentCount) {
 #define BR_ROW3_Y  (BR_ROW2_Y + ROW_H)
 #define BR_ROW4_Y  (BR_ROW3_Y + ROW_H)
 #define BR_ROW5_Y  (BR_ROW4_Y + ROW_H)
-#define BR_H       (BR_ROW5_Y - BR_Y + ROW_H + PAD/2)
+#define BR_BTN_Y   (BR_ROW5_Y + ROW_H + SEP)
+#define BR_H       (BR_BTN_Y - BR_Y + BTN_H + PAD/2)
 
 void decay_rate_panel_init(DecayRatePanel *p) {
     p->expanded = false;
     p->editWood = p->editChair = p->editChop = false;
-    snprintf(p->bufWood,  sizeof(p->bufWood),  "%.4f", g_wood_decay_rate);
-    snprintf(p->bufChair, sizeof(p->bufChair), "%.4f", g_chair_decay_rate);
+    p->pendingWoodDecay  = g_wood_decay_rate;
+    p->pendingChairDecay = g_chair_decay_rate;
+    p->pendingChopYield  = g_chop_yield;
+    p->pendingDisableExecuting = g_disable_executing_trade;
+    p->pendingInflation  = g_inflation_enabled;
+    snprintf(p->bufWood,  sizeof(p->bufWood),  "%.4f", p->pendingWoodDecay);
+    snprintf(p->bufChair, sizeof(p->bufChair), "%.4f", p->pendingChairDecay);
 }
 
 void decay_rate_panel_render(DecayRatePanel *p) {
@@ -141,28 +168,35 @@ void decay_rate_panel_render(DecayRatePanel *p) {
     DrawRectangle(BR_X, BR_Y + HDR_H, BR_W, contentH, PANEL_BG);
     DrawRectangleLines(BR_X, BR_Y + HDR_H, BR_W, contentH, PANEL_BORDER);
 
-    // Wood decay rate
+    // Wood decay rate (staged)
     if (GuiValueBoxFloat((Rectangle){BR_BOX_X, BR_ROW1_Y, BR_BOX_W, ROW_H-2},
-                         "Wood:", p->bufWood, &g_wood_decay_rate, p->editWood))
+                         "Wood:", p->bufWood, &p->pendingWoodDecay, p->editWood))
         p->editWood = !p->editWood;
 
-    // Chair decay rate
+    // Chair decay rate (staged)
     if (GuiValueBoxFloat((Rectangle){BR_BOX_X, BR_ROW2_Y, BR_BOX_W, ROW_H-2},
-                         "Chair:", p->bufChair, &g_chair_decay_rate, p->editChair))
+                         "Chair:", p->bufChair, &p->pendingChairDecay, p->editChair))
         p->editChair = !p->editChair;
 
-    // Chop yield (integer)
+    // Chop yield (staged)
     if (GuiValueBox((Rectangle){BR_BOX_X, BR_ROW3_Y, BR_BOX_W, ROW_H-2},
-                    "Chop yield:", &g_chop_yield, 1, 20, p->editChop))
+                    "Chop yield:", &p->pendingChopYield, 1, 20, p->editChop))
         p->editChop = !p->editChop;
 
-    // Allow debt toggle
-    bool debt = (bool)g_allow_debt;
+    // Disable trade execution toggle (staged)
     GuiCheckBox((Rectangle){BR_X + PAD, BR_ROW4_Y + 4, ROW_H - 8, ROW_H - 8},
-                "Allow Debt", &debt);
-    g_allow_debt = (int)debt;
+                "No Exchange", &p->pendingDisableExecuting);
 
-    // Inflation toggle (flat money utility)
+    // Inflation toggle (staged)
     GuiCheckBox((Rectangle){BR_X + PAD, BR_ROW5_Y + 4, ROW_H - 8, ROW_H - 8},
-                "Inflation", &g_inflation_enabled);
+                "Inflation", &p->pendingInflation);
+
+    // Apply button — commit staged values to globals
+    if (GuiButton((Rectangle){BR_X + PAD, BR_BTN_Y, BR_W - 2*PAD, BTN_H}, "Apply")) {
+        g_wood_decay_rate  = p->pendingWoodDecay;
+        g_chair_decay_rate = p->pendingChairDecay;
+        g_chop_yield       = p->pendingChopYield;
+        g_disable_executing_trade = p->pendingDisableExecuting;
+        g_inflation_enabled = p->pendingInflation;
+    }
 }

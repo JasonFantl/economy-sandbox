@@ -1,9 +1,8 @@
 #include "econ/econ.h"
-#include "econ/market.h"
 #include "raylib.h"
 #include <stdbool.h>
 
-int g_chop_yield = 5;
+int g_chop_yield = 1;
 
 // ---------------------------------------------------------------------------
 // Feature flags
@@ -22,7 +21,7 @@ static void choose_action(Agent *a) {
     AgentMarket *wood  = AGENT_MKT(a, MARKET_WOOD);
     AgentMarket *chair = AGENT_MKT(a, MARKET_CHAIR);
 
-    float idle_util  = leisure_utility(&a->econ.leisure);
+    float idle_util  = leisure_utility(a->econ.leisureUtility);
     float money_util = money_marginal_utility(a->econ.money);
 
     float chop_util = -999.0f;
@@ -47,7 +46,6 @@ static void choose_action(Agent *a) {
 
     if (best == ACTION_LEISURE) {
         a->econ.lastAction = ACTION_LEISURE;
-        a->econ.leisure.idleTicks += a->econ.productionPeriodTicks;
     } else {
         if (a->econ.pendingWork == ACTION_LEISURE)
             a->econ.pendingWork = best;
@@ -62,7 +60,6 @@ void agent_execute_chop(Agent *a) {
     AgentMarket *wood = AGENT_MKT(a, MARKET_WOOD);
     wood->goods += g_chop_yield;
     a->econ.lastAction = ACTION_CHOP;
-    a->econ.leisure.idleTicks = 0;
 }
 
 void agent_execute_build(Agent *a) {
@@ -72,7 +69,6 @@ void agent_execute_build(Agent *a) {
         wood->goods  -= WOOD_PER_CHAIR;
         chair->goods++;
         a->econ.lastAction = ACTION_BUILD;
-        a->econ.leisure.idleTicks = 0;
     } else {
         // Wood decayed before arrival — treat as leisure
         a->econ.lastAction = ACTION_LEISURE;
@@ -97,18 +93,6 @@ void agent_econ_update(Agent *a) {
         float p = g_chair_decay_rate / (float)TICKS_PER_SECOND * (float)chairs;
         if ((float)GetRandomValue(0, 100000) * 0.00001f < p)
             a->econ.markets[MARKET_CHAIR].goods--;
-    }
-
-    // Frustration: when the frustration threshold is reached, drift price expectation
-    // toward own indifference price. The tick is incremented in market_trade when
-    // the buyer's price expectation is below the asking price.
-    int marketCount = g_build_chairs_enabled ? MARKET_COUNT : 1;
-    for (int mid = 0; mid < marketCount; mid++) {
-        AgentMarket *m = &a->econ.markets[mid];
-        if (m->frustrationTick >= m->frustrationThresholdTicks) {
-            m->frustrationTick = 0;
-            market_frustration_nudge(a, (MarketId)mid, a->econ.beliefUpdateRate);
-        }
     }
 
     // Production decision
@@ -160,5 +144,23 @@ void agents_inject_goods(Agent *agents, int count, int numAgents, int delta, Mar
         int *goods = &agents[indices[i]].econ.markets[mid].goods;
         *goods += delta;
         if (*goods < 0) *goods = 0;
+    }
+}
+
+void agents_set_leisure(Agent *agents, int count, float value) {
+    if (value < 1.0f) value = 1.0f;
+    for (int i = 0; i < count; i++)
+        agents[i].econ.leisureUtility = value;
+}
+
+void agents_adjust_leisure(Agent *agents, int count, int numAgents, float delta) {
+    if (numAgents > count) numAgents = count;
+    int indices[MAX_AGENTS];
+    for (int i = 0; i < count; i++) indices[i] = i;
+    partial_shuffle(indices, count, numAgents);
+    for (int i = 0; i < numAgents; i++) {
+        float *v = &agents[indices[i]].econ.leisureUtility;
+        *v += delta;
+        if (*v < 1.0f) *v = 1.0f;
     }
 }

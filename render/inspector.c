@@ -219,7 +219,7 @@ void inspector_render(Inspector *ins, Agent *agents,
     DrawRectangle(INS_X, ROW_Y_MONEY - SEP_H, INS_W, SEP_H, (Color){40, 60, 80, 255});
     snprintf(buf, sizeof(buf), "%.2f", a->econ.money);
     draw_row(ROW_Y_MONEY,   "Money",           buf, (Color){255, 215, 0, 255});
-    snprintf(buf, sizeof(buf), "%.2f", leisure_utility(&a->econ.leisure));
+    snprintf(buf, sizeof(buf), "%.2f", a->econ.leisureUtility);
     draw_row(ROW_Y_LEISURE, "Leisure Utility", buf, (Color){150, 150, 150, 255});
     if (a->body.targetType == TARGET_AGENT)
         snprintf(buf, sizeof(buf), "Agent #%d", a->body.targetId);

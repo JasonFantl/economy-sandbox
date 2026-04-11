@@ -1,7 +1,8 @@
 #include "econ/market.h"
 #include <stddef.h>
+#include <stdbool.h>
 
-int g_allow_debt = 0;
+bool g_disable_executing_trade = false;
 
 void market_gossip(Agent *a, Agent *b, MarketId mid) {
     AgentMarket *ma = AGENT_MKT(a, mid);
@@ -15,49 +16,39 @@ void market_gossip(Agent *a, Agent *b, MarketId mid) {
 }
 
 int market_trade(Agent *a, Agent *b, MarketId mid) {
-    float price_b = AGENT_MKT(b, mid)->priceExpectation;
-    float price_a = AGENT_MKT(a, mid)->priceExpectation;
-
-    Agent *buyer = NULL, *seller = NULL;
-    if (able_to_buy(a, price_b, mid) && wants_to_buy(a, price_b, mid) &&
-        able_to_sell(b, mid)         && wants_to_sell(b, price_b, mid)) {
-        buyer = a; seller = b;
-    } else if (able_to_buy(b, price_a, mid) && wants_to_buy(b, price_a, mid) &&
-               able_to_sell(a, mid)          && wants_to_sell(a, price_a, mid)) {
-        buyer = b; seller = a;
-    } else {
-        // No pair. Check both directions: if one can buy but won't,
-        // and the other can and wants to sell, frustrate the one who can buy.
-        if (able_to_buy(a, price_b, mid) && !wants_to_buy(a, price_b, mid) &&
-            able_to_sell(b, mid) && wants_to_sell(b, price_b, mid))
-            market_frustration_nudge(a, mid, 0.02f);
-        if (able_to_buy(b, price_a, mid) && !wants_to_buy(b, price_a, mid) &&
-            able_to_sell(a, mid) && wants_to_sell(a, price_a, mid))
-            market_frustration_nudge(b, mid, 0.02f);
+    Agent *buyer = a;
+    Agent *seller = b;                                                                                                                                                                               
+    if      (is_buyer(a, mid) && is_seller(b, mid)) { buyer = a; seller = b; }                                                                                                                    
+    else if (is_buyer(b, mid) && is_seller(a, mid)) { buyer = b; seller = a; }                                                                                                                    
+    else {
+        // // small amount of frustration if agents can't pair into buyers/sellers
+        market_frustration_nudge(a, mid, 0.02f);
+        market_frustration_nudge(b, mid, 0.02f);
         return 0;
     }
 
     AgentMarket *buyer_mkt  = AGENT_MKT(buyer,  mid);
     AgentMarket *seller_mkt = AGENT_MKT(seller, mid);
-    float price = seller_mkt->priceExpectation;  // == price_b or price_a
+    float proposed_price = seller_mkt->priceExpectation; // assumes sellers are the ones to publicize price
 
-    if (seller_mkt->goods <= 0) return 0;
-    if (!g_allow_debt && buyer->econ.money < price) return 0;
-    if (buyer_mkt->priceExpectation < price) {
-        buyer_mkt->frustrationTick++;
+    if (!able_to_buy(buyer, proposed_price, mid) || !wants_to_buy(buyer, proposed_price, mid)) {
+        // frustration if buyer/seller do not agree on a fair price
+        market_frustration_nudge(buyer, mid, buyer->econ.beliefUpdateRate);
+        market_frustration_nudge(seller, mid, seller->econ.beliefUpdateRate);
         return 0;
     }
 
-    buyer->econ.money  -= price;
-    seller->econ.money += price;
-    buyer_mkt->goods++;
-    seller_mkt->goods--;
+    if (!g_disable_executing_trade) {
+        buyer->econ.money  -= proposed_price;
+        seller->econ.money += proposed_price;
+        buyer_mkt->goods++;
+        seller_mkt->goods--;
+    }
 
-    buyer_mkt->priceExpectation  = nerlove_update(buyer_mkt->priceExpectation,  price, buyer->econ.beliefUpdateRate);
-    seller_mkt->priceExpectation = nerlove_update(seller_mkt->priceExpectation, price, seller->econ.beliefUpdateRate);
+    // nudge prices to try and get a better deal next time
+    buyer_mkt->priceExpectation  = nerlove_update(buyer_mkt->priceExpectation,  proposed_price, buyer->econ.beliefUpdateRate);
+    seller_mkt->priceExpectation = nerlove_update(seller_mkt->priceExpectation, proposed_price, seller->econ.beliefUpdateRate);
 
-    buyer_mkt->frustrationTick   = 0;
-    seller_mkt->frustrationTick  = 0;
     buyer->sprite.tradeFlashTick  = TRADE_FLASH_TICKS;
     seller->sprite.tradeFlashTick = TRADE_FLASH_TICKS;
     return 1;
@@ -95,6 +86,14 @@ void avh_record_goods(AgentValueHistory *h, const Agent *agents, int count, Mark
     h->agentCount = count;
     for (int i = 0; i < count; i++)
         h->data[i][h->head] = (float)agents[i].econ.markets[mid].goods;
+    h->head = (h->head + 1) % PRICE_HISTORY_SIZE;
+    if (h->count < PRICE_HISTORY_SIZE) h->count++;
+}
+
+void avh_record_money(AgentValueHistory *h, const Agent *agents, int count) {
+    h->agentCount = count;
+    for (int i = 0; i < count; i++)
+        h->data[i][h->head] = agents[i].econ.money;
     h->head = (h->head + 1) % PRICE_HISTORY_SIZE;
     if (h->count < PRICE_HISTORY_SIZE) h->count++;
 }

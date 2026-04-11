@@ -2,12 +2,40 @@
 #include "walkthrough/scenes.h"
 #include "econ/econ.h"
 #include "econ/agent.h"
+#include "econ/market.h"
 #include "render/render.h"
 #include "raygui.h"
 #include "raylib.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+
+// ---------------------------------------------------------------------------
+// Fixed plot bounds for the walkthrough
+// ---------------------------------------------------------------------------
+
+static void set_walkthrough_bounds(void) {
+    // Value / price axes: 0–80
+    g_bounds[PLOT_VALUATION_DISTRIBUTION][MARKET_WOOD].yMax = 80.0f;
+    g_bounds[PLOT_PRICE_HISTORY         ][MARKET_WOOD].yMax = 80.0f;
+    g_bounds[PLOT_SUPPLY_DEMAND         ][MARKET_WOOD].yMax = 80.0f;
+    // Wealth scatter: goods 0–100 (xMax), money 0–2000 (yMax)
+    g_bounds[PLOT_WEALTH][MARKET_WOOD].xMax = 100.0f;
+    g_bounds[PLOT_WEALTH][MARKET_WOOD].yMax = 2000.0f;
+    // Goods/money history panels
+    g_bounds[PLOT_GOODS_HISTORY ][MARKET_WOOD].yMax = 100.0f;
+    g_bounds[PLOT_MONEY_HISTORY ][MARKET_WOOD].yMax = 2000.0f;
+}
+
+static void clear_walkthrough_bounds(void) {
+    g_bounds[PLOT_VALUATION_DISTRIBUTION][MARKET_WOOD].yMax = 0.0f;
+    g_bounds[PLOT_PRICE_HISTORY         ][MARKET_WOOD].yMax = 0.0f;
+    g_bounds[PLOT_SUPPLY_DEMAND         ][MARKET_WOOD].yMax = 0.0f;
+    g_bounds[PLOT_WEALTH][MARKET_WOOD].xMax = 0.0f;
+    g_bounds[PLOT_WEALTH][MARKET_WOOD].yMax = 0.0f;
+    g_bounds[PLOT_GOODS_HISTORY ][MARKET_WOOD].yMax = 0.0f;
+    g_bounds[PLOT_MONEY_HISTORY ][MARKET_WOOD].yMax = 0.0f;
+}
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -35,13 +63,23 @@ static void apply_step(const WalkthroughState *wt) {
 // ---------------------------------------------------------------------------
 
 static void open_popup(WalkthroughState *wt) {
+    if (wt->seen[wt->scene][wt->step]) return;
+    wt->seen[wt->scene][wt->step] = true;
     wt->popup_active = true;
     g_simulation.paused = true;
+}
+
+static void close_popup(WalkthroughState *wt) {
+    wt->popup_active = false;
+    g_simulation.paused = false;
+    g_simulation.ticks_per_frame = 1;
 }
 
 void walkthrough_init(WalkthroughState *wt, SimContext *ctx) {
     wt->scene = 0; wt->step = 0; wt->active = true;
     wt->scene_changed = false;
+    memset(wt->seen, 0, sizeof(wt->seen));
+    set_walkthrough_bounds();
     apply_step(wt);
     apply_scene(wt, ctx);
     open_popup(wt);
@@ -84,9 +122,12 @@ bool walkthrough_prev_step(WalkthroughState *wt, SimContext *ctx) {
 }
 
 void walkthrough_restart(WalkthroughState *wt, SimContext *ctx) {
-    wt->step = 0;
-    apply_step(wt);
     apply_scene(wt, ctx);
+    // Replay step inits from 0 up to current step so flags arrive at the right state
+    for (int s = 0; s <= wt->step; s++) {
+        const StepDef *sd = &SCENES[wt->scene].steps[s];
+        if (sd->init) sd->init();
+    }
     open_popup(wt);
 }
 
@@ -97,11 +138,12 @@ void walkthrough_apply(WalkthroughState *wt, SimContext *ctx) {
 
 void walkthrough_exit(WalkthroughState *wt) {
     wt->active = false;
+    clear_walkthrough_bounds();
     g_diminishing_returns = true;
     g_chop_wood_enabled    = true;
     g_leisure_enabled     = true;
     g_build_chairs_enabled = true;
-    g_allow_debt          = 0;
+    g_disable_executing_trade = false;
     g_wood_decay_rate     = 0.000f;
     g_chair_decay_rate    = 0.003f;
     g_inflation_enabled   = false;
@@ -117,10 +159,8 @@ bool walkthrough_handle_input(WalkthroughState *wt, SimContext *ctx) {
     // While popup is showing, only keyboard can dismiss it
     // (mouse Ok button is handled by GuiButton in walkthrough_render_overlay)
     if (wt->popup_active) {
-        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
-            wt->popup_active = false;
-            g_simulation.paused = false;
-        }
+        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE))
+            close_popup(wt);
         return false;
     }
 
@@ -197,9 +237,7 @@ void walkthrough_render_overlay(WalkthroughState *wt, SimContext *ctx) {
         walkthrough_prev_step(wt, ctx);
     if (GuiButton((Rectangle){SCREEN_W-80, 4, 70, WTHROUGH_NAV_H-8}, "Next >"))
         walkthrough_next_step(wt, ctx);
-    if (GuiButton((Rectangle){SCREEN_W-170, 4, 70, WTHROUGH_NAV_H-8}, "Restart"))
-        walkthrough_restart(wt, ctx);
-    if (GuiButton((Rectangle){SCREEN_W-260, 4, 70, WTHROUGH_NAV_H-8}, "Exit"))
+    if (GuiButton((Rectangle){SCREEN_W-170, 4, 70, WTHROUGH_NAV_H-8}, "Exit"))
         walkthrough_exit(wt);
 
     // Scene + step label (centred)
@@ -240,9 +278,7 @@ void walkthrough_render_overlay(WalkthroughState *wt, SimContext *ctx) {
         int bw = 100, bh = 32;
         int bx = (SCREEN_W - bw) / 2;
         int by = py + ph - bh - 16;
-        if (GuiButton((Rectangle){bx, by, bw, bh}, "Ok")) {
-            wt->popup_active = false;
-            g_simulation.paused = false;
-        }
+        if (GuiButton((Rectangle){bx, by, bw, bh}, "Ok"))
+            close_popup(wt);
     }
 }

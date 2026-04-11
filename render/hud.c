@@ -24,9 +24,11 @@ static PanelState s_panels[NUM_PANELS] = {
 
 static Inspector s_inspector;
 
-InfluencePanel g_influence;
-DecayRatePanel g_decay_rates;
-Assets         g_assets;
+InfluencePanel    g_influence;
+DecayRatePanel    g_decay_rates;
+WtInfluencePanel  g_wt_influence;
+WtEnvironmentPanel g_wt_environment;
+Assets            g_assets;
 
 // ---------------------------------------------------------------------------
 // Lifecycle
@@ -41,6 +43,8 @@ void hud_init(void) {
     inspector_init(&s_inspector);
     influence_panel_init(&g_influence);
     decay_rate_panel_init(&g_decay_rates);
+    wt_influence_panel_init(&g_wt_influence);
+    wt_environment_panel_init(&g_wt_environment);
     assets_load(&g_assets);
 }
 
@@ -84,9 +88,11 @@ void hud_freeplay_frame(void) {
                                     g_camX, g_camY, g_camZoom);
 
     render_world_hud();
+    if (GuiButton((Rectangle){SCREEN_W - 76, g_world_view_y + 42, 68, 22}, "Restart"))
+        sim_restart();
     DrawRectangle(0, g_world_view_y + WORLD_VIEW_H, SCREEN_W, 2, DARKGRAY);
     render_panels_freeplay(g_simulation.avh, g_simulation.pvh, g_simulation.gvh,
-                           g_simulation.agents, g_simulation.count, s_panels);
+                           &g_simulation.mvh, g_simulation.agents, g_simulation.count, s_panels);
     influence_panel_render(&g_influence, g_simulation.agents, g_simulation.count);
     decay_rate_panel_render(&g_decay_rates);
     inspector_render(&s_inspector, g_simulation.agents, g_camX, g_camY, g_camZoom);
@@ -104,6 +110,7 @@ void hud_walkthrough_frame(WalkthroughState *wt, SimContext *ctx) {
         memset(g_simulation.avh, 0, sizeof(g_simulation.avh));
         memset(g_simulation.pvh, 0, sizeof(g_simulation.pvh));
         memset(g_simulation.gvh, 0, sizeof(g_simulation.gvh));
+        memset(&g_simulation.mvh, 0, sizeof(g_simulation.mvh));
         g_simulation.priceTick = 0;
     }
 
@@ -117,5 +124,16 @@ void hud_walkthrough_frame(WalkthroughState *wt, SimContext *ctx) {
         step->render_panels(ctx, PLOT_MARGIN_L, plotY,
                             SCREEN_W - PLOT_MARGIN_L - PLOT_MARGIN_R,
                             plotH - PLOT_MARGIN_B);
+
+    if (ctx->wt_inf->restart_requested) {
+        ctx->wt_inf->restart_requested = false;
+        walkthrough_restart(wt, ctx);
+        memset(g_simulation.avh, 0, sizeof(g_simulation.avh));
+        memset(g_simulation.pvh, 0, sizeof(g_simulation.pvh));
+        memset(g_simulation.gvh, 0, sizeof(g_simulation.gvh));
+        memset(&g_simulation.mvh, 0, sizeof(g_simulation.mvh));
+        g_simulation.priceTick = 0;
+    }
+
     walkthrough_render_overlay(wt, ctx);
 }

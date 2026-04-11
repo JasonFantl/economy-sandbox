@@ -37,16 +37,7 @@ typedef struct {
     float  minUtility;
     float  halfSaturation;
     float  priceExpectation;
-    int    frustrationTick;
-    int    frustrationThresholdTicks;
 } AgentMarket;
-
-typedef struct {
-    float  maxUtility;
-    float  minUtility;
-    int    halfSaturationTicks;
-    int    idleTicks;
-} LeisureState;
 
 typedef enum { DIR_SOUTH = 0, DIR_WEST = 1, DIR_EAST = 2, DIR_NORTH = 3 } FacingDir;
 
@@ -65,7 +56,7 @@ typedef struct {
 typedef struct {
     float        money;
     AgentMarket  markets[MARKET_COUNT];
-    LeisureState leisure;
+    float        leisureUtility;
     AgentAction  lastAction;
     AgentAction  pendingWork;
     float        beliefUpdateRate;

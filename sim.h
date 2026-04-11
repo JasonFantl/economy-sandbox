@@ -17,10 +17,12 @@ typedef struct {
     AgentValueHistory avh[MARKET_COUNT];
     AgentValueHistory pvh[MARKET_COUNT];
     AgentValueHistory gvh[MARKET_COUNT];
+    AgentValueHistory mvh;  // money history (not market-specific)
 } SimState;
 
 extern SimState g_simulation;
 
 void sim_update(void);
+void sim_restart(void);
 
 #endif

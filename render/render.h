@@ -41,7 +41,8 @@ typedef enum {
     PLOT_PRICE_HISTORY          = 2,  // price expectations and personal valuations over time
     PLOT_GOODS_HISTORY          = 3,  // goods count per agent over time
     PLOT_SUPPLY_DEMAND          = 4,  // supply and demand step curves with equilibrium
-    PLOT_COUNT                  = 5
+    PLOT_MONEY_HISTORY          = 5,  // money per agent over time
+    PLOT_COUNT                  = 6
 } PlotType;
 
 typedef struct {
@@ -63,6 +64,7 @@ extern int g_world_view_y;
 void render_panels_freeplay(const AgentValueHistory avh[MARKET_COUNT],
                              const AgentValueHistory pvh[MARKET_COUNT],
                              const AgentValueHistory gvh[MARKET_COUNT],
+                             const AgentValueHistory *mvh,
                              const Agent *agents, int agentCount,
                              PanelState panels[NUM_PANELS]);
 
@@ -70,6 +72,7 @@ void render_panels_freeplay(const AgentValueHistory avh[MARKET_COUNT],
 void render_plot(const AgentValueHistory avh[MARKET_COUNT],
                  const AgentValueHistory pvh[MARKET_COUNT],
                  const AgentValueHistory gvh[MARKET_COUNT],
+                 const AgentValueHistory *mvh,
                  const Agent *agents, int agentCount,
                  PanelState panels[NUM_PANELS]);
 
