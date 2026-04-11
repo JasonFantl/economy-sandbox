@@ -47,9 +47,10 @@ void wt_influence_panel_render(WtInfluencePanel *p, Agent *agents, int agentCoun
 // Environment panel — tune world parameters that affect all agents
 // ---------------------------------------------------------------------------
 
-#define WT_ENV_WOOD_DECAY  (1 << 0)   // wood decay rate
-#define WT_ENV_CHOP_YIELD  (1 << 1)   // wood gained per chop action
-#define WT_ENV_BUILD_COST  (1 << 2)   // wood units required to build one chair
+#define WT_ENV_WOOD_DECAY       (1 << 0)   // decay rate row (wood only)
+#define WT_ENV_CHOP_YIELD       (1 << 1)   // wood gained per chop action
+#define WT_ENV_BUILD_COST       (1 << 2)   // wood units required to build one chair
+#define WT_ENV_DECAY_MARKET_SEL (1 << 3)   // add Wood/Chair toggle to decay row
 
 typedef struct {
     bool  expanded;

@@ -228,35 +228,55 @@ void wt_environment_panel_render(WtEnvironmentPanel *p, int flags, int px) {
 
     int rowY = contentY + WT_SEP;
 
-    // --- Decay rate row (market-selector style) ---
+    // --- Decay rate row ---
     if (flags & WT_ENV_WOOD_DECAY) {
-        // Sync when the selected market's global changed externally
-        float curDecay = (p->decayMarket == MARKET_WOOD) ? g_wood_decay_rate : g_chair_decay_rate;
-        if (curDecay != p->lastDecayRate) {
-            p->decayRate     = curDecay;
-            p->lastDecayRate = curDecay;
-            snprintf(p->bufDecay, sizeof(p->bufDecay), "%.4f", curDecay);
-        }
-        GuiLabel((Rectangle){px + WT_MSLBL_DX, rowY, WT_MSLBL_W, WT_ROW_H - 2}, "Decay:");
-        if (GuiTextBox((Rectangle){px + WT_MSBOX_DX, rowY, WT_MSBOX_W, WT_ROW_H - 2},
-                       p->bufDecay, (int)sizeof(p->bufDecay), p->editDecay)) {
-            p->editDecay = !p->editDecay;
-            if (!p->editDecay)
-                p->decayRate = strtof(p->bufDecay, NULL);
-        }
-        if (GuiButton((Rectangle){px + WT_MSMKT_DX, rowY, WT_MSMKT_W, WT_BTN_H},
-                      p->decayMarket == MARKET_WOOD ? "Wood" : "Chair")) {
-            p->decayMarket = 1 - p->decayMarket;
-            // Reload buffer from newly selected market's global
-            float newDecay = (p->decayMarket == MARKET_WOOD) ? g_wood_decay_rate : g_chair_decay_rate;
-            p->decayRate     = newDecay;
-            p->lastDecayRate = newDecay;
-            snprintf(p->bufDecay, sizeof(p->bufDecay), "%.4f", newDecay);
-        }
-        if (GuiButton((Rectangle){px + WT_MSAPL_DX, rowY, WT_MSAPL_W, WT_BTN_H}, "Set")) {
-            if (p->decayMarket == MARKET_WOOD) g_wood_decay_rate  = p->decayRate;
-            else                               g_chair_decay_rate = p->decayRate;
-            p->lastDecayRate = p->decayRate;
+        if (flags & WT_ENV_DECAY_MARKET_SEL) {
+            // Market-selector style: Wood/Chair toggle button
+            float curDecay = (p->decayMarket == MARKET_WOOD) ? g_wood_decay_rate : g_chair_decay_rate;
+            if (curDecay != p->lastDecayRate) {
+                p->decayRate     = curDecay;
+                p->lastDecayRate = curDecay;
+                snprintf(p->bufDecay, sizeof(p->bufDecay), "%.4f", curDecay);
+            }
+            GuiLabel((Rectangle){px + WT_MSLBL_DX, rowY, WT_MSLBL_W, WT_ROW_H - 2}, "Decay:");
+            if (GuiTextBox((Rectangle){px + WT_MSBOX_DX, rowY, WT_MSBOX_W, WT_ROW_H - 2},
+                           p->bufDecay, (int)sizeof(p->bufDecay), p->editDecay)) {
+                p->editDecay = !p->editDecay;
+                if (!p->editDecay)
+                    p->decayRate = strtof(p->bufDecay, NULL);
+            }
+            if (GuiButton((Rectangle){px + WT_MSMKT_DX, rowY, WT_MSMKT_W, WT_BTN_H},
+                          p->decayMarket == MARKET_WOOD ? "Wood" : "Chair")) {
+                p->decayMarket = 1 - p->decayMarket;
+                float newDecay = (p->decayMarket == MARKET_WOOD) ? g_wood_decay_rate : g_chair_decay_rate;
+                p->decayRate     = newDecay;
+                p->lastDecayRate = newDecay;
+                snprintf(p->bufDecay, sizeof(p->bufDecay), "%.4f", newDecay);
+            }
+            if (GuiButton((Rectangle){px + WT_MSAPL_DX, rowY, WT_MSAPL_W, WT_BTN_H}, "Set")) {
+                if (p->decayMarket == MARKET_WOOD) g_wood_decay_rate  = p->decayRate;
+                else                               g_chair_decay_rate = p->decayRate;
+                p->lastDecayRate = p->decayRate;
+            }
+        } else {
+            // Setter style: wood only, no market selector; reset decayMarket for clean scene-3 entry
+            p->decayMarket = MARKET_WOOD;
+            if (g_wood_decay_rate != p->lastDecayRate) {
+                p->decayRate     = g_wood_decay_rate;
+                p->lastDecayRate = g_wood_decay_rate;
+                snprintf(p->bufDecay, sizeof(p->bufDecay), "%.4f", g_wood_decay_rate);
+            }
+            GuiLabel((Rectangle){px + WT_LBL_DX, rowY, WT_LBL_W, WT_ROW_H - 2}, "Decay:");
+            if (GuiTextBox((Rectangle){px + WT_BOX_DX, rowY, WT_BOX_W, WT_ROW_H - 2},
+                           p->bufDecay, (int)sizeof(p->bufDecay), p->editDecay)) {
+                p->editDecay = !p->editDecay;
+                if (!p->editDecay)
+                    p->decayRate = strtof(p->bufDecay, NULL);
+            }
+            if (GuiButton((Rectangle){px + WT_APL_DX, rowY, WT_APL_W, WT_BTN_H}, "Set")) {
+                g_wood_decay_rate = p->decayRate;
+                p->lastDecayRate  = p->decayRate;
+            }
         }
         rowY += WT_ROW_H + WT_SEP;
     }

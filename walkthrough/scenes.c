@@ -112,19 +112,19 @@ static void render_s2p4(const SimContext *ctx, int x, int y, int w, int h) {
 static void render_s2p5(const SimContext *ctx, int x, int y, int w, int h) {
     render_three_panels(ctx, x, y, w, h, avg_eq(ctx, MARKET_WOOD), true);
     WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT, 10);
-    WT_ENV(ctx, WT_ENV_WOOD_DECAY, 228);
+    WT_ENV(ctx, WT_ENV_WOOD_DECAY, 258);
 }
 
 static void render_s2p6(const SimContext *ctx, int x, int y, int w, int h) {
     render_three_panels(ctx, x, y, w, h, avg_eq(ctx, MARKET_WOOD), true);
     WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT, 10);
-    WT_ENV(ctx, WT_ENV_WOOD_DECAY | WT_ENV_CHOP_YIELD, 228);
+    WT_ENV(ctx, WT_ENV_WOOD_DECAY | WT_ENV_CHOP_YIELD, 258);
 }
 
 static void render_s2p7(const SimContext *ctx, int x, int y, int w, int h) {
     render_three_panels(ctx, x, y, w, h, avg_eq(ctx, MARKET_WOOD), true);
     WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT | WT_INF_LEISURE, 10);
-    WT_ENV(ctx, WT_ENV_WOOD_DECAY | WT_ENV_CHOP_YIELD, 228);
+    WT_ENV(ctx, WT_ENV_WOOD_DECAY | WT_ENV_CHOP_YIELD, 258);
 }
 
 // 3×2 grid for scene 3: top row = wood, bottom row = chair
@@ -159,13 +159,13 @@ static void render_s3_plots(const SimContext *ctx, int x, int y, int w, int h, b
 static void render_s3p1(const SimContext *ctx, int x, int y, int w, int h) {
     render_s3_plots(ctx, x, y, w, h, true);
     WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT | WT_INF_LEISURE | WT_INF_MARKET_SEL, 10);
-    WT_ENV(ctx, WT_ENV_WOOD_DECAY | WT_ENV_CHOP_YIELD, 228);
+    WT_ENV(ctx, WT_ENV_WOOD_DECAY | WT_ENV_DECAY_MARKET_SEL | WT_ENV_CHOP_YIELD, 258);
 }
 
 static void render_s3p2(const SimContext *ctx, int x, int y, int w, int h) {
     render_s3_plots(ctx, x, y, w, h, true);
     WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT | WT_INF_LEISURE | WT_INF_MARKET_SEL, 10);
-    WT_ENV(ctx, WT_ENV_WOOD_DECAY | WT_ENV_CHOP_YIELD | WT_ENV_BUILD_COST, 228);
+    WT_ENV(ctx, WT_ENV_WOOD_DECAY | WT_ENV_DECAY_MARKET_SEL | WT_ENV_CHOP_YIELD | WT_ENV_BUILD_COST, 258);
 }
 
 // ---------------------------------------------------------------------------
@@ -361,14 +361,14 @@ static void init_s3(SimContext *ctx) {
         ctx->sim->agents[i].econ.markets[MARKET_WOOD].maxUtility      = value;
         ctx->sim->agents[i].econ.markets[MARKET_WOOD].priceExpectation = value;
 
-        // Chair valuation (independent distribution)
+        // Chair valuation (independent distribution, range 10–100)
         a = (float)GetRandomValue(0, 10000) / 10000.0f;
         b = (float)GetRandomValue(0, 10000) / 10000.0f;
         t = (a + b) * 0.5f;
         roll = (float)GetRandomValue(0, 10000) / 10000.0f;
-        if      (roll < cp1) value = 20.0f + t * 14.0f;
-        else if (roll < cp2) value = 33.0f + t * 14.0f;
-        else                 value = 46.0f + t * 14.0f;
+        if      (roll < cp1) value = 10.0f + t * 30.0f;  // low cluster:  ~10–40, peak ~25
+        else if (roll < cp2) value = 40.0f + t * 30.0f;  // mid cluster:  ~40–70, peak ~55
+        else                 value = 70.0f + t * 30.0f;  // high cluster: ~70–100, peak ~85
         ctx->sim->agents[i].econ.markets[MARKET_CHAIR].maxUtility      = value;
         ctx->sim->agents[i].econ.markets[MARKET_CHAIR].priceExpectation = value;
     }
