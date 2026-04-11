@@ -69,22 +69,22 @@ void render_world(const WorldMap *map, const TileAtlas *tiles,
                   float camX, float camY, float camZoom) {
     // Camera: world point (camX, camY) is centred in the viewport.
     Camera2D cam = {0};
-    cam.offset   = (Vector2){ (float)SCREEN_W * 0.5f, (float)g_world_view_y + (float)WORLD_VIEW_H * 0.5f };
+    cam.offset   = (Vector2){ (float)GetScreenWidth() * 0.5f, (float)g_world_view_y + (float)WORLD_VIEW_H * 0.5f };
     cam.target   = (Vector2){ camX, camY };
     cam.zoom     = camZoom;
 
     // Compute visible tile range for frustum culling
     float tileW = (float)TILE_SIZE * WORLD_TILE_SCALE;
-    float worldLeft   = camX - ((float)SCREEN_W   * 0.5f) / camZoom;
+    float worldLeft   = camX - ((float)GetScreenWidth()  * 0.5f) / camZoom;
     float worldTop    = camY - ((float)WORLD_VIEW_H * 0.5f) / camZoom;
-    float worldRight  = worldLeft + (float)SCREEN_W   / camZoom;
+    float worldRight  = worldLeft + (float)GetScreenWidth()  / camZoom;
     float worldBottom = worldTop  + (float)WORLD_VIEW_H / camZoom;
     int txMin = (int)(worldLeft  / tileW) - 1;
     int tyMin = (int)(worldTop   / tileW) - 1;
     int txMax = (int)(worldRight  / tileW) + 2;
     int tyMax = (int)(worldBottom / tileW) + 2;
 
-    BeginScissorMode(0, g_world_view_y, SCREEN_W, WORLD_VIEW_H);
+    BeginScissorMode(0, g_world_view_y, GetScreenWidth(), WORLD_VIEW_H);
     BeginMode2D(cam);
 
     if (map) {
@@ -113,7 +113,7 @@ void render_world(const WorldMap *map, const TileAtlas *tiles,
     } else {
         // Fallback: solid grass background
         DrawRectangle((int)worldLeft, (int)worldTop,
-                      (int)((float)SCREEN_W / camZoom),
+                      (int)((float)GetScreenWidth() / camZoom),
                       (int)((float)WORLD_VIEW_H / camZoom),
                       (Color){60, 120, 50, 255});
     }
@@ -251,10 +251,10 @@ static void draw_panel(const PanelState *ps,
 // Compute panel geometry for a given panel index (0=TL,1=TR,2=BL,3=BR)
 static void panel_geom(int panelIdx,
                        int *out_px, int *out_strip_y, int *out_py, int *out_ph) {
-    int half     = (SCREEN_W - PLOT_MARGIN_L - PLOT_MARGIN_R - PANEL_GAP) / 2;
+    int half     = (GetScreenWidth() - PLOT_MARGIN_L - PLOT_MARGIN_R - PANEL_GAP) / 2;
     int px_col[2] = { PLOT_MARGIN_L, PLOT_MARGIN_L + half + PANEL_GAP };
     int plots_y  = g_world_view_y + WORLD_VIEW_H + 2;
-    int plots_h  = SCREEN_H - plots_y;
+    int plots_h  = GetScreenHeight() - plots_y;
     int row_h    = (plots_h - PANEL_ROW_GAP) / 2;
     int row_y[2] = { plots_y, plots_y + row_h + PANEL_ROW_GAP };
 
@@ -274,18 +274,18 @@ void render_panels_freeplay(const AgentValueHistory avh[MARKET_COUNT],
                              const AgentValueHistory *mvh,
                              const Agent *agents, int agentCount,
                              PanelState panels[NUM_PANELS]) {
-    int half     = (SCREEN_W - PLOT_MARGIN_L - PLOT_MARGIN_R - PANEL_GAP) / 2;
+    int half     = (GetScreenWidth() - PLOT_MARGIN_L - PLOT_MARGIN_R - PANEL_GAP) / 2;
     int plots_y  = g_world_view_y + WORLD_VIEW_H + 2;
-    int plots_h  = SCREEN_H - plots_y;
+    int plots_h  = GetScreenHeight() - plots_y;
     int row_h    = (plots_h - PANEL_ROW_GAP) / 2;
     int px_right = PLOT_MARGIN_L + half + PANEL_GAP;
     int row1_y   = plots_y + row_h + PANEL_ROW_GAP;
 
-    DrawRectangle(0,plots_y,SCREEN_W,SCREEN_H-plots_y,(Color){20,20,30,255});
+    DrawRectangle(0, plots_y, GetScreenWidth(), GetScreenHeight()-plots_y, (Color){20,20,30,255});
 
     // Vertical and horizontal dividers
-    DrawLine(px_right-PANEL_GAP/2, plots_y+2, px_right-PANEL_GAP/2, SCREEN_H-2, (Color){60,60,70,255});
-    DrawLine(0, row1_y-PANEL_ROW_GAP/2, SCREEN_W, row1_y-PANEL_ROW_GAP/2, (Color){60,60,70,255});
+    DrawLine(px_right-PANEL_GAP/2, plots_y+2, px_right-PANEL_GAP/2, GetScreenHeight()-2, (Color){60,60,70,255});
+    DrawLine(0, row1_y-PANEL_ROW_GAP/2, GetScreenWidth(), row1_y-PANEL_ROW_GAP/2, (Color){60,60,70,255});
 
     for (int pi=0; pi<NUM_PANELS; pi++) {
         int ppx, strip_y, py, ph;
@@ -324,7 +324,7 @@ bool panel_handle_click(PanelState panels[NUM_PANELS]) {
     if (!IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) return false;
     Vector2 m=GetMousePosition();
 
-    int half=(SCREEN_W-PLOT_MARGIN_L-PLOT_MARGIN_R-PANEL_GAP)/2;
+    int half=(GetScreenWidth()-PLOT_MARGIN_L-PLOT_MARGIN_R-PANEL_GAP)/2;
 
     for (int pi=0; pi<NUM_PANELS; pi++) {
         int ppx, strip_y, py, ph;

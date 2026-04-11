@@ -17,7 +17,9 @@
 
 int main(void) {
     SetRandomSeed(42);
-    InitWindow(SCREEN_W, SCREEN_H, "Economy Sandbox");
+    InitWindow(INITIAL_SCREEN_W, INITIAL_SCREEN_H, "Economy Sandbox");
+    SetWindowState(FLAG_WINDOW_RESIZABLE);
+    SetWindowMinSize(700, WORLD_VIEW_H + 150);
     SetTargetFPS(60);
 
     WorldMap *map = worldmap_load(MAP_FILE);

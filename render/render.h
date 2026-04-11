@@ -18,8 +18,9 @@ extern Font g_font;
 void DrawTextF(const char *text, int x, int y, int fontSize, Color color);
 int  MeasureTextF(const char *text, int fontSize);
 
-#define SCREEN_W        1200
-#define SCREEN_H         700
+// Initial window dimensions only — use GetScreenWidth()/GetScreenHeight() at render time.
+#define INITIAL_SCREEN_W  1200
+#define INITIAL_SCREEN_H   700
 // World viewport: top portion used for the tile map
 #define WORLD_VIEW_H     420   // pixels of screen dedicated to the tile map
 // Plot area: bottom portion

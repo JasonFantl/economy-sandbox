@@ -70,9 +70,9 @@ static void render_world_hud(void) {
     if      (g_simulation.paused)                 { snprintf(speedBuf,sizeof(speedBuf),"PAUSED");                          speedCol=RED;    }
     else if (g_simulation.ticks_per_frame > 1)    { snprintf(speedBuf,sizeof(speedBuf),"Speed: %dx",g_simulation.ticks_per_frame); speedCol=ORANGE; }
     else                                          { snprintf(speedBuf,sizeof(speedBuf),"Speed: 1x");                       speedCol=WHITE;  }
-    DrawRectangle(SCREEN_W-200, g_world_view_y, 200, 40, (Color){0,0,0,100});
-    DrawTextF(speedBuf,     SCREEN_W-108, g_world_view_y+4,  16, speedCol);
-    DrawTextF("[SPACE]/[F]",SCREEN_W-186, g_world_view_y+24, 11, (Color){200,200,200,255});
+    DrawRectangle(GetScreenWidth()-200, g_world_view_y, 200, 40, (Color){0,0,0,100});
+    DrawTextF(speedBuf,     GetScreenWidth()-108, g_world_view_y+4,  16, speedCol);
+    DrawTextF("[SPACE]/[F]",GetScreenWidth()-186, g_world_view_y+24, 11, (Color){200,200,200,255});
 }
 
 // ---------------------------------------------------------------------------
@@ -88,9 +88,9 @@ void hud_freeplay_frame(void) {
                                     g_camX, g_camY, g_camZoom);
 
     render_world_hud();
-    if (GuiButton((Rectangle){SCREEN_W - 76, g_world_view_y + 42, 68, 22}, "Restart"))
+    if (GuiButton((Rectangle){GetScreenWidth() - 76, g_world_view_y + 42, 68, 22}, "Restart"))
         sim_restart();
-    DrawRectangle(0, g_world_view_y + WORLD_VIEW_H, SCREEN_W, 2, DARKGRAY);
+    DrawRectangle(0, g_world_view_y + WORLD_VIEW_H, GetScreenWidth(), 2, DARKGRAY);
     render_panels_freeplay(g_simulation.avh, g_simulation.pvh, g_simulation.gvh,
                            &g_simulation.mvh, g_simulation.agents, g_simulation.count, s_panels);
     influence_panel_render(&g_influence, g_simulation.agents, g_simulation.count);
@@ -117,12 +117,12 @@ void hud_walkthrough_frame(WalkthroughState *wt, SimContext *ctx) {
     render_world_hud();
 
     int plotY = g_world_view_y + WORLD_VIEW_H + 2;
-    int plotH = SCREEN_H - plotY;
-    DrawRectangle(0, plotY, SCREEN_W, plotH, (Color){20, 20, 30, 255});
+    int plotH = GetScreenHeight() - plotY;
+    DrawRectangle(0, plotY, GetScreenWidth(), plotH, (Color){20, 20, 30, 255});
     const StepDef *step = walkthrough_current_step(wt);
     if (step->render_panels)
         step->render_panels(ctx, PLOT_MARGIN_L, plotY,
-                            SCREEN_W - PLOT_MARGIN_L - PLOT_MARGIN_R,
+                            GetScreenWidth() - PLOT_MARGIN_L - PLOT_MARGIN_R,
                             plotH - PLOT_MARGIN_B);
 
     if (ctx->wt_inf->restart_requested) {

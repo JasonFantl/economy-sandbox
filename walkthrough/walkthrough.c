@@ -242,15 +242,15 @@ void walkthrough_render_overlay(WalkthroughState *wt, SimContext *ctx) {
     const SceneDef *sc = &SCENES[wt->scene];
 
     // Nav bar background
-    DrawRectangle(0, 0, SCREEN_W, WTHROUGH_NAV_H, (Color){18, 26, 40, 240});
-    DrawLine(0, WTHROUGH_NAV_H, SCREEN_W, WTHROUGH_NAV_H, (Color){70, 90, 120, 255});
+    DrawRectangle(0, 0, GetScreenWidth(), WTHROUGH_NAV_H, (Color){18, 26, 40, 240});
+    DrawLine(0, WTHROUGH_NAV_H, GetScreenWidth(), WTHROUGH_NAV_H, (Color){70, 90, 120, 255});
 
     // Navigation buttons
     if (GuiButton((Rectangle){10, 4, 70, WTHROUGH_NAV_H-8}, "< Prev"))
         walkthrough_prev_step(wt, ctx);
-    if (GuiButton((Rectangle){SCREEN_W-80, 4, 70, WTHROUGH_NAV_H-8}, "Next >"))
+    if (GuiButton((Rectangle){GetScreenWidth()-80, 4, 70, WTHROUGH_NAV_H-8}, "Next >"))
         walkthrough_next_step(wt, ctx);
-    if (GuiButton((Rectangle){SCREEN_W-170, 4, 70, WTHROUGH_NAV_H-8}, "Exit"))
+    if (GuiButton((Rectangle){GetScreenWidth()-170, 4, 70, WTHROUGH_NAV_H-8}, "Exit"))
         walkthrough_exit(wt);
 
     // Scene + step label (centred)
@@ -258,38 +258,38 @@ void walkthrough_render_overlay(WalkthroughState *wt, SimContext *ctx) {
     snprintf(label, sizeof(label), "%s  -  Step %d/%d",
              sc->title, wt->step + 1, sc->stepCount);
     int lw = MeasureTextF(label, 12);
-    DrawTextF(label, (SCREEN_W - lw) / 2, 6, 12, (Color){200, 210, 230, 255});
+    DrawTextF(label, (GetScreenWidth() - lw) / 2, 6, 12, (Color){200, 210, 230, 255});
     int stw = MeasureTextF(s->title, 11);
-    DrawTextF(s->title, (SCREEN_W - stw) / 2, 21, 11, (Color){120, 160, 220, 200});
+    DrawTextF(s->title, (GetScreenWidth() - stw) / 2, 21, 11, (Color){120, 160, 220, 200});
 
     // Step description text strip
     int textY = WTHROUGH_NAV_H + WORLD_VIEW_H - 75;
-    DrawRectangle(0, textY, SCREEN_W, 75, (Color){0, 0, 0, 160});
-    DrawLine(0, textY, SCREEN_W, textY, (Color){70, 90, 120, 200});
-    draw_wrapped_text(s->text, 20, textY + 8, SCREEN_W - 40, 13,
+    DrawRectangle(0, textY, GetScreenWidth(), 75, (Color){0, 0, 0, 160});
+    DrawLine(0, textY, GetScreenWidth(), textY, (Color){70, 90, 120, 200});
+    draw_wrapped_text(s->text, 20, textY + 8, GetScreenWidth() - 40, 13,
                       (Color){200, 210, 230, 240});
 
     // Step intro popup
     if (wt->popup_active) {
-        DrawRectangle(0, 0, SCREEN_W, SCREEN_H, (Color){0, 0, 0, 160});
+        DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), (Color){0, 0, 0, 160});
 
         int pw = 680, ph = 240;
-        int px = (SCREEN_W - pw) / 2;
-        int py = SCREEN_H / 2 - ph / 2;
+        int px = (GetScreenWidth() - pw) / 2;
+        int py = GetScreenHeight() / 2 - ph / 2;
         DrawRectangle(px, py, pw, ph, (Color){18, 26, 40, 250});
         DrawRectangleLines(px, py, pw, ph, (Color){80, 120, 180, 255});
 
         char title[128];
         snprintf(title, sizeof(title), "%s — %s", sc->title, s->title);
         int tw = MeasureTextF(title, 16);
-        DrawTextF(title, (SCREEN_W - tw) / 2, py + 18, 16, (Color){180, 200, 240, 255});
+        DrawTextF(title, (GetScreenWidth() - tw) / 2, py + 18, 16, (Color){180, 200, 240, 255});
         DrawLine(px + 20, py + 42, px + pw - 20, py + 42, (Color){60, 80, 120, 200});
 
         draw_wrapped_text(s->text, px + 24, py + 52, pw - 48, 14,
                           (Color){200, 210, 230, 240});
 
         int bw = 100, bh = 32;
-        int bx = (SCREEN_W - bw) / 2;
+        int bx = (GetScreenWidth() - bw) / 2;
         int by = py + ph - bh - 16;
         if (GuiButton((Rectangle){bx, by, bw, bh}, "Ok"))
             close_popup(wt);

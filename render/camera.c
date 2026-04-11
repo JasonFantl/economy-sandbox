@@ -10,8 +10,8 @@ float g_camY    = 0.0f;
 float g_camZoom = 1.0f;
 
 void camera_init(void) {
-    g_camX = (float)SCREEN_W    * 0.5f;
-    g_camY = (float)WORLD_VIEW_H * 0.5f;
+    g_camX = (float)GetScreenWidth() * 0.5f;
+    g_camY = (float)WORLD_VIEW_H     * 0.5f;
 }
 
 void camera_update(int worldViewY) {
@@ -28,7 +28,7 @@ void camera_update(int worldViewY) {
     if (inWorld) {
         float wheel = GetMouseWheelMove();
         if (wheel != 0.0f) {
-            float cx   = (float)SCREEN_W * 0.5f;
+            float cx   = (float)GetScreenWidth() * 0.5f;
             float cy   = (float)worldViewY + (float)WORLD_VIEW_H * 0.5f;
             float preWx = (mouse.x - cx) / g_camZoom + g_camX;
             float preWy = (mouse.y - cy) / g_camZoom + g_camY;

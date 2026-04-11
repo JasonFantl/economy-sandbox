@@ -6,10 +6,10 @@
 #include <math.h>
 #include <stdio.h>
 
-// Panel geometry
-#define INS_X    840
+// Panel geometry — X is computed at render time so it pins to the right edge
 #define INS_Y     30
 #define INS_W    330
+static inline int ins_x(void) { return GetScreenWidth() - INS_W - 30; }
 #define HDR_H     24    // GuiWindowBox status bar height
 #define ROW_H     22
 #define MKT_HDR_H 14
@@ -38,7 +38,7 @@
 
 // Label column width for editable rows; value box takes the right portion
 #define EDIT_LBL_W  120
-#define EDIT_BOX_X  (INS_X + PAD + EDIT_LBL_W + 2)
+#define EDIT_BOX_X  (ins_x() + PAD + EDIT_LBL_W + 2)
 #define EDIT_BOX_W  (INS_W - PAD - EDIT_LBL_W - 2 - PAD/2)
 
 // ---------------------------------------------------------------------------
@@ -46,25 +46,25 @@
 // ---------------------------------------------------------------------------
 
 static void draw_row(int y, const char *label, const char *value, Color valueColor) {
-    DrawRectangle(INS_X, y, INS_W, ROW_H - 1, (Color){22, 30, 40, 255});
-    DrawTextF(label, INS_X + 8, y + 5, 12, (Color){170, 175, 185, 255});
-    DrawTextF(value, INS_X + INS_W - MeasureTextF(value, 12) - 8, y + 5, 12, valueColor);
+    DrawRectangle(ins_x(), y, INS_W, ROW_H - 1, (Color){22, 30, 40, 255});
+    DrawTextF(label, ins_x() + 8, y + 5, 12, (Color){170, 175, 185, 255});
+    DrawTextF(value, ins_x() + INS_W - MeasureTextF(value, 12) - 8, y + 5, 12, valueColor);
 }
 
 static void draw_split_row(int y, const char *labelL, const char *valL, Color colL,
                                    const char *labelR, const char *valR, Color colR) {
-    DrawRectangle(INS_X, y, INS_W, ROW_H - 1, (Color){22, 30, 40, 255});
-    int mid = INS_X + INS_W / 2;
-    DrawTextF(labelL, INS_X + 8,  y + 5, 12, (Color){170, 175, 185, 255});
+    DrawRectangle(ins_x(), y, INS_W, ROW_H - 1, (Color){22, 30, 40, 255});
+    int mid = ins_x() + INS_W / 2;
+    DrawTextF(labelL, ins_x() + 8,  y + 5, 12, (Color){170, 175, 185, 255});
     DrawTextF(valL,   mid - MeasureTextF(valL, 12) - 6, y + 5, 12, colL);
     DrawTextF(labelR, mid + 6,    y + 5, 12, (Color){170, 175, 185, 255});
-    DrawTextF(valR,   INS_X + INS_W - MeasureTextF(valR, 12) - 8, y + 5, 12, colR);
+    DrawTextF(valR,   ins_x() + INS_W - MeasureTextF(valR, 12) - 8, y + 5, 12, colR);
 }
 
 static void draw_market_section_header(int y, const char *title, Color col) {
-    DrawRectangle(INS_X, y, INS_W, MKT_HDR_H, (Color){28, 38, 55, 255});
-    DrawRectangleLines(INS_X, y, INS_W, MKT_HDR_H, (Color){55, 72, 100, 200});
-    DrawTextF(title, INS_X + 8, y + 2, 11, col);
+    DrawRectangle(ins_x(), y, INS_W, MKT_HDR_H, (Color){28, 38, 55, 255});
+    DrawRectangleLines(ins_x(), y, INS_W, MKT_HDR_H, (Color){55, 72, 100, 200});
+    DrawTextF(title, ins_x() + 8, y + 2, 11, col);
 }
 
 // ---------------------------------------------------------------------------
@@ -89,13 +89,13 @@ bool inspector_update(Inspector *ins, Agent *agents, int agentCount,
     // Clicks inside the panel are consumed here to block world interaction;
     // GuiWindowBox close and field editing are handled in inspector_render.
     if (ins->selectedId >= 0 &&
-        m.x >= INS_X && m.x <= INS_X + INS_W &&
+        m.x >= ins_x() && m.x <= ins_x() + INS_W &&
         m.y >= INS_Y && m.y <= INS_Y + INS_H)
         return true;
 
     // World-space agent sprite hit-test
     if (m.y >= g_world_view_y && m.y <= g_world_view_y + WORLD_VIEW_H) {
-        float wx = (m.x - (float)SCREEN_W * 0.5f) / camZoom + camX;
+        float wx = (m.x - (float)GetScreenWidth() * 0.5f) / camZoom + camX;
         float wy = (m.y - ((float)g_world_view_y + (float)WORLD_VIEW_H * 0.5f)) / camZoom + camY;
         float hitR = (float)AGENT_DISP * 0.5f;
         for (int i = 0; i < agentCount; i++) {
@@ -136,7 +136,7 @@ void inspector_render(Inspector *ins, Agent *agents,
     Agent *a = &agents[ins->selectedId];
 
     // Selection highlight ring
-    float sx = (a->body.x - camX) * camZoom + (float)SCREEN_W   * 0.5f;
+    float sx = (a->body.x - camX) * camZoom + (float)GetScreenWidth() * 0.5f;
     float sy = (a->body.y - camY) * camZoom + (float)g_world_view_y
                                              + (float)WORLD_VIEW_H * 0.5f;
     DrawCircleLines((int)sx, (int)sy, (float)(AGENT_DISP / 2 + 3) * camZoom, WHITE);
@@ -144,7 +144,7 @@ void inspector_render(Inspector *ins, Agent *agents,
     // Window box (title bar + close button)
     char title[32];
     snprintf(title, sizeof(title), "Agent #%d", a->body.id);
-    if (GuiWindowBox((Rectangle){INS_X, INS_Y, INS_W, INS_H}, title)) {
+    if (GuiWindowBox((Rectangle){ins_x(), INS_Y, INS_W, INS_H}, title)) {
         ins->selectedId = -1;
         reset_edit_state(ins);
         return;
@@ -165,8 +165,8 @@ void inspector_render(Inspector *ins, Agent *agents,
     }
     draw_row(ROW_Y_ACTION, "Last Action", actName, actCol);
 
-    DrawRectangle(INS_X, ROW_Y_WOOD_HDR - SEP_H, INS_W, SEP_H, (Color){40, 60, 80, 255});
-    DrawTextF("click to edit", INS_X + INS_W - 90, ROW_Y_WOOD_HDR - SEP_H + 1,
+    DrawRectangle(ins_x(), ROW_Y_WOOD_HDR - SEP_H, INS_W, SEP_H, (Color){40, 60, 80, 255});
+    DrawTextF("click to edit", ins_x() + INS_W - 90, ROW_Y_WOOD_HDR - SEP_H + 1,
              10, (Color){90, 110, 130, 255});
 
     // ---- Wood market ----
@@ -193,7 +193,7 @@ void inspector_render(Inspector *ins, Agent *agents,
                    "Sell util:", sellBuf, (Color){240, 160,  80, 255});
 
     // ---- Chair market ----
-    DrawRectangle(INS_X, ROW_Y_CHAIR_HDR - SEP_H, INS_W, SEP_H, (Color){40, 60, 80, 255});
+    DrawRectangle(ins_x(), ROW_Y_CHAIR_HDR - SEP_H, INS_W, SEP_H, (Color){40, 60, 80, 255});
     draw_market_section_header(ROW_Y_CHAIR_HDR, "CHAIR MARKET", (Color){200, 140, 60, 255});
     const AgentMarket *mc = &a->econ.markets[MARKET_CHAIR];
     snprintf(buf, sizeof(buf), "%d", mc->goods);
@@ -216,7 +216,7 @@ void inspector_render(Inspector *ins, Agent *agents,
                    "Sell util:", sellBuf, (Color){240, 160,  80, 255});
 
     // ---- Shared stats ----
-    DrawRectangle(INS_X, ROW_Y_MONEY - SEP_H, INS_W, SEP_H, (Color){40, 60, 80, 255});
+    DrawRectangle(ins_x(), ROW_Y_MONEY - SEP_H, INS_W, SEP_H, (Color){40, 60, 80, 255});
     snprintf(buf, sizeof(buf), "%.2f", a->econ.money);
     draw_row(ROW_Y_MONEY,   "Money",           buf, (Color){255, 215, 0, 255});
     snprintf(buf, sizeof(buf), "%.2f", a->econ.leisureUtility);
