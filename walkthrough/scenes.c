@@ -127,6 +127,47 @@ static void render_s2p7(const SimContext *ctx, int x, int y, int w, int h) {
     WT_ENV(ctx, WT_ENV_WOOD_DECAY | WT_ENV_CHOP_YIELD, 228);
 }
 
+// 3×2 grid for scene 3: top row = wood, bottom row = chair
+static void render_s3_plots(const SimContext *ctx, int x, int y, int w, int h, bool showUtil) {
+    float eq_wood  = avg_eq(ctx, MARKET_WOOD);
+    float eq_chair = avg_eq(ctx, MARKET_CHAIR);
+    int gap = 8, w3 = (w - 2*gap) / 3, hh = (h - gap) / 2;
+    // Top row: Wood
+    draw_plot_frame(x,            y, w3, hh);
+    panel_wealth(ctx->sim->agents, ctx->sim->count, MARKET_WOOD,
+                 CX(x), CY(y), CW(w3), CH(hh));
+    draw_plot_frame(x + w3+gap,   y, w3, hh);
+    panel_valuation_dist(ctx->sim->agents, ctx->sim->count, MARKET_WOOD,
+                         CX(x+w3+gap), CY(y), CW(w3), CH(hh), eq_wood);
+    draw_plot_frame(x + 2*(w3+gap), y, w3, hh);
+    panel_price_history(ctx->sim->avh, ctx->sim->pvh, ctx->sim->agents, ctx->sim->count,
+                        MARKET_WOOD, CX(x+2*(w3+gap)), CY(y), CW(w3), CH(hh),
+                        eq_wood, showUtil);
+    // Bottom row: Chair
+    draw_plot_frame(x,            y+hh+gap, w3, hh);
+    panel_wealth(ctx->sim->agents, ctx->sim->count, MARKET_CHAIR,
+                 CX(x), CY(y+hh+gap), CW(w3), CH(hh));
+    draw_plot_frame(x + w3+gap,   y+hh+gap, w3, hh);
+    panel_valuation_dist(ctx->sim->agents, ctx->sim->count, MARKET_CHAIR,
+                         CX(x+w3+gap), CY(y+hh+gap), CW(w3), CH(hh), eq_chair);
+    draw_plot_frame(x + 2*(w3+gap), y+hh+gap, w3, hh);
+    panel_price_history(ctx->sim->avh, ctx->sim->pvh, ctx->sim->agents, ctx->sim->count,
+                        MARKET_CHAIR, CX(x+2*(w3+gap)), CY(y+hh+gap), CW(w3), CH(hh),
+                        eq_chair, showUtil);
+}
+
+static void render_s3p1(const SimContext *ctx, int x, int y, int w, int h) {
+    render_s3_plots(ctx, x, y, w, h, true);
+    WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT | WT_INF_LEISURE | WT_INF_MARKET_SEL, 10);
+    WT_ENV(ctx, WT_ENV_WOOD_DECAY | WT_ENV_CHOP_YIELD, 228);
+}
+
+static void render_s3p2(const SimContext *ctx, int x, int y, int w, int h) {
+    render_s3_plots(ctx, x, y, w, h, true);
+    WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT | WT_INF_LEISURE | WT_INF_MARKET_SEL, 10);
+    WT_ENV(ctx, WT_ENV_WOOD_DECAY | WT_ENV_CHOP_YIELD | WT_ENV_BUILD_COST, 228);
+}
+
 // ---------------------------------------------------------------------------
 // Step init functions
 // ---------------------------------------------------------------------------
@@ -219,6 +260,28 @@ static void step_s2p7(void) {
     g_inflation_enabled   = false;
 }
 
+static void step_s3p1(void) {
+    g_diminishing_returns    = true;
+    g_chop_wood_enabled      = true;
+    g_leisure_enabled        = true;
+    g_build_chairs_enabled   = false;
+    g_disable_executing_trade = false;
+    g_wood_decay_rate        = 0.003f;
+    g_chair_decay_rate       = 0.003f;
+    g_inflation_enabled      = false;
+}
+
+static void step_s3p2(void) {
+    g_diminishing_returns    = true;
+    g_chop_wood_enabled      = true;
+    g_leisure_enabled        = true;
+    g_build_chairs_enabled   = true;
+    g_disable_executing_trade = false;
+    g_wood_decay_rate        = 0.003f;
+    g_chair_decay_rate       = 0.003f;
+    g_inflation_enabled      = false;
+}
+
 // ---------------------------------------------------------------------------
 // Scene init functions
 // ---------------------------------------------------------------------------
@@ -263,6 +326,51 @@ static void init_s2(SimContext *ctx) {
 
         ctx->sim->agents[i].econ.markets[MARKET_WOOD].maxUtility      = value;
         ctx->sim->agents[i].econ.markets[MARKET_WOOD].priceExpectation = value;
+    }
+}
+
+static void init_s3(SimContext *ctx) {
+    ctx->sim->count = 100;
+    agents_init(ctx->sim->agents, ctx->sim->count, ctx->sim->worldW, ctx->sim->worldH);
+
+    // Wood market: same three-cluster bimodal as s2
+    float ww1 = (float)GetRandomValue(10, 60);
+    float ww2 = (float)GetRandomValue(10, 60);
+    float ww3 = (float)GetRandomValue(10, 60);
+    float wt  = ww1 + ww2 + ww3;
+    float wp1 = ww1 / wt, wp2 = (ww1 + ww2) / wt;
+
+    // Chair market: independent three-cluster bimodal, different cluster positions
+    float cw1 = (float)GetRandomValue(10, 60);
+    float cw2 = (float)GetRandomValue(10, 60);
+    float cw3 = (float)GetRandomValue(10, 60);
+    float ct  = cw1 + cw2 + cw3;
+    float cp1 = cw1 / ct, cp2 = (cw1 + cw2) / ct;
+
+    for (int i = 0; i < ctx->sim->count; i++) {
+        float a, b, t, roll, value;
+
+        // Wood valuation
+        a = (float)GetRandomValue(0, 10000) / 10000.0f;
+        b = (float)GetRandomValue(0, 10000) / 10000.0f;
+        t = (a + b) * 0.5f;
+        roll = (float)GetRandomValue(0, 10000) / 10000.0f;
+        if      (roll < wp1) value = 20.0f + t * 14.0f;
+        else if (roll < wp2) value = 33.0f + t * 14.0f;
+        else                 value = 46.0f + t * 14.0f;
+        ctx->sim->agents[i].econ.markets[MARKET_WOOD].maxUtility      = value;
+        ctx->sim->agents[i].econ.markets[MARKET_WOOD].priceExpectation = value;
+
+        // Chair valuation (independent distribution)
+        a = (float)GetRandomValue(0, 10000) / 10000.0f;
+        b = (float)GetRandomValue(0, 10000) / 10000.0f;
+        t = (a + b) * 0.5f;
+        roll = (float)GetRandomValue(0, 10000) / 10000.0f;
+        if      (roll < cp1) value = 20.0f + t * 14.0f;
+        else if (roll < cp2) value = 33.0f + t * 14.0f;
+        else                 value = 46.0f + t * 14.0f;
+        ctx->sim->agents[i].econ.markets[MARKET_CHAIR].maxUtility      = value;
+        ctx->sim->agents[i].econ.markets[MARKET_CHAIR].priceExpectation = value;
     }
 }
 
@@ -350,6 +458,29 @@ const SceneDef SCENES[] = {
                 "number of goods initially spikes and then comes back down once the price "
                 "corrects.",
                 step_s2p7, render_s2p7
+            }
+        }
+    },
+    {
+        "Two Goods", init_s3, 2,
+        {
+            {
+                "Two Goods",
+                "Now we have two independent markets: wood and chairs. Each has its own "
+                "valuation distribution and price. Watch both markets converge to their "
+                "own equilibrium prices independently.\n"
+                "Use the Agents panel to adjust valuations or goods for either market "
+                "using the Wood/Chair toggle.",
+                step_s3p1, render_s3p1
+            },
+            {
+                "Production",
+                "Agents can now build chairs from wood. It costs a certain amount of wood "
+                "to build one chair. This links the two markets: as agents consume wood to "
+                "build chairs, the wood supply shrinks and the chair supply grows.\n"
+                "Use the Build cost setter in the Environment panel to change how much wood "
+                "a chair costs, and watch how it shifts both markets.",
+                step_s3p2, render_s3p2
             }
         }
     }

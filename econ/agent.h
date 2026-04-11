@@ -10,7 +10,7 @@
 #define MAX_AGENTS        200
 #define AGENT_RADIUS      5.0f
 #define MAX_PATH_LEN      256
-#define WOOD_PER_CHAIR    4
+extern int g_wood_per_chair;   // wood units consumed per chair built (default 4)
 #define MONEY_MAX_UTILITY 1000.0f
 
 #define TICKS_PER_SECOND    60

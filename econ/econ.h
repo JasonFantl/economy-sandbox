@@ -52,6 +52,7 @@ static inline float money_marginal_utility(float money) {
 
 // Exact wood gained per chop action (agents know this value when making decisions)
 extern int g_chop_yield;
+extern int g_wood_per_chair;
 
 void agent_econ_update(Agent *a);
 void agent_execute_chop(Agent *a);   // adds 1..g_chop_yield wood

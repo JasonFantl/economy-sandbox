@@ -14,6 +14,7 @@
 #define WT_INF_WOOD_VALUE  (1 << 0)   // delta: shift every agent's wood valuation
 #define WT_INF_WOOD_COUNT  (1 << 1)   // delta: give / take wood from every agent
 #define WT_INF_LEISURE     (1 << 2)   // setter: set every agent's leisure utility
+#define WT_INF_MARKET_SEL  (1 << 3)   // show market selector button on delta rows
 
 typedef struct {
     bool  expanded;
@@ -31,6 +32,9 @@ typedef struct {
     bool  editLeisure;
     char  bufLeisure[16];
     float lastLeisure;   // last global value seen; used to detect external changes
+    // Market selector state (used when WT_INF_MARKET_SEL is set)
+    int   valueMarket;   // 0=Wood, 1=Chair
+    int   goodsMarket;   // 0=Wood, 1=Chair
 } WtInfluencePanel;
 
 void wt_influence_panel_init(WtInfluencePanel *p);
@@ -45,6 +49,7 @@ void wt_influence_panel_render(WtInfluencePanel *p, Agent *agents, int agentCoun
 
 #define WT_ENV_WOOD_DECAY  (1 << 0)   // wood decay rate
 #define WT_ENV_CHOP_YIELD  (1 << 1)   // wood gained per chop action
+#define WT_ENV_BUILD_COST  (1 << 2)   // wood units required to build one chair
 
 typedef struct {
     bool  expanded;
@@ -56,6 +61,11 @@ typedef struct {
     bool  editChopYield;
     char  bufChopYield[16];
     int   lastChopYield;      // last global value seen; used to detect external changes
+    // Build cost row
+    int   woodPerChair;
+    bool  editWoodPerChair;
+    char  bufWoodPerChair[16];
+    int   lastWoodPerChair;   // last global value seen; used to detect external changes
 } WtEnvironmentPanel;
 
 void wt_environment_panel_init(WtEnvironmentPanel *p);

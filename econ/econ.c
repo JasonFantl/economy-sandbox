@@ -2,7 +2,8 @@
 #include "raylib.h"
 #include <stdbool.h>
 
-int g_chop_yield = 1;
+int g_chop_yield    = 1;
+int g_wood_per_chair = 4;
 
 // ---------------------------------------------------------------------------
 // Feature flags
@@ -32,11 +33,11 @@ static void choose_action(Agent *a) {
     }
 
     float build_util = -999.0f;
-    if (g_build_chairs_enabled && wood->goods >= WOOD_PER_CHAIR) {
+    if (g_build_chairs_enabled && wood->goods >= g_wood_per_chair) {
         float chair_gain = marginal_buy_utility(chair);
         float sell_chair = chair->priceExpectation * money_util;
         if (sell_chair > chair_gain) chair_gain = sell_chair;
-        build_util = chair_gain - marginal_sell_utility(wood) * (float)WOOD_PER_CHAIR;
+        build_util = chair_gain - marginal_sell_utility(wood) * (float)g_wood_per_chair;
     }
 
     AgentAction best     = ACTION_LEISURE;
@@ -65,8 +66,8 @@ void agent_execute_chop(Agent *a) {
 void agent_execute_build(Agent *a) {
     AgentMarket *wood  = AGENT_MKT(a, MARKET_WOOD);
     AgentMarket *chair = AGENT_MKT(a, MARKET_CHAIR);
-    if (wood->goods >= WOOD_PER_CHAIR) {
-        wood->goods  -= WOOD_PER_CHAIR;
+    if (wood->goods >= g_wood_per_chair) {
+        wood->goods  -= g_wood_per_chair;
         chair->goods++;
         a->econ.lastAction = ACTION_BUILD;
     } else {

@@ -25,6 +25,13 @@ static void set_walkthrough_bounds(void) {
     // Goods/money history panels
     g_bounds[PLOT_GOODS_HISTORY ][MARKET_WOOD].yMax = 100.0f;
     g_bounds[PLOT_MONEY_HISTORY ][MARKET_WOOD].yMax = 2000.0f;
+    // Chair market bounds (scene 3)
+    g_bounds[PLOT_VALUATION_DISTRIBUTION][MARKET_CHAIR].yMax = 80.0f;
+    g_bounds[PLOT_PRICE_HISTORY         ][MARKET_CHAIR].yMax = 80.0f;
+    g_bounds[PLOT_SUPPLY_DEMAND         ][MARKET_CHAIR].yMax = 80.0f;
+    g_bounds[PLOT_WEALTH][MARKET_CHAIR].xMax = 20.0f;
+    g_bounds[PLOT_WEALTH][MARKET_CHAIR].yMax = 2000.0f;
+    g_bounds[PLOT_GOODS_HISTORY][MARKET_CHAIR].yMax = 20.0f;
 }
 
 static void clear_walkthrough_bounds(void) {
@@ -35,6 +42,12 @@ static void clear_walkthrough_bounds(void) {
     g_bounds[PLOT_WEALTH][MARKET_WOOD].yMax = 0.0f;
     g_bounds[PLOT_GOODS_HISTORY ][MARKET_WOOD].yMax = 0.0f;
     g_bounds[PLOT_MONEY_HISTORY ][MARKET_WOOD].yMax = 0.0f;
+    g_bounds[PLOT_VALUATION_DISTRIBUTION][MARKET_CHAIR].yMax = 0.0f;
+    g_bounds[PLOT_PRICE_HISTORY         ][MARKET_CHAIR].yMax = 0.0f;
+    g_bounds[PLOT_SUPPLY_DEMAND         ][MARKET_CHAIR].yMax = 0.0f;
+    g_bounds[PLOT_WEALTH][MARKET_CHAIR].xMax = 0.0f;
+    g_bounds[PLOT_WEALTH][MARKET_CHAIR].yMax = 0.0f;
+    g_bounds[PLOT_GOODS_HISTORY][MARKET_CHAIR].yMax = 0.0f;
 }
 
 // ---------------------------------------------------------------------------

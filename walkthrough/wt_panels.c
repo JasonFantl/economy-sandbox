@@ -19,9 +19,9 @@ static const Color WT_BORDER = {80, 100, 130, 255};
 // sit at x=10 alongside the decay panel at x=228 without overlapping.
 // Content width = 210 - 2*8 = 194.
 //
-// Setter row:  [Label 54] [gap 4] [TextBox 76] [gap 4] [Apply 56]        = 194
-// Delta row:   [Label 44] [gap 4] [+/- 24] [gap 2] [TextBox 64] [gap 4] [Apply 52] = 194
-//              Delta rows have a "+/-" indicator in front of the text box.
+// Setter row:      [Label 54][gap 4][TextBox 76][gap 4][Set   56]          = 194
+// Delta row:       [Label 44][gap 4][TextBox 90][gap 4][Add   52]          = 194
+// Mkt-select row:  [Label 42][gap 4][TextBox 54][gap 4][Mkt 48][gap 4][Add 38] = 194
 // ---------------------------------------------------------------------------
 
 #define WT_W      210
@@ -40,13 +40,23 @@ static const Color WT_BORDER = {80, 100, 130, 255};
 #define WT_BOX_DX  (WT_PAD + WT_LBL_W + 4)
 #define WT_APL_DX  (WT_PAD + WT_LBL_W + 4 + WT_BOX_W + 4)
 
-// Delta row geometry (same as setter row, label slightly narrower)
+// Delta row geometry
 #define WT_DLBL_W  44
 #define WT_DBOX_W  90
 #define WT_DAPL_W  52
 #define WT_DLBL_DX (WT_PAD)
 #define WT_DBOX_DX (WT_PAD + WT_DLBL_W + 4)
 #define WT_DAPL_DX (WT_PAD + WT_DLBL_W + 4 + WT_DBOX_W + 4)
+
+// Market-selector delta row: [Label 42][gap 4][TextBox 54][gap 4][Mkt 48][gap 4][Add 38]
+#define WT_MSLBL_W   42
+#define WT_MSBOX_W   54
+#define WT_MSMKT_W   48
+#define WT_MSAPL_W   38
+#define WT_MSLBL_DX  (WT_PAD)
+#define WT_MSBOX_DX  (WT_PAD + WT_MSLBL_W + 4)
+#define WT_MSMKT_DX  (WT_PAD + WT_MSLBL_W + 4 + WT_MSBOX_W + 4)
+#define WT_MSAPL_DX  (WT_PAD + WT_MSLBL_W + 4 + WT_MSBOX_W + 4 + WT_MSMKT_W + 4)
 
 // ---------------------------------------------------------------------------
 
@@ -60,6 +70,8 @@ void wt_influence_panel_init(WtInfluencePanel *p) {
     p->leisureValue      = 5.0f;
     p->editLeisure       = false;
     p->lastLeisure       = p->leisureValue;
+    p->valueMarket       = MARKET_WOOD;
+    p->goodsMarket       = MARKET_WOOD;
     snprintf(p->bufWoodValue, sizeof(p->bufWoodValue), "%.1f", p->woodValueDelta);
     snprintf(p->bufWoodCount, sizeof(p->bufWoodCount), "%d",   p->woodCountDelta);
     snprintf(p->bufLeisure,   sizeof(p->bufLeisure),   "%.1f", p->leisureValue);
@@ -87,33 +99,65 @@ void wt_influence_panel_render(WtInfluencePanel *p, Agent *agents, int agentCoun
 
     int rowY = contentY + WT_SEP;
 
-    // --- Wood value row (delta) ---
+    // --- Value row (delta, with optional market selector) ---
     if (flags & WT_INF_WOOD_VALUE) {
-        GuiLabel((Rectangle){px + WT_DLBL_DX, rowY, WT_DLBL_W, WT_ROW_H - 2}, "Value:");
-        if (GuiTextBox((Rectangle){px + WT_DBOX_DX, rowY, WT_DBOX_W, WT_ROW_H - 2},
-                       p->bufWoodValue, (int)sizeof(p->bufWoodValue), p->editWoodValue)) {
-            p->editWoodValue = !p->editWoodValue;
-            if (!p->editWoodValue)
-                p->woodValueDelta = strtof(p->bufWoodValue, NULL);
+        if (flags & WT_INF_MARKET_SEL) {
+            GuiLabel((Rectangle){px + WT_MSLBL_DX, rowY, WT_MSLBL_W, WT_ROW_H - 2}, "Value:");
+            if (GuiTextBox((Rectangle){px + WT_MSBOX_DX, rowY, WT_MSBOX_W, WT_ROW_H - 2},
+                           p->bufWoodValue, (int)sizeof(p->bufWoodValue), p->editWoodValue)) {
+                p->editWoodValue = !p->editWoodValue;
+                if (!p->editWoodValue)
+                    p->woodValueDelta = strtof(p->bufWoodValue, NULL);
+            }
+            if (GuiButton((Rectangle){px + WT_MSMKT_DX, rowY, WT_MSMKT_W, WT_BTN_H},
+                          p->valueMarket == MARKET_WOOD ? "Wood" : "Chair"))
+                p->valueMarket = 1 - p->valueMarket;
+            if (GuiButton((Rectangle){px + WT_MSAPL_DX, rowY, WT_MSAPL_W, WT_BTN_H}, "Add"))
+                agents_adjust_valuations(agents, agentCount, agentCount,
+                                         p->woodValueDelta, (MarketId)p->valueMarket);
+        } else {
+            GuiLabel((Rectangle){px + WT_DLBL_DX, rowY, WT_DLBL_W, WT_ROW_H - 2}, "Value:");
+            if (GuiTextBox((Rectangle){px + WT_DBOX_DX, rowY, WT_DBOX_W, WT_ROW_H - 2},
+                           p->bufWoodValue, (int)sizeof(p->bufWoodValue), p->editWoodValue)) {
+                p->editWoodValue = !p->editWoodValue;
+                if (!p->editWoodValue)
+                    p->woodValueDelta = strtof(p->bufWoodValue, NULL);
+            }
+            if (GuiButton((Rectangle){px + WT_DAPL_DX, rowY, WT_DAPL_W, WT_BTN_H}, "Add"))
+                agents_adjust_valuations(agents, agentCount, agentCount,
+                                         p->woodValueDelta, MARKET_WOOD);
         }
-        if (GuiButton((Rectangle){px + WT_DAPL_DX, rowY, WT_DAPL_W, WT_BTN_H}, "Add"))
-            agents_adjust_valuations(agents, agentCount, agentCount,
-                                     p->woodValueDelta, MARKET_WOOD);
         rowY += WT_ROW_H + WT_SEP;
     }
 
-    // --- Wood count row (delta) ---
+    // --- Goods row (delta, with optional market selector) ---
     if (flags & WT_INF_WOOD_COUNT) {
-        GuiLabel((Rectangle){px + WT_DLBL_DX, rowY, WT_DLBL_W, WT_ROW_H - 2}, "Goods:");
-        if (GuiTextBox((Rectangle){px + WT_DBOX_DX, rowY, WT_DBOX_W, WT_ROW_H - 2},
-                       p->bufWoodCount, (int)sizeof(p->bufWoodCount), p->editWoodCount)) {
-            p->editWoodCount = !p->editWoodCount;
-            if (!p->editWoodCount)
-                p->woodCountDelta = (int)strtol(p->bufWoodCount, NULL, 10);
+        if (flags & WT_INF_MARKET_SEL) {
+            GuiLabel((Rectangle){px + WT_MSLBL_DX, rowY, WT_MSLBL_W, WT_ROW_H - 2}, "Goods:");
+            if (GuiTextBox((Rectangle){px + WT_MSBOX_DX, rowY, WT_MSBOX_W, WT_ROW_H - 2},
+                           p->bufWoodCount, (int)sizeof(p->bufWoodCount), p->editWoodCount)) {
+                p->editWoodCount = !p->editWoodCount;
+                if (!p->editWoodCount)
+                    p->woodCountDelta = (int)strtol(p->bufWoodCount, NULL, 10);
+            }
+            if (GuiButton((Rectangle){px + WT_MSMKT_DX, rowY, WT_MSMKT_W, WT_BTN_H},
+                          p->goodsMarket == MARKET_WOOD ? "Wood" : "Chair"))
+                p->goodsMarket = 1 - p->goodsMarket;
+            if (GuiButton((Rectangle){px + WT_MSAPL_DX, rowY, WT_MSAPL_W, WT_BTN_H}, "Add"))
+                agents_inject_goods(agents, agentCount, agentCount,
+                                    p->woodCountDelta, (MarketId)p->goodsMarket);
+        } else {
+            GuiLabel((Rectangle){px + WT_DLBL_DX, rowY, WT_DLBL_W, WT_ROW_H - 2}, "Goods:");
+            if (GuiTextBox((Rectangle){px + WT_DBOX_DX, rowY, WT_DBOX_W, WT_ROW_H - 2},
+                           p->bufWoodCount, (int)sizeof(p->bufWoodCount), p->editWoodCount)) {
+                p->editWoodCount = !p->editWoodCount;
+                if (!p->editWoodCount)
+                    p->woodCountDelta = (int)strtol(p->bufWoodCount, NULL, 10);
+            }
+            if (GuiButton((Rectangle){px + WT_DAPL_DX, rowY, WT_DAPL_W, WT_BTN_H}, "Add"))
+                agents_inject_goods(agents, agentCount, agentCount,
+                                    p->woodCountDelta, MARKET_WOOD);
         }
-        if (GuiButton((Rectangle){px + WT_DAPL_DX, rowY, WT_DAPL_W, WT_BTN_H}, "Add"))
-            agents_inject_goods(agents, agentCount, agentCount,
-                                p->woodCountDelta, MARKET_WOOD);
         rowY += WT_ROW_H + WT_SEP;
     }
 
@@ -152,14 +196,18 @@ void wt_influence_panel_render(WtInfluencePanel *p, Agent *agents, int agentCoun
 
 void wt_environment_panel_init(WtEnvironmentPanel *p) {
     p->expanded      = false;
-    p->woodDecayRate    = 0.003f;
-    p->editWoodDecay    = false;
+    p->woodDecayRate     = 0.003f;
+    p->editWoodDecay     = false;
     p->lastWoodDecayRate = p->woodDecayRate;
-    p->chopYield        = 1;
-    p->editChopYield    = false;
-    p->lastChopYield    = p->chopYield;
-    snprintf(p->bufWoodDecay,  sizeof(p->bufWoodDecay),  "%.4f", p->woodDecayRate);
-    snprintf(p->bufChopYield,  sizeof(p->bufChopYield),  "%d",   p->chopYield);
+    p->chopYield         = 1;
+    p->editChopYield     = false;
+    p->lastChopYield     = p->chopYield;
+    p->woodPerChair      = 4;
+    p->editWoodPerChair  = false;
+    p->lastWoodPerChair  = p->woodPerChair;
+    snprintf(p->bufWoodDecay,   sizeof(p->bufWoodDecay),   "%.4f", p->woodDecayRate);
+    snprintf(p->bufChopYield,   sizeof(p->bufChopYield),   "%d",   p->chopYield);
+    snprintf(p->bufWoodPerChair,sizeof(p->bufWoodPerChair),"%d",   p->woodPerChair);
 }
 
 void wt_environment_panel_render(WtEnvironmentPanel *p, int flags, int px) {
@@ -172,6 +220,7 @@ void wt_environment_panel_render(WtEnvironmentPanel *p, int flags, int px) {
     int rows = 0;
     if (flags & WT_ENV_WOOD_DECAY) rows++;
     if (flags & WT_ENV_CHOP_YIELD) rows++;
+    if (flags & WT_ENV_BUILD_COST) rows++;
 
     int contentH = rows * (WT_ROW_H + WT_SEP) + WT_PAD;
     int contentY = WT_Y + WT_HDR_H;
@@ -219,6 +268,30 @@ void wt_environment_panel_render(WtEnvironmentPanel *p, int flags, int px) {
         }
         if (GuiButton((Rectangle){px + WT_APL_DX, rowY, WT_APL_W, WT_BTN_H}, "Set"))
             g_chop_yield = p->chopYield;
+        rowY += WT_ROW_H + WT_SEP;
+    }
+
+    // --- Build cost row ---
+    if (flags & WT_ENV_BUILD_COST) {
+        // Sync with current global
+        if (g_wood_per_chair != p->lastWoodPerChair) {
+            p->woodPerChair     = g_wood_per_chair;
+            p->lastWoodPerChair = g_wood_per_chair;
+            snprintf(p->bufWoodPerChair, sizeof(p->bufWoodPerChair), "%d", p->woodPerChair);
+        }
+        GuiLabel((Rectangle){px + WT_LBL_DX, rowY, WT_LBL_W, WT_ROW_H - 2},
+                 "Build:");
+        if (GuiTextBox((Rectangle){px + WT_BOX_DX, rowY, WT_BOX_W, WT_ROW_H - 2},
+                       p->bufWoodPerChair, (int)sizeof(p->bufWoodPerChair), p->editWoodPerChair)) {
+            p->editWoodPerChair = !p->editWoodPerChair;
+            if (!p->editWoodPerChair)
+                p->woodPerChair = (int)strtol(p->bufWoodPerChair, NULL, 10);
+        }
+        if (GuiButton((Rectangle){px + WT_APL_DX, rowY, WT_APL_W, WT_BTN_H}, "Set")) {
+            if (p->woodPerChair < 1) p->woodPerChair = 1;
+            g_wood_per_chair    = p->woodPerChair;
+            p->lastWoodPerChair = p->woodPerChair;
+        }
         rowY += WT_ROW_H + WT_SEP;
     }
 
