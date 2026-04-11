@@ -276,9 +276,13 @@ const SceneDef SCENES[] = {
         {
             {
                 "Two Agents",
-                "Two agents have different ideas of what a unit of wood is worth. "
-                "Each time they fail to trade, they nudge their expected price "
-                "toward their own valuation. Watch the prices converge over time.",
+                "Every time two agents try to trade, they update their expected market price. "
+                "Take control of one agent and try trading with the other, watch how their price "
+                "changes when you buy or refuse to buy from them. If a buyer is unable to buy, "
+                "they will offer more next time, and if a seller is unable to sell, they will "
+                "offer it for less next time. If a trade is successful, each agent will try to "
+                "get a better deal the next time: buyers offer less, sellers ask for more.\n"
+                "Hit F to speed up the simulation, Shift+F to slow down, and Space to pause.",
                 step_s1p1, render_s1p1
             }
         }
@@ -288,52 +292,63 @@ const SceneDef SCENES[] = {
         {
             {
                 "Many Agents",
-                "With 100 agents, each with a different fixed valuation, all price "
-                "expectations converge toward a shared market price through repeated "
-                "gossip and failed trade attempts.",
+                "Now we have 100 agents all randomly interacting with each other. Even though "
+                "they all have different values for the good and start with different beliefs of "
+                "what the market price is, they eventually all converge on a shared price.\n"
+                "Try resetting the agents and adjusting their values in the top left corner - "
+                "see how the price they settle on changes when they start with different values.",
                 step_s2p1, render_s2p1
             },
             {
                 "Supply & Demand",
-                "The supply curve shows agents ranked by their minimum sell price. "
-                "The demand curve shows agents ranked by their maximum buy price. "
-                "They cross at the equilibrium price - the natural price the market converges to.",
+                "Notice that if we add a Supply & Demand curve, our market has converged to the "
+                "equilibrium price. There is a button to add or subtract value from every agent - "
+                "try moving it and see how the price slowly changes.\n"
+                "Also try clicking on an agent and changing their base value, and see how it "
+                "affects the price.",
                 step_s2p2, render_s2p2
             },
             {
                 "Market Collapse",
-                "Without debt, buyers who run out of money can no longer trade. "
-                "As money piles up in fewer hands, the market seizes. "
-                "Watch the wealth distribution become extreme.",
+                "But we need to give agents money and goods to trade with. We see that everyone "
+                "either sells all their goods or spends all their money buying goods. "
+                "Why don't people actually do this in real life?",
                 step_s2p3, render_s2p3
             },
             {
                 "Diminishing Returns",
-                "Agents now have diminishing marginal utility - each additional unit "
-                "of wood is worth less than the last. This creates a natural stopping "
-                "point: agents stop buying when the price exceeds their marginal value. "
-                "The market stabilises.",
+                "Agents now have diminishing utility - the more of a good they have, the less "
+                "they value it. On the value plot we now see the buy and sell utility calculated "
+                "from how many goods the agent holds (buying utility is lower than selling since "
+                "the next unit you buy is not as valuable as the one you would give up).\n"
+                "Try adding goods to agents' inventories and see that they value the good less.",
                 step_s2p4, render_s2p4
             },
             {
                 "Goods Decay",
-                "Wood now rots over time. As inventory evaporates, the supply curve "
-                "shrinks and prices rise. Try adjusting the decay rate to see how "
-                "the market responds.",
+                "But now wood will decay over time. You can control the rate of decay in the "
+                "Environment panel. As a reminder, you can reset agents to see how they act "
+                "under different conditions.",
                 step_s2p5, render_s2p5
             },
             {
                 "Production",
-                "Agents can now chop wood. When the market price exceeds their cost "
-                "of effort, they produce and sell. Adjust the chop yield to flood "
-                "or starve the market.",
+                "Now agents can chop down new wood. At some point the rate of wood being chopped "
+                "equals the rate it decays. Play with the Decay rate and Yield to find where they "
+                "balance.\n"
+                "If you speed up the simulation you will notice that some agents keep getting "
+                "richer while others get poorer. Agents who value wood highly accumulate more of "
+                "it, which means more decays - so money flows from high-value agents to low-value ones.",
                 step_s2p6, render_s2p6
             },
             {
                 "Leisure",
-                "Agents now value leisure - resting has diminishing utility too. "
-                "They balance chopping, trading, and resting. "
-                "Raise or lower the leisure value to see how it shifts supply.",
+                "Now agents also consider the value of leisure instead of chopping wood all the "
+                "time. They choose whichever action is worth the most to them. Set the leisure "
+                "value to see how it affects the price and the amount of goods in the market.\n"
+                "Notice the interesting behaviour when you set leisure high and then low: the "
+                "number of goods initially spikes and then comes back down once the price "
+                "corrects.",
                 step_s2p7, render_s2p7
             }
         }
