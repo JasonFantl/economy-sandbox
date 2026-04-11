@@ -30,6 +30,7 @@ typedef struct {
     float leisureValue;
     bool  editLeisure;
     char  bufLeisure[16];
+    float lastLeisure;   // last global value seen; used to detect external changes
 } WtInfluencePanel;
 
 void wt_influence_panel_init(WtInfluencePanel *p);
@@ -50,9 +51,11 @@ typedef struct {
     float woodDecayRate;
     bool  editWoodDecay;
     char  bufWoodDecay[16];
+    float lastWoodDecayRate;  // last global value seen; used to detect external changes
     int   chopYield;
     bool  editChopYield;
     char  bufChopYield[16];
+    int   lastChopYield;      // last global value seen; used to detect external changes
 } WtEnvironmentPanel;
 
 void wt_environment_panel_init(WtEnvironmentPanel *p);

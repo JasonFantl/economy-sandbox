@@ -59,6 +59,7 @@ void wt_influence_panel_init(WtInfluencePanel *p) {
     p->editWoodCount     = false;
     p->leisureValue      = 5.0f;
     p->editLeisure       = false;
+    p->lastLeisure       = p->leisureValue;
     snprintf(p->bufWoodValue, sizeof(p->bufWoodValue), "%.1f", p->woodValueDelta);
     snprintf(p->bufWoodCount, sizeof(p->bufWoodCount), "%d",   p->woodCountDelta);
     snprintf(p->bufLeisure,   sizeof(p->bufLeisure),   "%.1f", p->leisureValue);
@@ -118,11 +119,12 @@ void wt_influence_panel_render(WtInfluencePanel *p, Agent *agents, int agentCoun
 
     // --- Leisure row (setter) ---
     if (flags & WT_INF_LEISURE) {
-        // Sync with current agent leisure value
+        // Sync only when the global changed externally since last frame
         if (agentCount > 0) {
             float cur = agents[0].econ.leisureUtility;
-            if (p->leisureValue != cur) {
+            if (cur != p->lastLeisure) {
                 p->leisureValue = cur;
+                p->lastLeisure  = cur;
                 snprintf(p->bufLeisure, sizeof(p->bufLeisure), "%.1f", cur);
             }
         }
@@ -150,10 +152,12 @@ void wt_influence_panel_render(WtInfluencePanel *p, Agent *agents, int agentCoun
 
 void wt_environment_panel_init(WtEnvironmentPanel *p) {
     p->expanded      = false;
-    p->woodDecayRate = 0.003f;
-    p->editWoodDecay = false;
-    p->chopYield     = 1;
-    p->editChopYield = false;
+    p->woodDecayRate    = 0.003f;
+    p->editWoodDecay    = false;
+    p->lastWoodDecayRate = p->woodDecayRate;
+    p->chopYield        = 1;
+    p->editChopYield    = false;
+    p->lastChopYield    = p->chopYield;
     snprintf(p->bufWoodDecay,  sizeof(p->bufWoodDecay),  "%.4f", p->woodDecayRate);
     snprintf(p->bufChopYield,  sizeof(p->bufChopYield),  "%d",   p->chopYield);
 }
@@ -178,9 +182,10 @@ void wt_environment_panel_render(WtEnvironmentPanel *p, int flags, int px) {
 
     // --- Wood decay rate row ---
     if (flags & WT_ENV_WOOD_DECAY) {
-        // Sync with current global
-        if (p->woodDecayRate != g_wood_decay_rate) {
-            p->woodDecayRate = g_wood_decay_rate;
+        // Sync only when the global changed externally since last frame
+        if (g_wood_decay_rate != p->lastWoodDecayRate) {
+            p->woodDecayRate     = g_wood_decay_rate;
+            p->lastWoodDecayRate = g_wood_decay_rate;
             snprintf(p->bufWoodDecay, sizeof(p->bufWoodDecay), "%.4f", p->woodDecayRate);
         }
         GuiLabel((Rectangle){px + WT_LBL_DX, rowY, WT_LBL_W, WT_ROW_H - 2},
@@ -198,9 +203,10 @@ void wt_environment_panel_render(WtEnvironmentPanel *p, int flags, int px) {
 
     // --- Chop yield row ---
     if (flags & WT_ENV_CHOP_YIELD) {
-        // Sync with current global
-        if (p->chopYield != g_chop_yield) {
-            p->chopYield = g_chop_yield;
+        // Sync only when the global changed externally since last frame
+        if (g_chop_yield != p->lastChopYield) {
+            p->chopYield     = g_chop_yield;
+            p->lastChopYield = g_chop_yield;
             snprintf(p->bufChopYield, sizeof(p->bufChopYield), "%d", p->chopYield);
         }
         GuiLabel((Rectangle){px + WT_LBL_DX, rowY, WT_LBL_W, WT_ROW_H - 2},
