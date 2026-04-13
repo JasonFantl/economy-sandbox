@@ -73,6 +73,8 @@ void wt_influence_panel_init(WtInfluencePanel *p) {
     snprintf(p->bufWoodValue, sizeof(p->bufWoodValue), "%.1f", p->woodValueDelta);
     snprintf(p->bufWoodCount, sizeof(p->bufWoodCount), "%d",   p->woodCountDelta);
     snprintf(p->bufLeisure,   sizeof(p->bufLeisure),   "%.1f", p->leisureValue);
+    p->pendingInflation = g_inflation_enabled;
+    p->lastInflation    = g_inflation_enabled;
 }
 
 void wt_influence_panel_render(WtInfluencePanel *p, Agent *agents, int agentCount,
@@ -89,6 +91,7 @@ void wt_influence_panel_render(WtInfluencePanel *p, Agent *agents, int agentCoun
     if (flags & WT_INF_WOOD_VALUE) rows++;
     if (flags & WT_INF_WOOD_COUNT) rows++;
     if (flags & WT_INF_LEISURE)    rows++;
+    if (flags & WT_INF_INFLATION)  rows++;
 
     int contentH = rows * (WT_ROW_H + WT_SEP) + WT_SEP + WT_BTN_H + WT_PAD;
     int contentY = WT_Y + WT_HDR_H;
@@ -177,8 +180,27 @@ void wt_influence_panel_render(WtInfluencePanel *p, Agent *agents, int agentCoun
             if (!p->editLeisure)
                 p->leisureValue = strtof(p->bufLeisure, NULL);
         }
+        bool leisureMatch = (agentCount > 0 && p->leisureValue == agents[0].econ.leisureUtility);
+        if (leisureMatch) GuiSetState(STATE_DISABLED);
         if (GuiButton((Rectangle){px + WT_APL_DX, rowY, WT_APL_W, WT_BTN_H}, "Set"))
             agents_set_leisure(agents, agentCount, p->leisureValue);
+        if (leisureMatch) GuiSetState(STATE_NORMAL);
+        rowY += WT_ROW_H + WT_SEP;
+    }
+
+    // --- Inflation toggle (checkbox + Set) ---
+    if (flags & WT_INF_INFLATION) {
+        if (p->lastInflation != g_inflation_enabled) {
+            p->pendingInflation = g_inflation_enabled;
+            p->lastInflation    = g_inflation_enabled;
+        }
+        GuiCheckBox((Rectangle){px + WT_LBL_DX, rowY + 4, WT_ROW_H - 8, WT_ROW_H - 8},
+                    "Inflation", &p->pendingInflation);
+        bool inflMatch = (p->pendingInflation == g_inflation_enabled);
+        if (inflMatch) GuiSetState(STATE_DISABLED);
+        if (GuiButton((Rectangle){px + WT_APL_DX, rowY, WT_APL_W, WT_BTN_H}, "Set"))
+            g_inflation_enabled = p->pendingInflation;
+        if (inflMatch) GuiSetState(STATE_NORMAL);
         rowY += WT_ROW_H + WT_SEP;
     }
 

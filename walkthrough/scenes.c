@@ -77,7 +77,7 @@ static void render_s2p2(const SimContext *ctx, int x, int y, int w, int h) {
     WT_INF(ctx, WT_INF_WOOD_VALUE, 10);
 }
 
-// 3-in-a-row shared by s2p3–s2p7: Wealth | Val Dist | Price History
+// 3-in-a-row shared by s2p3–s2p8: Wealth | Val Dist | Price History
 static void render_three_panels(const SimContext *ctx, int x, int y, int w, int h,
                                  float eq, bool showUtil) {
     int gap = 8, w3 = (w - 2*gap) / 3;
@@ -122,6 +122,12 @@ static void render_s2p6(const SimContext *ctx, int x, int y, int w, int h) {
 }
 
 static void render_s2p7(const SimContext *ctx, int x, int y, int w, int h) {
+    render_three_panels(ctx, x, y, w, h, avg_eq(ctx, MARKET_WOOD), true);
+    WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT | WT_INF_INFLATION, 10);
+    WT_ENV(ctx, WT_ENV_WOOD_DECAY | WT_ENV_CHOP_YIELD, 258);
+}
+
+static void render_s2p8(const SimContext *ctx, int x, int y, int w, int h) {
     render_three_panels(ctx, x, y, w, h, avg_eq(ctx, MARKET_WOOD), true);
     WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT | WT_INF_LEISURE, 10);
     WT_ENV(ctx, WT_ENV_WOOD_DECAY | WT_ENV_CHOP_YIELD, 258);
@@ -252,12 +258,23 @@ static void step_s2p6(void) {
 static void step_s2p7(void) {
     g_diminishing_returns = true;
     g_chop_wood_enabled    = true;
+    g_leisure_enabled     = false;
+    g_build_chairs_enabled = false;
+    g_disable_executing_trade = false;
+    g_wood_decay_rate     = 0.003f;
+    g_chair_decay_rate    = 0.003f;
+    g_inflation_enabled   = true;
+}
+
+static void step_s2p8(void) {
+    g_diminishing_returns = true;
+    g_chop_wood_enabled    = true;
     g_leisure_enabled     = true;
     g_build_chairs_enabled = false;
     g_disable_executing_trade = false;
     g_wood_decay_rate     = 0.003f;
     g_chair_decay_rate    = 0.003f;
-    g_inflation_enabled   = false;
+    g_inflation_enabled   = true;
 }
 
 static void step_s3p1(void) {
@@ -396,7 +413,7 @@ const SceneDef SCENES[] = {
         }
     },
     {
-        "Many Agents", init_s2, 7,
+        "Many Agents", init_s2, 8,
         {
             {
                 "Many Agents",
@@ -450,6 +467,17 @@ const SceneDef SCENES[] = {
                 step_s2p6, render_s2p6
             },
             {
+                "Inflation",
+                "So far agents buy and sell based purely on the utility of the good, with no "
+                "regard for how much money they have. In reality, money itself has diminishing "
+                "value — a dollar means more to a poor person than a rich one.\n"
+                "Inflation is now enabled: each agent's willingness to trade is weighted by the "
+                "marginal utility of money at their current wealth. Wealthier agents accept "
+                "lower returns on their money, making them more willing to buy. Toggle inflation "
+                "off in the Agents panel to compare the two behaviours.",
+                step_s2p7, render_s2p7
+            },
+            {
                 "Leisure",
                 "Now agents also consider the value of leisure instead of chopping wood all the "
                 "time. They choose whichever action is worth the most to them. Set the leisure "
@@ -457,7 +485,7 @@ const SceneDef SCENES[] = {
                 "Notice the interesting behaviour when you set leisure high and then low: the "
                 "number of goods initially spikes and then comes back down once the price "
                 "corrects.",
-                step_s2p7, render_s2p7
+                step_s2p8, render_s2p8
             }
         }
     },
