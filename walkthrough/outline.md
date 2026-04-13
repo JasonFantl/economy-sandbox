@@ -10,16 +10,16 @@ Ends in an open game with all features turned on, which is where most time will 
 ## Chapter 1: One good
 
 ### Scene 1: Two agents
-Two agents trading (no diminishing returns, no inflation, debt is allowed, just expected market price being updated after each attempt to trade) of single good, see both converge to a shared price. Show plot of base value and expected price (does not show marginal buy and sell prices).
+Two agents trading (no diminishing returns, no inflation, debt is allowed, just expected market price being updated after each attempt to trade) of single good, see both converge to a shared price. Show plot of base value and expected price (does not show marginal buy and sell prices) and the price history.
 
 ### Scene 2:
 Lots of agents (100), we should see all converge. Uses the same plot from above.
 #### Next
 Show plot of supply and demand using the buy and sell price. Add equilibrium price to price plot, should see everyone converged to it. Allow player to reset the base values of agents between a min and max.
 #### Next
-Agents are obsessive, if we actually track the money and goods, agents either have all of one or the other. No longer allow debt. Show market collapsing.
+We give agents a random number of goods and random money. They are obsessive, agents either spend all their money or sell all their goods. Show market collapsing as agents trade everything away.
 #### Next
-Introduce diminishing returns. Show market stabilizing. Plots of base value + buy and sell prices + expected market price. Show plot of supply and demand curves using the different buy and sell prices. Show plot of money vs good count.
+Introduce diminishing returns. Tell user to hit restart. Show market stabilizing. Plots of base value + buy and sell prices + expected market price. Show plot of supply and demand curves using the different buy and sell prices. Show plot of money vs good count.
 #### Next
 Goods break over time, show plots as wood breaks. Player can modify the break rate.
 #### Next

@@ -11,7 +11,7 @@
 #define AGENT_RADIUS      5.0f
 #define MAX_PATH_LEN      256
 extern int g_wood_per_chair;   // wood units consumed per chair built (default 4)
-#define MONEY_MAX_UTILITY 1000.0f
+#define MONEY_MAX_UTILITY 500.0f
 
 #define TICKS_PER_SECOND    60
 #define AGENT_SPEED_PER_TICK 2.0f   // pixels per tick (120 px/s ÷ 60)

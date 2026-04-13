@@ -6,7 +6,7 @@
 #include <math.h>
 
 float g_wood_decay_rate  = 0.000f;
-float g_chair_decay_rate = 0.003f;
+float g_chair_decay_rate = 0.000f;
 
 // ---------------------------------------------------------------------------
 // Init
