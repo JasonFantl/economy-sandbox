@@ -204,20 +204,7 @@ void panel_valuation_dist(const Agent *agents, int count, int marketId,
         int y_buy =(int)(py+ph-buyUtility  /yMax*(float)ph);
         int y_emv =(int)(py+ph-emv         /yMax*(float)ph);
 
-        draw_line_yclip(x,y_base,x,y_emv, py,py+ph, (Color){80,80,90,120});
-
-        int band_top_raw = y_buy<y_sell?y_buy:y_sell;
-        int band_bot_raw = (y_sell<y_buy?y_buy:y_sell);
-        if (band_bot_raw < band_top_raw+1) band_bot_raw = band_top_raw+1;
-        int band_top = band_top_raw < py     ? py     : band_top_raw;
-        int band_bot = band_bot_raw > py+ph  ? py+ph  : band_bot_raw;
-        if (band_bot > band_top)
-            DrawRectangle(x-1,band_top,3,band_bot-band_top,(Color){180,180,100,40});
-
         if (g_inflation_enabled) {
-            // Only show utility base when inflation is active (buy/sell shown via adjusted dots)
-            if (y_base>=py && y_base<=py+ph) DrawCircle(x,y_base,2,(Color){ 80,140,255,130});
-
             // Inflation-adjusted effective prices: utility / money_marginal_utility
             Utility mmu=money_marginal_utility(a->econ.money);
             Price adj_base=base       /mmu;
@@ -226,13 +213,40 @@ void panel_valuation_dist(const Agent *agents, int count, int marketId,
             int y_adj_base=(int)(py+ph-adj_base/yMax*(float)ph);
             int y_adj_sell=(int)(py+ph-adj_sell/yMax*(float)ph);
             int y_adj_buy =(int)(py+ph-adj_buy /yMax*(float)ph);
+
+            // Grey line from inflation-adjusted base to market price
+            draw_line_yclip(x,y_adj_base,x,y_emv, py,py+ph, (Color){80,80,90,120});
+
+            // Dimmed utility base circle
+            if (y_base>=py && y_base<=py+ph) DrawCircle(x,y_base,2,(Color){80,140,255,130});
+            // Adjusted base circle
             if (y_adj_base>=py && y_adj_base<=py+ph) DrawCircle(x,y_adj_base,3,(Color){140,190,255,255});
-            if (y_adj_sell>=py && y_adj_sell<=py+ph) DrawCircle(x,y_adj_sell,2,(Color){255,200,100,255});
-            if (y_adj_buy >=py && y_adj_buy <=py+ph) DrawCircle(x,y_adj_buy, 2,(Color){100,240,240,255});
+            // Adjusted sell: upward triangle
+            if (y_adj_sell>=py && y_adj_sell<=py+ph)
+                DrawTriangle((Vector2){x,y_adj_sell-3},(Vector2){x-3,y_adj_sell+3},(Vector2){x+3,y_adj_sell+3},(Color){255,200,100,255});
+            // Adjusted buy: downward triangle
+            if (y_adj_buy>=py && y_adj_buy<=py+ph)
+                DrawTriangle((Vector2){x,y_adj_buy+3},(Vector2){x+3,y_adj_buy-3},(Vector2){x-3,y_adj_buy-3},(Color){100,240,240,255});
         } else {
-            if (y_base>=py && y_base<=py+ph) DrawCircle(x,y_base,3,(Color){ 80,140,255,220});
-            if (y_sell>=py && y_sell<=py+ph) DrawCircle(x,y_sell,2,(Color){255,160, 60,200});
-            if (y_buy >=py && y_buy <=py+ph) DrawCircle(x,y_buy, 2,(Color){ 80,220,220,200});
+            // Grey line from utility base to market price
+            draw_line_yclip(x,y_base,x,y_emv, py,py+ph, (Color){80,80,90,120});
+
+            // Band between sell and buy
+            int band_top_raw = y_buy<y_sell?y_buy:y_sell;
+            int band_bot_raw = (y_sell<y_buy?y_buy:y_sell);
+            if (band_bot_raw < band_top_raw+1) band_bot_raw = band_top_raw+1;
+            int band_top = band_top_raw < py    ? py    : band_top_raw;
+            int band_bot = band_bot_raw > py+ph ? py+ph : band_bot_raw;
+            if (band_bot > band_top)
+                DrawRectangle(x-1,band_top,3,band_bot-band_top,(Color){180,180,100,40});
+
+            if (y_base>=py && y_base<=py+ph) DrawCircle(x,y_base,3,(Color){80,140,255,220});
+            // Sell: upward triangle
+            if (y_sell>=py && y_sell<=py+ph)
+                DrawTriangle((Vector2){x,y_sell-3},(Vector2){x-3,y_sell+3},(Vector2){x+3,y_sell+3},(Color){255,160,60,200});
+            // Buy: downward triangle
+            if (y_buy>=py && y_buy<=py+ph)
+                DrawTriangle((Vector2){x,y_buy+3},(Vector2){x+3,y_buy-3},(Vector2){x-3,y_buy-3},(Color){80,220,220,200});
         }
 
         Color emvCol=(a->sprite.tradeFlashTick>0)?YELLOW
@@ -244,17 +258,16 @@ void panel_valuation_dist(const Agent *agents, int count, int marketId,
 
     int lx=px+pw-200,ly=py+4;
     if (g_inflation_enabled) {
-        // Left column: raw utility dots (dimmed); right column: inflation-adjusted effective prices
-        DrawCircle(lx,    ly+4,  2,(Color){ 80,140,255,130}); DrawTextF("Max util", lx+7,   ly-1,  10,(Color){ 80,140,255,130});
-        DrawCircle(lx,    ly+16, 3,(Color){ 60,210, 90,220}); DrawTextF("Price exp",lx+7,   ly+11, 10,(Color){ 60,210, 90,220});
-        DrawCircle(lx+100,ly+4,  3,(Color){140,190,255,255}); DrawTextF("Adj. base",lx+107, ly-1,  10,(Color){140,190,255,255});
-        DrawCircle(lx+100,ly+16, 2,(Color){255,200,100,255}); DrawTextF("Adj. sell",lx+107, ly+11, 10,(Color){255,200,100,255});
-        DrawCircle(lx+100,ly+28, 2,(Color){100,240,240,255}); DrawTextF("Adj. buy", lx+107, ly+23, 10,(Color){100,240,240,255});
+        DrawCircle(lx,    ly+4,  2,(Color){ 80,140,255,130});                                                        DrawTextF("Max util", lx+7,   ly-1,  10,(Color){ 80,140,255,130});
+        DrawCircle(lx,    ly+16, 3,(Color){ 60,210, 90,220});                                                        DrawTextF("Price exp",lx+7,   ly+11, 10,(Color){ 60,210, 90,220});
+        DrawCircle(lx+100,ly+4,  3,(Color){140,190,255,255});                                                        DrawTextF("Adj. base",lx+107, ly-1,  10,(Color){140,190,255,255});
+        DrawTriangle((Vector2){lx+100,ly+11},(Vector2){lx+97,ly+17},(Vector2){lx+103,ly+17},(Color){255,200,100,255}); DrawTextF("Adj. sell",lx+107, ly+11, 10,(Color){255,200,100,255});
+        DrawTriangle((Vector2){lx+100,ly+29},(Vector2){lx+103,ly+23},(Vector2){lx+97, ly+23},(Color){100,240,240,255}); DrawTextF("Adj. buy", lx+107, ly+23, 10,(Color){100,240,240,255});
     } else {
-        DrawCircle(lx,    ly+4,  3,(Color){ 80,140,255,220}); DrawTextF("Max utility",  lx+7,   ly-1,  10,(Color){ 80,140,255,220});
-        DrawCircle(lx,    ly+16, 2,(Color){255,160, 60,200}); DrawTextF("Sell util",    lx+7,   ly+11, 10,(Color){255,160, 60,200});
-        DrawCircle(lx+100,ly+4,  2,(Color){ 80,220,220,200}); DrawTextF("Buy util",     lx+107, ly-1,  10,(Color){ 80,220,220,200});
-        DrawCircle(lx+100,ly+16, 3,(Color){ 60,210, 90,220}); DrawTextF("Price expect", lx+107, ly+11, 10,(Color){ 60,210, 90,220});
+        DrawCircle(lx,    ly+4,  3,(Color){ 80,140,255,220});                                                        DrawTextF("Max utility",  lx+7,   ly-1,  10,(Color){ 80,140,255,220});
+        DrawTriangle((Vector2){lx,ly-1},  (Vector2){lx-3,ly+5}, (Vector2){lx+3,ly+5}, (Color){255,160, 60,200});    DrawTextF("Sell util",    lx+7,   ly-1,  10,(Color){255,160, 60,200});
+        DrawTriangle((Vector2){lx,ly+17}, (Vector2){lx+3,ly+11},(Vector2){lx-3,ly+11},(Color){ 80,220,220,200});    DrawTextF("Buy util",     lx+7,   ly+11, 10,(Color){ 80,220,220,200});
+        DrawCircle(lx+100,ly+16, 3,(Color){ 60,210, 90,220});                                                        DrawTextF("Price expect", lx+107, ly+11, 10,(Color){ 60,210, 90,220});
     }
 }
 
