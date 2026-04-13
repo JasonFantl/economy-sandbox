@@ -123,13 +123,13 @@ static void render_s2p6(const SimContext *ctx, int x, int y, int w, int h) {
 
 static void render_s2p7(const SimContext *ctx, int x, int y, int w, int h) {
     render_three_panels(ctx, x, y, w, h, avg_eq(ctx, MARKET_WOOD), true);
-    WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT | WT_INF_INFLATION, 10);
+    WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT | WT_INF_INFLATION | WT_INF_MONEY, 10);
     WT_ENV(ctx, WT_ENV_WOOD_DECAY | WT_ENV_CHOP_YIELD, 258);
 }
 
 static void render_s2p8(const SimContext *ctx, int x, int y, int w, int h) {
     render_three_panels(ctx, x, y, w, h, avg_eq(ctx, MARKET_WOOD), true);
-    WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT | WT_INF_LEISURE | WT_INF_INFLATION, 10);
+    WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT | WT_INF_LEISURE | WT_INF_INFLATION | WT_INF_MONEY, 10);
     WT_ENV(ctx, WT_ENV_WOOD_DECAY | WT_ENV_CHOP_YIELD, 258);
 }
 
@@ -164,13 +164,13 @@ static void render_s3_plots(const SimContext *ctx, int x, int y, int w, int h, b
 
 static void render_s3p1(const SimContext *ctx, int x, int y, int w, int h) {
     render_s3_plots(ctx, x, y, w, h, true);
-    WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT | WT_INF_LEISURE | WT_INF_MARKET_SEL | WT_INF_INFLATION, 10);
+    WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT | WT_INF_LEISURE | WT_INF_MARKET_SEL | WT_INF_INFLATION | WT_INF_MONEY, 10);
     WT_ENV(ctx, WT_ENV_WOOD_DECAY | WT_ENV_DECAY_MARKET_SEL | WT_ENV_CHOP_YIELD, 258);
 }
 
 static void render_s3p2(const SimContext *ctx, int x, int y, int w, int h) {
     render_s3_plots(ctx, x, y, w, h, true);
-    WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT | WT_INF_LEISURE | WT_INF_MARKET_SEL | WT_INF_INFLATION, 10);
+    WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT | WT_INF_LEISURE | WT_INF_MARKET_SEL | WT_INF_INFLATION | WT_INF_MONEY, 10);
     WT_ENV(ctx, WT_ENV_WOOD_DECAY | WT_ENV_DECAY_MARKET_SEL | WT_ENV_CHOP_YIELD | WT_ENV_BUILD_COST, 258);
 }
 

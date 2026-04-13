@@ -75,6 +75,9 @@ void wt_influence_panel_init(WtInfluencePanel *p) {
     snprintf(p->bufLeisure,   sizeof(p->bufLeisure),   "%.1f", p->leisureValue);
     p->pendingInflation = g_inflation_enabled;
     p->lastInflation    = g_inflation_enabled;
+    p->moneyDelta       = 100.0f;
+    p->editMoney        = false;
+    snprintf(p->bufMoney, sizeof(p->bufMoney), "%.1f", p->moneyDelta);
 }
 
 void wt_influence_panel_render(WtInfluencePanel *p, Agent *agents, int agentCount,
@@ -92,6 +95,7 @@ void wt_influence_panel_render(WtInfluencePanel *p, Agent *agents, int agentCoun
     if (flags & WT_INF_WOOD_COUNT) rows++;
     if (flags & WT_INF_LEISURE)    rows++;
     if (flags & WT_INF_INFLATION)  rows++;
+    if (flags & WT_INF_MONEY)      rows++;
 
     int contentH = rows * (WT_ROW_H + WT_SEP) + WT_SEP + WT_BTN_H + WT_PAD;
     int contentY = WT_Y + WT_HDR_H;
@@ -201,6 +205,20 @@ void wt_influence_panel_render(WtInfluencePanel *p, Agent *agents, int agentCoun
         if (GuiButton((Rectangle){px + WT_APL_DX, rowY, WT_APL_W, WT_BTN_H}, "Set"))
             g_inflation_enabled = p->pendingInflation;
         if (inflMatch) GuiSetState(STATE_NORMAL);
+        rowY += WT_ROW_H + WT_SEP;
+    }
+
+    // --- Money row (delta) ---
+    if (flags & WT_INF_MONEY) {
+        GuiLabel((Rectangle){px + WT_DLBL_DX, rowY, WT_DLBL_W, WT_ROW_H - 2}, "Money:");
+        if (GuiTextBox((Rectangle){px + WT_DBOX_DX, rowY, WT_DBOX_W, WT_ROW_H - 2},
+                       p->bufMoney, (int)sizeof(p->bufMoney), p->editMoney)) {
+            p->editMoney = !p->editMoney;
+            if (!p->editMoney)
+                p->moneyDelta = strtof(p->bufMoney, NULL);
+        }
+        if (GuiButton((Rectangle){px + WT_DAPL_DX, rowY, WT_DAPL_W, WT_BTN_H}, "Add"))
+            agents_inject_money(agents, agentCount, agentCount, p->moneyDelta);
         rowY += WT_ROW_H + WT_SEP;
     }
 

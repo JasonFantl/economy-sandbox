@@ -16,6 +16,7 @@
 #define WT_INF_LEISURE     (1 << 2)   // setter: set every agent's leisure utility
 #define WT_INF_MARKET_SEL  (1 << 3)   // show market selector button on delta rows
 #define WT_INF_INFLATION   (1 << 4)   // checkbox + Set: toggle g_inflation_enabled
+#define WT_INF_MONEY       (1 << 5)   // delta: give / take money from every agent
 
 typedef struct {
     bool  expanded;
@@ -36,6 +37,10 @@ typedef struct {
     // Inflation toggle
     bool  pendingInflation;
     bool  lastInflation;  // last global value seen; used to detect external changes
+    // Money row (delta)
+    float moneyDelta;
+    bool  editMoney;
+    char  bufMoney[16];
     // Market selector state (used when WT_INF_MARKET_SEL is set)
     int   valueMarket;   // 0=Wood, 1=Chair
     int   goodsMarket;   // 0=Wood, 1=Chair
