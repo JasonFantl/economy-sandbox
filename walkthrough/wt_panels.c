@@ -275,10 +275,16 @@ void wt_environment_panel_render(WtEnvironmentPanel *p, int flags, int px) {
                 p->lastDecayRate = newDecay;
                 snprintf(p->bufDecay, sizeof(p->bufDecay), "%.4f", newDecay);
             }
-            if (GuiButton((Rectangle){px + WT_MSAPL_DX, rowY, WT_MSAPL_W, WT_BTN_H}, "Set")) {
-                if (p->decayMarket == MARKET_WOOD) g_wood_decay_rate  = p->decayRate;
-                else                               g_chair_decay_rate = p->decayRate;
-                p->lastDecayRate = p->decayRate;
+            {
+                float simDecay = (p->decayMarket == MARKET_WOOD) ? g_wood_decay_rate : g_chair_decay_rate;
+                bool decayMatch = (p->decayRate == simDecay);
+                if (decayMatch) GuiSetState(STATE_DISABLED);
+                if (GuiButton((Rectangle){px + WT_MSAPL_DX, rowY, WT_MSAPL_W, WT_BTN_H}, "Set")) {
+                    if (p->decayMarket == MARKET_WOOD) g_wood_decay_rate  = p->decayRate;
+                    else                               g_chair_decay_rate = p->decayRate;
+                    p->lastDecayRate = p->decayRate;
+                }
+                if (decayMatch) GuiSetState(STATE_NORMAL);
             }
         } else {
             // Setter style: wood only, no market selector; reset decayMarket for clean scene-3 entry
@@ -295,9 +301,14 @@ void wt_environment_panel_render(WtEnvironmentPanel *p, int flags, int px) {
                 if (!p->editDecay)
                     p->decayRate = strtof(p->bufDecay, NULL);
             }
-            if (GuiButton((Rectangle){px + WT_APL_DX, rowY, WT_APL_W, WT_BTN_H}, "Set")) {
-                g_wood_decay_rate = p->decayRate;
-                p->lastDecayRate  = p->decayRate;
+            {
+                bool decayMatch = (p->decayRate == g_wood_decay_rate);
+                if (decayMatch) GuiSetState(STATE_DISABLED);
+                if (GuiButton((Rectangle){px + WT_APL_DX, rowY, WT_APL_W, WT_BTN_H}, "Set")) {
+                    g_wood_decay_rate = p->decayRate;
+                    p->lastDecayRate  = p->decayRate;
+                }
+                if (decayMatch) GuiSetState(STATE_NORMAL);
             }
         }
         rowY += WT_ROW_H + WT_SEP;
@@ -319,8 +330,13 @@ void wt_environment_panel_render(WtEnvironmentPanel *p, int flags, int px) {
             if (!p->editChopYield)
                 p->chopYield = (int)strtol(p->bufChopYield, NULL, 10);
         }
-        if (GuiButton((Rectangle){px + WT_APL_DX, rowY, WT_APL_W, WT_BTN_H}, "Set"))
-            g_chop_yield = p->chopYield;
+        {
+            bool yieldMatch = (p->chopYield == g_chop_yield);
+            if (yieldMatch) GuiSetState(STATE_DISABLED);
+            if (GuiButton((Rectangle){px + WT_APL_DX, rowY, WT_APL_W, WT_BTN_H}, "Set"))
+                g_chop_yield = p->chopYield;
+            if (yieldMatch) GuiSetState(STATE_NORMAL);
+        }
         rowY += WT_ROW_H + WT_SEP;
     }
 
@@ -340,10 +356,15 @@ void wt_environment_panel_render(WtEnvironmentPanel *p, int flags, int px) {
             if (!p->editWoodPerChair)
                 p->woodPerChair = (int)strtol(p->bufWoodPerChair, NULL, 10);
         }
-        if (GuiButton((Rectangle){px + WT_APL_DX, rowY, WT_APL_W, WT_BTN_H}, "Set")) {
-            if (p->woodPerChair < 1) p->woodPerChair = 1;
-            g_wood_per_chair    = p->woodPerChair;
-            p->lastWoodPerChair = p->woodPerChair;
+        {
+            bool buildMatch = (p->woodPerChair == g_wood_per_chair);
+            if (buildMatch) GuiSetState(STATE_DISABLED);
+            if (GuiButton((Rectangle){px + WT_APL_DX, rowY, WT_APL_W, WT_BTN_H}, "Set")) {
+                if (p->woodPerChair < 1) p->woodPerChair = 1;
+                g_wood_per_chair    = p->woodPerChair;
+                p->lastWoodPerChair = p->woodPerChair;
+            }
+            if (buildMatch) GuiSetState(STATE_NORMAL);
         }
         rowY += WT_ROW_H + WT_SEP;
     }
