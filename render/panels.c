@@ -173,6 +173,15 @@ void panel_valuation_dist(const Agent *agents, int count, int marketId,
         if (m->priceExpectation>v) v=m->priceExpectation;
         if (v>rawMax) rawMax=v;
     }
+    // When inflation is on, also account for inflation-adjusted effective prices in scaling
+    if (g_inflation_enabled) {
+        for (int i=0;i<count;i++) {
+            const AgentMarket *m=&agents[i].econ.markets[marketId];
+            Utility mmu=money_marginal_utility(agents[i].econ.money);
+            float v=m->maxUtility/mmu;
+            if (v>rawMax) rawMax=v;
+        }
+    }
     float yMax=(b->yMax>0.0f)?b->yMax:compute_ymax(rawMax);
     draw_axes_y(px,py,pw,ph,yMax,equilibrium);
 
@@ -205,9 +214,28 @@ void panel_valuation_dist(const Agent *agents, int count, int marketId,
         if (band_bot > band_top)
             DrawRectangle(x-1,band_top,3,band_bot-band_top,(Color){180,180,100,40});
 
-        if (y_base>=py && y_base<=py+ph) DrawCircle(x,y_base,3,(Color){ 80,140,255,220});
-        if (y_sell>=py && y_sell<=py+ph) DrawCircle(x,y_sell,2,(Color){255,160, 60,200});
-        if (y_buy >=py && y_buy <=py+ph) DrawCircle(x,y_buy, 2,(Color){ 80,220,220,200});
+        if (g_inflation_enabled) {
+            // Utility dots dimmer and smaller when inflation is active
+            if (y_base>=py && y_base<=py+ph) DrawCircle(x,y_base,2,(Color){ 80,140,255,130});
+            if (y_sell>=py && y_sell<=py+ph) DrawCircle(x,y_sell,1,(Color){255,160, 60,120});
+            if (y_buy >=py && y_buy <=py+ph) DrawCircle(x,y_buy, 1,(Color){ 80,220,220,120});
+
+            // Inflation-adjusted effective prices: utility / money_marginal_utility
+            Utility mmu=money_marginal_utility(a->econ.money);
+            Price adj_base=base       /mmu;
+            Price adj_sell=sellUtility/mmu;
+            Price adj_buy =buyUtility /mmu;
+            int y_adj_base=(int)(py+ph-adj_base/yMax*(float)ph);
+            int y_adj_sell=(int)(py+ph-adj_sell/yMax*(float)ph);
+            int y_adj_buy =(int)(py+ph-adj_buy /yMax*(float)ph);
+            if (y_adj_base>=py && y_adj_base<=py+ph) DrawCircle(x,y_adj_base,3,(Color){140,190,255,255});
+            if (y_adj_sell>=py && y_adj_sell<=py+ph) DrawCircle(x,y_adj_sell,2,(Color){255,200,100,255});
+            if (y_adj_buy >=py && y_adj_buy <=py+ph) DrawCircle(x,y_adj_buy, 2,(Color){100,240,240,255});
+        } else {
+            if (y_base>=py && y_base<=py+ph) DrawCircle(x,y_base,3,(Color){ 80,140,255,220});
+            if (y_sell>=py && y_sell<=py+ph) DrawCircle(x,y_sell,2,(Color){255,160, 60,200});
+            if (y_buy >=py && y_buy <=py+ph) DrawCircle(x,y_buy, 2,(Color){ 80,220,220,200});
+        }
 
         Color emvCol=(a->sprite.tradeFlashTick>0)?YELLOW
                     :(is_buyer(a, (MarketId)marketId) ?(Color){ 60,210, 90,220}
@@ -217,10 +245,21 @@ void panel_valuation_dist(const Agent *agents, int count, int marketId,
     }
 
     int lx=px+pw-200,ly=py+4;
-    DrawCircle(lx,   ly+4, 3,(Color){ 80,140,255,220}); DrawTextF("Max utility",  lx+7,  ly-1, 10,(Color){ 80,140,255,220});
-    DrawCircle(lx,   ly+16,2,(Color){255,160, 60,200}); DrawTextF("Sell util",    lx+7,  ly+11,10,(Color){255,160, 60,200});
-    DrawCircle(lx+100,ly+4, 2,(Color){ 80,220,220,200}); DrawTextF("Buy util",    lx+107,ly-1, 10,(Color){ 80,220,220,200});
-    DrawCircle(lx+100,ly+16,3,(Color){ 60,210, 90,220}); DrawTextF("Price expect",lx+107,ly+11,10,(Color){ 60,210, 90,220});
+    if (g_inflation_enabled) {
+        // Left column: raw utility dots (dimmed); right column: inflation-adjusted effective prices
+        DrawCircle(lx,    ly+4,  2,(Color){ 80,140,255,130}); DrawTextF("Max util", lx+7,   ly-1,  10,(Color){ 80,140,255,130});
+        DrawCircle(lx,    ly+16, 1,(Color){255,160, 60,120}); DrawTextF("Sell util",lx+7,   ly+11, 10,(Color){255,160, 60,120});
+        DrawCircle(lx,    ly+28, 1,(Color){ 80,220,220,120}); DrawTextF("Buy util", lx+7,   ly+23, 10,(Color){ 80,220,220,120});
+        DrawCircle(lx,    ly+40, 3,(Color){ 60,210, 90,220}); DrawTextF("Price exp",lx+7,   ly+35, 10,(Color){ 60,210, 90,220});
+        DrawCircle(lx+100,ly+4,  3,(Color){140,190,255,255}); DrawTextF("Adj. base",lx+107, ly-1,  10,(Color){140,190,255,255});
+        DrawCircle(lx+100,ly+16, 2,(Color){255,200,100,255}); DrawTextF("Adj. sell",lx+107, ly+11, 10,(Color){255,200,100,255});
+        DrawCircle(lx+100,ly+28, 2,(Color){100,240,240,255}); DrawTextF("Adj. buy", lx+107, ly+23, 10,(Color){100,240,240,255});
+    } else {
+        DrawCircle(lx,    ly+4,  3,(Color){ 80,140,255,220}); DrawTextF("Max utility",  lx+7,   ly-1,  10,(Color){ 80,140,255,220});
+        DrawCircle(lx,    ly+16, 2,(Color){255,160, 60,200}); DrawTextF("Sell util",    lx+7,   ly+11, 10,(Color){255,160, 60,200});
+        DrawCircle(lx+100,ly+4,  2,(Color){ 80,220,220,200}); DrawTextF("Buy util",     lx+107, ly-1,  10,(Color){ 80,220,220,200});
+        DrawCircle(lx+100,ly+16, 3,(Color){ 60,210, 90,220}); DrawTextF("Price expect", lx+107, ly+11, 10,(Color){ 60,210, 90,220});
+    }
 }
 
 // ---------------------------------------------------------------------------
