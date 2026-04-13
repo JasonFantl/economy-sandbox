@@ -8,8 +8,8 @@ void market_gossip(Agent *a, Agent *b, MarketId mid) {
     AgentMarket *ma = AGENT_MKT(a, mid);
     AgentMarket *mb = AGENT_MKT(b, mid);
     // Snapshot both before updating either
-    float a_price = ma->priceExpectation;
-    float b_price = mb->priceExpectation;
+    Price a_price = ma->priceExpectation;
+    Price b_price = mb->priceExpectation;
     // Each agent updates toward the other's price expectation using their own belief update rate
     ma->priceExpectation = nerlove_update(a_price, b_price, a->econ.beliefUpdateRate);
     mb->priceExpectation = nerlove_update(b_price, a_price, b->econ.beliefUpdateRate);
@@ -29,7 +29,7 @@ int market_trade(Agent *a, Agent *b, MarketId mid) {
 
     AgentMarket *buyer_mkt  = AGENT_MKT(buyer,  mid);
     AgentMarket *seller_mkt = AGENT_MKT(seller, mid);
-    float proposed_price = seller_mkt->priceExpectation; // assumes sellers are the ones to publicize price
+    Price proposed_price = seller_mkt->priceExpectation; // assumes sellers are the ones to publicize price
 
     if (!able_to_buy(buyer, proposed_price, mid) || !wants_to_buy(buyer, proposed_price, mid)) {
         // frustration if buyer/seller do not agree on a fair price
@@ -60,9 +60,9 @@ void market_frustration_nudge(Agent *a, MarketId mid, float rate) {
     int frustrated = (is_buyer(a, mid) && able_to_buy(a, m->priceExpectation, mid))
                   || (is_seller(a, mid) && able_to_sell(a, mid));
     if (!frustrated) return;
-    float money_util = money_marginal_utility(a->econ.money);
-    float indifference_price = (marginal_buy_utility(m) + marginal_sell_utility(m))
-                               / (2.0f * money_util);
+    Utility money_utility    = money_marginal_utility(a->econ.money);
+    Price indifference_price = (marginal_buy_utility(m) + marginal_sell_utility(m))
+                               / (2.0f * money_utility);
     m->priceExpectation = nerlove_update(m->priceExpectation, indifference_price, rate);
 }
 

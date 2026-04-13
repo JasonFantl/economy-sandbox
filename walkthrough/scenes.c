@@ -79,7 +79,7 @@ static void render_s2p2(const SimContext *ctx, int x, int y, int w, int h) {
 
 // 3-in-a-row shared by s2p3–s2p8: Wealth | Val Dist | Price History
 static void render_three_panels(const SimContext *ctx, int x, int y, int w, int h,
-                                 float eq, bool showUtil) {
+                                 Price eq, bool showUtil) {
     int gap = 8, w3 = (w - 2*gap) / 3;
     draw_plot_frame(x, y, w3, h);
     panel_wealth(ctx->sim->agents, ctx->sim->count, MARKET_WOOD,
@@ -97,8 +97,10 @@ static void render_s2p3(const SimContext *ctx, int x, int y, int w, int h) {
     WT_INF(ctx, WT_INF_WOOD_VALUE, 10);
 }
 
-static float avg_eq(const SimContext *ctx, int mid) {
-    float sum = 0.0f;
+// Returns the average max utility as an equilibrium price reference line.
+// At equilibrium the market price equals the average agent valuation.
+static Price avg_eq(const SimContext *ctx, int mid) {
+    Price sum = 0.0f;
     for (int i = 0; i < ctx->sim->count; i++)
         sum += ctx->sim->agents[i].econ.markets[mid].maxUtility;
     return ctx->sim->count > 0 ? sum / (float)ctx->sim->count : 0.0f;
@@ -135,8 +137,8 @@ static void render_s2p8(const SimContext *ctx, int x, int y, int w, int h) {
 
 // 3×2 grid for scene 3: top row = wood, bottom row = chair
 static void render_s3_plots(const SimContext *ctx, int x, int y, int w, int h, bool showUtil) {
-    float eq_wood  = avg_eq(ctx, MARKET_WOOD);
-    float eq_chair = avg_eq(ctx, MARKET_CHAIR);
+    Price eq_wood  = avg_eq(ctx, MARKET_WOOD);
+    Price eq_chair = avg_eq(ctx, MARKET_CHAIR);
     int gap = 8, w3 = (w - 2*gap) / 3, hh = (h - gap) / 2;
     // Top row: Wood
     draw_plot_frame(x,            y, w3, hh);

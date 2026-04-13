@@ -22,28 +22,28 @@ static void choose_action(Agent *a) {
     AgentMarket *wood  = AGENT_MKT(a, MARKET_WOOD);
     AgentMarket *chair = AGENT_MKT(a, MARKET_CHAIR);
 
-    float idle_util  = leisure_utility(a->econ.leisureUtility);
-    float money_util = money_marginal_utility(a->econ.money);
+    Utility idle_utility  = leisure_utility(a->econ.leisureUtility);
+    Utility money_utility = money_marginal_utility(a->econ.money);
 
-    float chop_util = -999.0f;
+    Utility chop_utility = -999.0f;
     if (g_chop_wood_enabled) {
-        chop_util = marginal_buy_utility(wood) * (float)g_chop_yield;
-        float sell_wood = wood->priceExpectation * money_util * (float)g_chop_yield;
-        if (sell_wood > chop_util) chop_util = sell_wood;
+        chop_utility = marginal_buy_utility(wood) * (float)g_chop_yield;
+        Utility sell_wood_utility = wood->priceExpectation * money_utility * (float)g_chop_yield;
+        if (sell_wood_utility > chop_utility) chop_utility = sell_wood_utility;
     }
 
-    float build_util = -999.0f;
+    Utility build_utility = -999.0f;
     if (g_build_chairs_enabled && wood->goods >= g_wood_per_chair) {
-        float chair_gain = marginal_buy_utility(chair);
-        float sell_chair = chair->priceExpectation * money_util;
-        if (sell_chair > chair_gain) chair_gain = sell_chair;
-        build_util = chair_gain - marginal_sell_utility(wood) * (float)g_wood_per_chair;
+        Utility chair_gain_utility = marginal_buy_utility(chair);
+        Utility sell_chair_utility = chair->priceExpectation * money_utility;
+        if (sell_chair_utility > chair_gain_utility) chair_gain_utility = sell_chair_utility;
+        build_utility = chair_gain_utility - marginal_sell_utility(wood) * (float)g_wood_per_chair;
     }
 
-    AgentAction best     = ACTION_LEISURE;
-    float       best_val = idle_util;
-    if (chop_util  > best_val) { best = ACTION_CHOP;  best_val = chop_util; }
-    if (build_util > best_val) { best = ACTION_BUILD; }
+    AgentAction best          = ACTION_LEISURE;
+    Utility     best_utility  = idle_utility;
+    if (chop_utility  > best_utility) { best = ACTION_CHOP;  best_utility = chop_utility; }
+    if (build_utility > best_utility) { best = ACTION_BUILD; }
 
     if (best == ACTION_LEISURE) {
         a->econ.lastAction = ACTION_LEISURE;
@@ -115,19 +115,19 @@ static void partial_shuffle(int *indices, int count, int n) {
     }
 }
 
-void agents_adjust_valuations(Agent *agents, int count, int numAgents, float delta, MarketId mid) {
+void agents_adjust_valuations(Agent *agents, int count, int numAgents, Utility delta, MarketId mid) {
     if (numAgents > count) numAgents = count;
     int indices[MAX_AGENTS];
     for (int i = 0; i < count; i++) indices[i] = i;
     partial_shuffle(indices, count, numAgents);
     for (int i = 0; i < numAgents; i++) {
-        float *v = &agents[indices[i]].econ.markets[mid].maxUtility;
+        Utility *v = &agents[indices[i]].econ.markets[mid].maxUtility;
         *v += delta;
         if (*v < 1.0f) *v = 1.0f;
     }
 }
 
-void agents_inject_money(Agent *agents, int count, int numAgents, float delta) {
+void agents_inject_money(Agent *agents, int count, int numAgents, Price delta) {
     if (numAgents > count) numAgents = count;
     int indices[MAX_AGENTS];
     for (int i = 0; i < count; i++) indices[i] = i;
@@ -148,19 +148,19 @@ void agents_inject_goods(Agent *agents, int count, int numAgents, int delta, Mar
     }
 }
 
-void agents_set_leisure(Agent *agents, int count, float value) {
+void agents_set_leisure(Agent *agents, int count, Utility value) {
     if (value < 1.0f) value = 1.0f;
     for (int i = 0; i < count; i++)
         agents[i].econ.leisureUtility = value;
 }
 
-void agents_adjust_leisure(Agent *agents, int count, int numAgents, float delta) {
+void agents_adjust_leisure(Agent *agents, int count, int numAgents, Utility delta) {
     if (numAgents > count) numAgents = count;
     int indices[MAX_AGENTS];
     for (int i = 0; i < count; i++) indices[i] = i;
     partial_shuffle(indices, count, numAgents);
     for (int i = 0; i < numAgents; i++) {
-        float *v = &agents[indices[i]].econ.leisureUtility;
+        Utility *v = &agents[indices[i]].econ.leisureUtility;
         *v += delta;
         if (*v < 1.0f) *v = 1.0f;
     }

@@ -11,8 +11,8 @@
 typedef struct {
     bool     expanded;
     int      numAgents;
-    float    moneyDelta;
-    float    valuationDelta;
+    Price    moneyDelta;
+    Utility  valuationDelta;
     int      goodsDelta;
     MarketId marketId;
     // raygui ValueBoxFloat edit state
@@ -20,7 +20,7 @@ typedef struct {
     char     bufMoney[16];
     bool     editValuation;
     char     bufValuation[16];
-    float    leisureDelta;
+    Utility  leisureDelta;
     bool     editLeisure;
     char     bufLeisure[16];
     bool     editN;

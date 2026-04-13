@@ -164,7 +164,7 @@ void panel_wealth(const Agent *agents, int count, int marketId,
 // ---------------------------------------------------------------------------
 
 void panel_valuation_dist(const Agent *agents, int count, int marketId,
-                           int px, int py, int pw, int ph, float equilibrium) {
+                           int px, int py, int pw, int ph, Price equilibrium) {
     PlotBounds *b=&g_bounds[PLOT_VALUATION_DISTRIBUTION][marketId];
     float rawMax=1.0f;
     for (int i=0;i<count;i++) {
@@ -187,13 +187,13 @@ void panel_valuation_dist(const Agent *agents, int count, int marketId,
         const Agent      *a=&agents[indices[rank]];
         const AgentMarket *m=&a->econ.markets[marketId];
         int x=px+(int)(xOff+(float)rank*xStep);
-        float sellPrice=marginal_sell_utility(m), buyPrice=marginal_buy_utility(m);
-        float base=m->maxUtility, emv=m->priceExpectation;
+        Utility sellUtility=marginal_sell_utility(m), buyUtility=marginal_buy_utility(m);
+        Utility base=m->maxUtility; Price emv=m->priceExpectation;
 
-        int y_base=(int)(py+ph-base     /yMax*(float)ph);
-        int y_sell=(int)(py+ph-sellPrice/yMax*(float)ph);
-        int y_buy =(int)(py+ph-buyPrice /yMax*(float)ph);
-        int y_emv =(int)(py+ph-emv      /yMax*(float)ph);
+        int y_base=(int)(py+ph-base        /yMax*(float)ph);
+        int y_sell=(int)(py+ph-sellUtility /yMax*(float)ph);
+        int y_buy =(int)(py+ph-buyUtility  /yMax*(float)ph);
+        int y_emv =(int)(py+ph-emv         /yMax*(float)ph);
 
         draw_line_yclip(x,y_base,x,y_emv, py,py+ph, (Color){80,80,90,120});
 
@@ -230,7 +230,7 @@ void panel_valuation_dist(const Agent *agents, int count, int marketId,
 void panel_price_history(const AgentValueHistory *avh, const AgentValueHistory *pvh,
                          const Agent *agents, int count, int marketId,
                          int px, int py, int pw, int ph,
-                         float equilibrium, bool showIndividualUtil) {
+                         Price equilibrium, bool showIndividualUtil) {
     PlotBounds *b=&g_bounds[PLOT_PRICE_HISTORY][marketId];
     float rawMax=1.0f;
     for (int s=0;s<avh->count;s++) { float v=avh_avg(avh,s); if(v>rawMax) rawMax=v; }

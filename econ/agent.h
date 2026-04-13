@@ -22,6 +22,12 @@ extern int g_wood_per_chair;   // wood units consumed per chair built (default 4
 extern float g_wood_decay_rate;
 extern float g_chair_decay_rate;
 
+// ---------------------------------------------------------------------------
+// Domain scalar types — Price (money denominated) and Utility (satisfaction)
+// ---------------------------------------------------------------------------
+typedef float Price;
+typedef float Utility;
+
 typedef enum { MARKET_WOOD = 0, MARKET_CHAIR = 1, MARKET_COUNT = 2 } MarketId;
 typedef enum { ACTION_LEISURE = 0, ACTION_CHOP = 1, ACTION_BUILD = 2 } AgentAction;
 typedef enum {
@@ -32,11 +38,11 @@ typedef enum {
 } TargetType;
 
 typedef struct {
-    int    goods;
-    float  maxUtility;
-    float  minUtility;
-    float  halfSaturation;
-    float  priceExpectation;
+    int     goods;
+    Utility maxUtility;
+    Utility minUtility;
+    float   halfSaturation;   // goods count at which utility is halved
+    Price   priceExpectation;
 } AgentMarket;
 
 typedef enum { DIR_SOUTH = 0, DIR_WEST = 1, DIR_EAST = 2, DIR_NORTH = 3 } FacingDir;
@@ -54,9 +60,9 @@ typedef struct {
 } AgentBody;
 
 typedef struct {
-    float        money;
+    Price        money;
     AgentMarket  markets[MARKET_COUNT];
-    float        leisureUtility;
+    Utility      leisureUtility;
     AgentAction  lastAction;
     AgentAction  pendingWork;
     float        beliefUpdateRate;

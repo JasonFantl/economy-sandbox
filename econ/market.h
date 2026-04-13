@@ -10,7 +10,7 @@ extern bool g_disable_executing_trade;  // true = price beliefs update but money
 // Nerlove adaptive expectation: price_new = price_old^(1-rate) * signal^rate
 #include <math.h>
 #include <stdbool.h>
-static inline float nerlove_update(float price, float signal, float rate) {
+static inline Price nerlove_update(Price price, Price signal, float rate) {
     if (signal < 0.1f) signal = 0.1f;
     return powf(price, 1.0f - rate) * powf(signal, rate);
 }
@@ -24,19 +24,19 @@ typedef struct {
 } AgentValueHistory;
 
 // True if the agent wants to buy at a specific price (utility exceeds cost)
-static inline int wants_to_buy(const Agent *a, float price, MarketId mid) {
+static inline int wants_to_buy(const Agent *a, Price price, MarketId mid) {
     const AgentMarket *m = AGENT_MKT(a, mid);
     return marginal_buy_utility(m) > price * money_marginal_utility(a->econ.money);
 }
 
 // True if the agent wants to sell at a specific price (revenue exceeds utility of keeping)
-static inline int wants_to_sell(const Agent *a, float price, MarketId mid) {
+static inline int wants_to_sell(const Agent *a, Price price, MarketId mid) {
     const AgentMarket *m = AGENT_MKT(a, mid);
     return marginal_sell_utility(m) < price * money_marginal_utility(a->econ.money);
 }
 
 // True if the agent can afford to buy at this price
-static inline int able_to_buy(const Agent *a, float price, MarketId mid) {
+static inline int able_to_buy(const Agent *a, Price price, MarketId mid) {
     (void)mid;
     return a->econ.money >= price;
 }

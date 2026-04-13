@@ -22,28 +22,28 @@ typedef struct {
     bool  expanded;
     bool  restart_requested;  // set by render; cleared by caller after handling
     // Wood value row (delta)
-    float woodValueDelta;
-    bool  editWoodValue;
-    char  bufWoodValue[16];
+    Utility woodUtilityDelta;
+    bool    editWoodValue;
+    char    bufWoodValue[16];
     // Wood count row (delta)
-    int   woodCountDelta;
-    bool  editWoodCount;
-    char  bufWoodCount[16];
+    int     woodCountDelta;
+    bool    editWoodCount;
+    char    bufWoodCount[16];
     // Leisure row (setter)
-    float leisureValue;
-    bool  editLeisure;
-    char  bufLeisure[16];
-    float lastLeisure;   // last global value seen; used to detect external changes
+    Utility leisureValue;
+    bool    editLeisure;
+    char    bufLeisure[16];
+    Utility lastLeisure;  // last global value seen; used to detect external changes
     // Inflation toggle
-    bool  pendingInflation;
-    bool  lastInflation;  // last global value seen; used to detect external changes
+    bool    pendingInflation;
+    bool    lastInflation;  // last global value seen; used to detect external changes
     // Money row (delta)
-    float moneyDelta;
-    bool  editMoney;
-    char  bufMoney[16];
+    Price   moneyDelta;
+    bool    editMoney;
+    char    bufMoney[16];
     // Market selector state (used when WT_INF_MARKET_SEL is set)
-    int   valueMarket;   // 0=Wood, 1=Chair
-    int   goodsMarket;   // 0=Wood, 1=Chair
+    int     valueMarket;  // 0=Wood, 1=Chair
+    int     goodsMarket;  // 0=Wood, 1=Chair
 } WtInfluencePanel;
 
 void wt_influence_panel_init(WtInfluencePanel *p);

@@ -61,7 +61,7 @@ static const Color WT_BORDER = {80, 100, 130, 255};
 void wt_influence_panel_init(WtInfluencePanel *p) {
     p->expanded          = false;
     p->restart_requested = false;
-    p->woodValueDelta    = 5.0f;
+    p->woodUtilityDelta    = 5.0f;
     p->editWoodValue     = false;
     p->woodCountDelta    = 1;
     p->editWoodCount     = false;
@@ -70,7 +70,7 @@ void wt_influence_panel_init(WtInfluencePanel *p) {
     p->lastLeisure       = p->leisureValue;
     p->valueMarket       = MARKET_WOOD;
     p->goodsMarket       = MARKET_WOOD;
-    snprintf(p->bufWoodValue, sizeof(p->bufWoodValue), "%.1f", p->woodValueDelta);
+    snprintf(p->bufWoodValue, sizeof(p->bufWoodValue), "%.1f", p->woodUtilityDelta);
     snprintf(p->bufWoodCount, sizeof(p->bufWoodCount), "%d",   p->woodCountDelta);
     snprintf(p->bufLeisure,   sizeof(p->bufLeisure),   "%.1f", p->leisureValue);
     p->pendingInflation = g_inflation_enabled;
@@ -112,25 +112,25 @@ void wt_influence_panel_render(WtInfluencePanel *p, Agent *agents, int agentCoun
                            p->bufWoodValue, (int)sizeof(p->bufWoodValue), p->editWoodValue)) {
                 p->editWoodValue = !p->editWoodValue;
                 if (!p->editWoodValue)
-                    p->woodValueDelta = strtof(p->bufWoodValue, NULL);
+                    p->woodUtilityDelta = strtof(p->bufWoodValue, NULL);
             }
             if (GuiButton((Rectangle){px + WT_MSMKT_DX, rowY, WT_MSMKT_W, WT_BTN_H},
                           p->valueMarket == MARKET_WOOD ? "Wood" : "Chair"))
                 p->valueMarket = 1 - p->valueMarket;
             if (GuiButton((Rectangle){px + WT_MSAPL_DX, rowY, WT_MSAPL_W, WT_BTN_H}, "Add"))
                 agents_adjust_valuations(agents, agentCount, agentCount,
-                                         p->woodValueDelta, (MarketId)p->valueMarket);
+                                         p->woodUtilityDelta, (MarketId)p->valueMarket);
         } else {
             GuiLabel((Rectangle){px + WT_DLBL_DX, rowY, WT_DLBL_W, WT_ROW_H - 2}, "Value:");
             if (GuiTextBox((Rectangle){px + WT_DBOX_DX, rowY, WT_DBOX_W, WT_ROW_H - 2},
                            p->bufWoodValue, (int)sizeof(p->bufWoodValue), p->editWoodValue)) {
                 p->editWoodValue = !p->editWoodValue;
                 if (!p->editWoodValue)
-                    p->woodValueDelta = strtof(p->bufWoodValue, NULL);
+                    p->woodUtilityDelta = strtof(p->bufWoodValue, NULL);
             }
             if (GuiButton((Rectangle){px + WT_DAPL_DX, rowY, WT_DAPL_W, WT_BTN_H}, "Add"))
                 agents_adjust_valuations(agents, agentCount, agentCount,
-                                         p->woodValueDelta, MARKET_WOOD);
+                                         p->woodUtilityDelta, MARKET_WOOD);
         }
         rowY += WT_ROW_H + WT_SEP;
     }

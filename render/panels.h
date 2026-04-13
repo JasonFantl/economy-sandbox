@@ -22,7 +22,7 @@ extern PlotBounds g_bounds[PLOT_COUNT][MARKET_COUNT];  // defined in panels.c
 void panel_price_history(const AgentValueHistory *avh, const AgentValueHistory *pvh,
                          const Agent *agents, int count, int marketId,
                          int px, int py, int pw, int ph,
-                         float equilibrium, bool showIndividualUtil);
+                         Price equilibrium, bool showIndividualUtil);
 
 // Supply & demand step curves with equilibrium marker.
 void panel_supply_demand(const Agent *agents, int count, int marketId,
@@ -34,7 +34,7 @@ void panel_wealth(const Agent *agents, int count, int marketId,
 
 // Agents sorted by max utility with buy/sell/price dots.
 void panel_valuation_dist(const Agent *agents, int count, int marketId,
-                           int px, int py, int pw, int ph, float equilibrium);
+                           int px, int py, int pw, int ph, Price equilibrium);
 
 // Goods-count time series per agent + average.
 void panel_goods_history(const AgentValueHistory *gvh, int marketId,
