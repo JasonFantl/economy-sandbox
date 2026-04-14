@@ -6,6 +6,7 @@
 #include "raylib.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 // ---------------------------------------------------------------------------
 // Shared style
@@ -257,6 +258,20 @@ void wt_wealth_config_init(WealthAxisConfig *c) {
     c->axisMax[WEALTH_AXIS_WOOD_UTIL]  = 80.0f;
     c->xEditMode = false;
     c->yEditMode = false;
+    strncpy(c->dropdownText, "Money;Wood Count;Wood Utility", sizeof(c->dropdownText) - 1);
+    c->dropdownText[sizeof(c->dropdownText) - 1] = '\0';
+}
+
+void wt_wealth_chair_config_init(WealthAxisConfig *c) {
+    c->xAxis = WEALTH_AXIS_WOOD_COUNT;
+    c->yAxis = WEALTH_AXIS_MONEY;
+    c->axisMax[WEALTH_AXIS_MONEY]      = 2000.0f;
+    c->axisMax[WEALTH_AXIS_WOOD_COUNT] = 20.0f;
+    c->axisMax[WEALTH_AXIS_WOOD_UTIL]  = 120.0f;
+    c->xEditMode = false;
+    c->yEditMode = false;
+    strncpy(c->dropdownText, "Money;Chair Count;Chair Utility", sizeof(c->dropdownText) - 1);
+    c->dropdownText[sizeof(c->dropdownText) - 1] = '\0';
 }
 
 void wt_environment_panel_render(WtEnvironmentPanel *p, int flags, int px) {

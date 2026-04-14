@@ -89,10 +89,9 @@ static int cmp_by_max_utility(const void *a, const void *b) {
 // PLOT_WEALTH
 // ---------------------------------------------------------------------------
 
-// Labels for each wealth axis
+// Y-axis and X-axis tick labels per axis (generic; dropdown text is per-config)
 static const char *WEALTH_AXIS_LABEL[WEALTH_AXIS_COUNT] = { "$",       "goods",  "util"  };
 static const char *WEALTH_AXIS_ARROW[WEALTH_AXIS_COUNT] = { "money →", "goods →","util →"};
-#define WEALTH_AXIS_DROPDOWN_TEXT "Money;Wood Count;Wood Utility"
 
 #define WEALTH_BTNS_H 24  // pixels reserved at plot bottom for axis selector row
 
@@ -201,23 +200,23 @@ void panel_wealth(const Agent *agents, int count, int marketId,
 
     // Draw the closed dropdown first, open one last so its list renders on top
     if (cfg->xEditMode) {
-        if (GuiDropdownBox(ry, WEALTH_AXIS_DROPDOWN_TEXT, &ya, cfg->yEditMode)) {
+        if (GuiDropdownBox(ry, cfg->dropdownText, &ya, cfg->yEditMode)) {
             cfg->yEditMode = !cfg->yEditMode;
             if (cfg->yEditMode) cfg->xEditMode = false;
         }
         cfg->yAxis = (WealthAxis)ya;
-        if (GuiDropdownBox(rx, WEALTH_AXIS_DROPDOWN_TEXT, &xa, cfg->xEditMode)) {
+        if (GuiDropdownBox(rx, cfg->dropdownText, &xa, cfg->xEditMode)) {
             cfg->xEditMode = !cfg->xEditMode;
             if (cfg->xEditMode) cfg->yEditMode = false;
         }
         cfg->xAxis = (WealthAxis)xa;
     } else {
-        if (GuiDropdownBox(rx, WEALTH_AXIS_DROPDOWN_TEXT, &xa, cfg->xEditMode)) {
+        if (GuiDropdownBox(rx, cfg->dropdownText, &xa, cfg->xEditMode)) {
             cfg->xEditMode = !cfg->xEditMode;
             if (cfg->xEditMode) cfg->yEditMode = false;
         }
         cfg->xAxis = (WealthAxis)xa;
-        if (GuiDropdownBox(ry, WEALTH_AXIS_DROPDOWN_TEXT, &ya, cfg->yEditMode)) {
+        if (GuiDropdownBox(ry, cfg->dropdownText, &ya, cfg->yEditMode)) {
             cfg->yEditMode = !cfg->yEditMode;
             if (cfg->yEditMode) cfg->xEditMode = false;
         }

@@ -89,7 +89,9 @@ void wt_environment_panel_render(WtEnvironmentPanel *p, int flags, int px);
 // Wealth plot axis configuration init
 // ---------------------------------------------------------------------------
 
-// Initialise with defaults: X = Wood Count, Y = Money
+// Initialise with wood labels: X = Wood Count, Y = Money
 void wt_wealth_config_init(WealthAxisConfig *c);
+// Initialise with chair labels: X = Wood Count (chair count), Y = Money
+void wt_wealth_chair_config_init(WealthAxisConfig *c);
 
 #endif

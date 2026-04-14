@@ -48,7 +48,7 @@ void hud_init(void) {
     wt_influence_panel_init(&g_wt_influence);
     wt_environment_panel_init(&g_wt_environment);
     wt_wealth_config_init(&g_wt_wealth);
-    wt_wealth_config_init(&g_wt_wealth_chair);
+    wt_wealth_chair_config_init(&g_wt_wealth_chair);
     assets_load(&g_assets);
 }
 
