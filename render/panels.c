@@ -100,8 +100,10 @@ void panel_wealth(const Agent *agents, int count, int marketId,
                   int px, int py, int pw, int ph, WealthAxisConfig *cfg) {
     PlotBounds *b = &g_bounds[PLOT_WEALTH][marketId];
 
-    // Effective plot height shrinks when axis buttons are shown
-    int eph = ph - (cfg ? WEALTH_BTNS_H : 0);
+    // When cfg is provided, buttons occupy the top; plot is shifted down.
+    int boff = cfg ? WEALTH_BTNS_H : 0;
+    int ppy  = py + boff;   // plot content top
+    int pph  = ph - boff;   // plot content height
 
     WealthAxis xAx = cfg ? cfg->xAxis : WEALTH_AXIS_WOOD_COUNT;
     WealthAxis yAx = cfg ? cfg->yAxis : WEALTH_AXIS_MONEY;
@@ -122,11 +124,11 @@ void panel_wealth(const Agent *agents, int count, int marketId,
         maxX=(b->xMax>0.0f)?(float)(int)b->xMax:(float)dynGoods;
     }
 
-    DrawLine(px,py,px,py+eph,LIGHTGRAY);
-    DrawLine(px,py+eph,px+pw,py+eph,LIGHTGRAY);
+    DrawLine(px,ppy,px,ppy+pph,LIGHTGRAY);
+    DrawLine(px,ppy+pph,px+pw,ppy+pph,LIGHTGRAY);
     for (int step=0;step<=4;step++) {
         float v=maxY*(float)step/4.0f;
-        int y=py+eph-(int)((float)step/4.0f*(float)eph);
+        int y=ppy+pph-(int)((float)step/4.0f*(float)pph);
         DrawLine(px-4,y,px,y,LIGHTGRAY);
         char buf[12]; snprintf(buf,sizeof(buf),"%.0f",v);
         DrawTextF(buf,px-28,y-7,11,LIGHTGRAY);
@@ -135,13 +137,13 @@ void panel_wealth(const Agent *agents, int count, int marketId,
     for (int step=0;step<=4;step++) {
         float xv=maxX*(float)step/4.0f;
         int x=px+(int)((float)step/4.0f*(float)pw);
-        DrawLine(x,py+eph,x,py+eph+4,LIGHTGRAY);
+        DrawLine(x,ppy+pph,x,ppy+pph+4,LIGHTGRAY);
         char buf[16]; snprintf(buf,sizeof(buf),"%.0f",xv);
-        DrawTextF(buf,x-5,py+eph+6,11,LIGHTGRAY);
-        DrawLine(x,py,x,py+eph,(Color){50,50,60,255});
+        DrawTextF(buf,x-5,ppy+pph+6,11,LIGHTGRAY);
+        DrawLine(x,ppy,x,ppy+pph,(Color){50,50,60,255});
     }
-    DrawTextF(WEALTH_AXIS_LABEL[yAx],px-12,py-2,13,LIGHTGRAY);
-    if (!cfg) DrawTextF(WEALTH_AXIS_ARROW[xAx],px+pw-52,py+eph+6,11,LIGHTGRAY);
+    DrawTextF(WEALTH_AXIS_LABEL[yAx],px-12,ppy-2,13,LIGHTGRAY);
+    if (!cfg) DrawTextF(WEALTH_AXIS_ARROW[xAx],px+pw-52,ppy+pph+6,11,LIGHTGRAY);
 
     for (int i=0;i<count;i++) {
         const AgentMarket *m = &agents[i].econ.markets[marketId];
@@ -161,13 +163,13 @@ void panel_wealth(const Agent *agents, int count, int marketId,
         else                                        col=(Color){150,150,150,180};
 
         if (gx >= 0.0f && gx <= 1.0f && gy >= 0.0f && gy <= 1.0f) {
-            int sx=px+(int)(gx*(float)pw), sy=py+eph-(int)(gy*(float)eph);
+            int sx=px+(int)(gx*(float)pw), sy=ppy+pph-(int)(gy*(float)pph);
             DrawCircle(sx,sy,3,col);
         } else {
             float ax = (float)px + gx*(float)pw;
-            float ay = (float)(py+eph) - gy*(float)eph;
+            float ay = (float)(ppy+pph) - gy*(float)pph;
             float ex = ax < (float)px ? (float)px : (ax > (float)(px+pw) ? (float)(px+pw) : ax);
-            float ey = ay < (float)py ? (float)py : (ay > (float)(py+eph) ? (float)(py+eph) : ay);
+            float ey = ay < (float)ppy ? (float)ppy : (ay > (float)(ppy+pph) ? (float)(ppy+pph) : ay);
             float ddx = ax - ex, ddy = ay - ey;
             float len = sqrtf(ddx*ddx + ddy*ddy);
             if (len < 0.5f) continue;
@@ -179,12 +181,12 @@ void panel_wealth(const Agent *agents, int count, int marketId,
         }
     }
 
-    // Axis selector dropdowns — only when cfg is provided
+    // Axis selector dropdowns at top — only when cfg is provided
     if (!cfg) return;
 
     // Single row: X: [dropdown]   Y: [dropdown]
     // Layout: label(16) + dropdown + gap(8) + label(16) + dropdown, within pw
-    int by  = py + eph + 2;
+    int by  = py + 2;
     int bh  = 20;
     int lw  = 16;   // "X:" / "Y:" label width
     int gap = 8;
