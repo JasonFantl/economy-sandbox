@@ -218,8 +218,17 @@ void panel_valuation_dist(const Agent *agents, int count, int marketId,
                 if (y_adj_buy>=py && y_adj_buy<=py+ph)
                     DrawTriangle((Vector2){x,y_adj_buy+6},(Vector2){x+3,y_adj_buy},(Vector2){x-3,y_adj_buy},(Color){100,240,240,255});
             }
-            // Grey line, then circles on top
+            // Grey line, band, then circles on top
             draw_line_yclip(x,y_adj_base,x,y_emv,py,py+ph,(Color){80,80,90,120});
+            if (g_diminishing_returns) {
+                int band_top_raw=y_adj_buy<y_adj_sell?y_adj_buy:y_adj_sell;
+                int band_bot_raw=y_adj_sell<y_adj_buy?y_adj_buy:y_adj_sell;
+                if (band_bot_raw<band_top_raw+1) band_bot_raw=band_top_raw+1;
+                int band_top=band_top_raw<py    ?py    :band_top_raw;
+                int band_bot=band_bot_raw>py+ph ?py+ph :band_bot_raw;
+                if (band_bot>band_top)
+                    DrawRectangle(x-1,band_top,3,band_bot-band_top,(Color){180,180,100,40});
+            }
             if (y_base>=py     && y_base<=py+ph)     DrawCircle(x,y_base,    2,(Color){ 80,140,255,130});
             if (y_adj_base>=py && y_adj_base<=py+ph) DrawCircle(x,y_adj_base,3,(Color){140,190,255,255});
         } else {
