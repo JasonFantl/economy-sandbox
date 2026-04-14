@@ -29,6 +29,7 @@ DecayRatePanel    g_decay_rates;
 WtInfluencePanel  g_wt_influence;
 WtEnvironmentPanel g_wt_environment;
 WealthAxisConfig  g_wt_wealth;
+WealthAxisConfig  g_wt_wealth_chair;
 Assets            g_assets;
 
 // ---------------------------------------------------------------------------
@@ -47,6 +48,7 @@ void hud_init(void) {
     wt_influence_panel_init(&g_wt_influence);
     wt_environment_panel_init(&g_wt_environment);
     wt_wealth_config_init(&g_wt_wealth);
+    wt_wealth_config_init(&g_wt_wealth_chair);
     assets_load(&g_assets);
 }
 

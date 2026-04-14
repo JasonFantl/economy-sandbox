@@ -20,6 +20,7 @@ typedef struct {
     WtInfluencePanel  *wt_inf;
     WtEnvironmentPanel *wt_env;
     WealthAxisConfig  *wt_wealth;
+    WealthAxisConfig  *wt_wealth_chair;
 } SimContext;
 
 // ---------------------------------------------------------------------------

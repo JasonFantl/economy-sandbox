@@ -138,14 +138,15 @@ static void render_s2p8(const SimContext *ctx, int x, int y, int w, int h) {
 }
 
 // 3×2 grid for scene 3: top row = wood, bottom row = chair
-static void render_s3_plots(const SimContext *ctx, int x, int y, int w, int h, bool showUtil) {
+static void render_s3_plots(const SimContext *ctx, int x, int y, int w, int h, bool showUtil,
+                             WealthAxisConfig *cfgWood, WealthAxisConfig *cfgChair) {
     Price eq_wood  = avg_eq(ctx, MARKET_WOOD);
     Price eq_chair = avg_eq(ctx, MARKET_CHAIR);
     int gap = 8, w3 = (w - 2*gap) / 3, hh = (h - gap) / 2;
     // Top row: Wood
     draw_plot_frame(x,            y, w3, hh);
     panel_wealth(ctx->sim->agents, ctx->sim->count, MARKET_WOOD,
-                 CX(x), CY(y), CW(w3), CH(hh), NULL);
+                 CX(x), CY(y), CW(w3), CH(hh), cfgWood);
     draw_plot_frame(x + w3+gap,   y, w3, hh);
     panel_valuation_dist(ctx->sim->agents, ctx->sim->count, MARKET_WOOD,
                          CX(x+w3+gap), CY(y), CW(w3), CH(hh), eq_wood);
@@ -156,7 +157,7 @@ static void render_s3_plots(const SimContext *ctx, int x, int y, int w, int h, b
     // Bottom row: Chair
     draw_plot_frame(x,            y+hh+gap, w3, hh);
     panel_wealth(ctx->sim->agents, ctx->sim->count, MARKET_CHAIR,
-                 CX(x), CY(y+hh+gap), CW(w3), CH(hh), NULL);
+                 CX(x), CY(y+hh+gap), CW(w3), CH(hh), cfgChair);
     draw_plot_frame(x + w3+gap,   y+hh+gap, w3, hh);
     panel_valuation_dist(ctx->sim->agents, ctx->sim->count, MARKET_CHAIR,
                          CX(x+w3+gap), CY(y+hh+gap), CW(w3), CH(hh), eq_chair);
@@ -167,13 +168,13 @@ static void render_s3_plots(const SimContext *ctx, int x, int y, int w, int h, b
 }
 
 static void render_s3p1(const SimContext *ctx, int x, int y, int w, int h) {
-    render_s3_plots(ctx, x, y, w, h, true);
+    render_s3_plots(ctx, x, y, w, h, true, ctx->wt_wealth, ctx->wt_wealth_chair);
     WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT | WT_INF_LEISURE | WT_INF_MARKET_SEL | WT_INF_INFLATION | WT_INF_MONEY, 10);
     WT_ENV(ctx, WT_ENV_WOOD_DECAY | WT_ENV_DECAY_MARKET_SEL | WT_ENV_CHOP_YIELD, 258);
 }
 
 static void render_s3p2(const SimContext *ctx, int x, int y, int w, int h) {
-    render_s3_plots(ctx, x, y, w, h, true);
+    render_s3_plots(ctx, x, y, w, h, true, ctx->wt_wealth, ctx->wt_wealth_chair);
     WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT | WT_INF_LEISURE | WT_INF_MARKET_SEL | WT_INF_INFLATION | WT_INF_MONEY, 10);
     WT_ENV(ctx, WT_ENV_WOOD_DECAY | WT_ENV_DECAY_MARKET_SEL | WT_ENV_CHOP_YIELD | WT_ENV_BUILD_COST, 258);
 }
@@ -289,7 +290,7 @@ static void step_s3p1(void) {
     g_disable_executing_trade = false;
     g_wood_decay_rate        = 0.003f;
     g_chair_decay_rate       = 0.003f;
-    g_inflation_enabled      = false;
+    g_inflation_enabled      = true;
 }
 
 static void step_s3p2(void) {
@@ -300,7 +301,7 @@ static void step_s3p2(void) {
     g_disable_executing_trade = false;
     g_wood_decay_rate        = 0.003f;
     g_chair_decay_rate       = 0.003f;
-    g_inflation_enabled      = false;
+    g_inflation_enabled      = true;
 }
 
 // ---------------------------------------------------------------------------
@@ -351,17 +352,8 @@ static void init_s2(SimContext *ctx) {
 }
 
 static void init_s3(SimContext *ctx) {
-    ctx->sim->count = 100;
-    agents_init(ctx->sim->agents, ctx->sim->count, ctx->sim->worldW, ctx->sim->worldH);
-
-    // Wood market: same three-cluster bimodal as s2
-    float ww1 = (float)GetRandomValue(10, 60);
-    float ww2 = (float)GetRandomValue(10, 60);
-    float ww3 = (float)GetRandomValue(10, 60);
-    float wt  = ww1 + ww2 + ww3;
-    float wp1 = ww1 / wt, wp2 = (ww1 + ww2) / wt;
-
-    // Chair market: independent three-cluster bimodal, different cluster positions
+    // Agents carry over from scene 2 (count, money, wood state all preserved).
+    // Assign a fresh chair valuation distribution.
     float cw1 = (float)GetRandomValue(10, 60);
     float cw2 = (float)GetRandomValue(10, 60);
     float cw3 = (float)GetRandomValue(10, 60);
@@ -369,24 +361,11 @@ static void init_s3(SimContext *ctx) {
     float cp1 = cw1 / ct, cp2 = (cw1 + cw2) / ct;
 
     for (int i = 0; i < ctx->sim->count; i++) {
-        float a, b, t, roll, value;
-
-        // Wood valuation
-        a = (float)GetRandomValue(0, 10000) / 10000.0f;
-        b = (float)GetRandomValue(0, 10000) / 10000.0f;
-        t = (a + b) * 0.5f;
-        roll = (float)GetRandomValue(0, 10000) / 10000.0f;
-        if      (roll < wp1) value = 20.0f + t * 14.0f;
-        else if (roll < wp2) value = 33.0f + t * 14.0f;
-        else                 value = 46.0f + t * 14.0f;
-        ctx->sim->agents[i].econ.markets[MARKET_WOOD].maxUtility      = value;
-        ctx->sim->agents[i].econ.markets[MARKET_WOOD].priceExpectation = value;
-
-        // Chair valuation (independent distribution, range 10–100)
-        a = (float)GetRandomValue(0, 10000) / 10000.0f;
-        b = (float)GetRandomValue(0, 10000) / 10000.0f;
-        t = (a + b) * 0.5f;
-        roll = (float)GetRandomValue(0, 10000) / 10000.0f;
+        float a = (float)GetRandomValue(0, 10000) / 10000.0f;
+        float b = (float)GetRandomValue(0, 10000) / 10000.0f;
+        float t = (a + b) * 0.5f;
+        float roll = (float)GetRandomValue(0, 10000) / 10000.0f;
+        float value;
         if      (roll < cp1) value = 10.0f + t * 30.0f;  // low cluster:  ~10–40, peak ~25
         else if (roll < cp2) value = 40.0f + t * 30.0f;  // mid cluster:  ~40–70, peak ~55
         else                 value = 70.0f + t * 30.0f;  // high cluster: ~70–100, peak ~85
