@@ -74,10 +74,6 @@ void wt_influence_panel_init(WtInfluencePanel *p) {
     snprintf(p->bufWoodValue, sizeof(p->bufWoodValue), "%.1f", p->woodUtilityDelta);
     snprintf(p->bufWoodCount, sizeof(p->bufWoodCount), "%d",   p->woodCountDelta);
     snprintf(p->bufLeisure,   sizeof(p->bufLeisure),   "%.1f", p->leisureValue);
-    p->pendingInflation   = g_inflation_enabled;
-    p->lastInflation      = g_inflation_enabled;
-    p->pendingDimReturns  = g_diminishing_returns;
-    p->lastDimReturns     = g_diminishing_returns;
     p->moneyDelta       = 100.0f;
     p->editMoney        = false;
     snprintf(p->bufMoney, sizeof(p->bufMoney), "%.1f", p->moneyDelta);
@@ -112,11 +108,16 @@ void wt_influence_panel_render(WtInfluencePanel *p, Agent *agents, int agentCoun
     if (flags & WT_INF_WOOD_VALUE) {
         if (flags & WT_INF_MARKET_SEL) {
             GuiLabel((Rectangle){px + WT_MSLBL_DX, rowY, WT_MSLBL_W, WT_ROW_H - 2}, "Value:");
+            bool was = p->editWoodValue;
             if (GuiTextBox((Rectangle){px + WT_MSBOX_DX, rowY, WT_MSBOX_W, WT_ROW_H - 2},
                            p->bufWoodValue, (int)sizeof(p->bufWoodValue), p->editWoodValue)) {
+                if (was) {
+                    if (IsKeyPressed(KEY_ENTER))
+                        p->woodUtilityDelta = strtof(p->bufWoodValue, NULL);
+                    else
+                        snprintf(p->bufWoodValue, sizeof(p->bufWoodValue), "%.1f", p->woodUtilityDelta);
+                }
                 p->editWoodValue = !p->editWoodValue;
-                if (!p->editWoodValue)
-                    p->woodUtilityDelta = strtof(p->bufWoodValue, NULL);
             }
             if (GuiButton((Rectangle){px + WT_MSMKT_DX, rowY, WT_MSMKT_W, WT_BTN_H},
                           p->valueMarket == MARKET_WOOD ? "Wood" : "Chair"))
@@ -126,11 +127,16 @@ void wt_influence_panel_render(WtInfluencePanel *p, Agent *agents, int agentCoun
                                          p->woodUtilityDelta, (MarketId)p->valueMarket);
         } else {
             GuiLabel((Rectangle){px + WT_DLBL_DX, rowY, WT_DLBL_W, WT_ROW_H - 2}, "Value:");
+            bool was = p->editWoodValue;
             if (GuiTextBox((Rectangle){px + WT_DBOX_DX, rowY, WT_DBOX_W, WT_ROW_H - 2},
                            p->bufWoodValue, (int)sizeof(p->bufWoodValue), p->editWoodValue)) {
+                if (was) {
+                    if (IsKeyPressed(KEY_ENTER))
+                        p->woodUtilityDelta = strtof(p->bufWoodValue, NULL);
+                    else
+                        snprintf(p->bufWoodValue, sizeof(p->bufWoodValue), "%.1f", p->woodUtilityDelta);
+                }
                 p->editWoodValue = !p->editWoodValue;
-                if (!p->editWoodValue)
-                    p->woodUtilityDelta = strtof(p->bufWoodValue, NULL);
             }
             if (GuiButton((Rectangle){px + WT_DAPL_DX, rowY, WT_DAPL_W, WT_BTN_H}, "Add"))
                 agents_adjust_valuations(agents, agentCount, agentCount,
@@ -143,11 +149,16 @@ void wt_influence_panel_render(WtInfluencePanel *p, Agent *agents, int agentCoun
     if (flags & WT_INF_WOOD_COUNT) {
         if (flags & WT_INF_MARKET_SEL) {
             GuiLabel((Rectangle){px + WT_MSLBL_DX, rowY, WT_MSLBL_W, WT_ROW_H - 2}, "Goods:");
+            bool was = p->editWoodCount;
             if (GuiTextBox((Rectangle){px + WT_MSBOX_DX, rowY, WT_MSBOX_W, WT_ROW_H - 2},
                            p->bufWoodCount, (int)sizeof(p->bufWoodCount), p->editWoodCount)) {
+                if (was) {
+                    if (IsKeyPressed(KEY_ENTER))
+                        p->woodCountDelta = (int)strtol(p->bufWoodCount, NULL, 10);
+                    else
+                        snprintf(p->bufWoodCount, sizeof(p->bufWoodCount), "%d", p->woodCountDelta);
+                }
                 p->editWoodCount = !p->editWoodCount;
-                if (!p->editWoodCount)
-                    p->woodCountDelta = (int)strtol(p->bufWoodCount, NULL, 10);
             }
             if (GuiButton((Rectangle){px + WT_MSMKT_DX, rowY, WT_MSMKT_W, WT_BTN_H},
                           p->goodsMarket == MARKET_WOOD ? "Wood" : "Chair"))
@@ -157,11 +168,16 @@ void wt_influence_panel_render(WtInfluencePanel *p, Agent *agents, int agentCoun
                                     p->woodCountDelta, (MarketId)p->goodsMarket);
         } else {
             GuiLabel((Rectangle){px + WT_DLBL_DX, rowY, WT_DLBL_W, WT_ROW_H - 2}, "Goods:");
+            bool was = p->editWoodCount;
             if (GuiTextBox((Rectangle){px + WT_DBOX_DX, rowY, WT_DBOX_W, WT_ROW_H - 2},
                            p->bufWoodCount, (int)sizeof(p->bufWoodCount), p->editWoodCount)) {
+                if (was) {
+                    if (IsKeyPressed(KEY_ENTER))
+                        p->woodCountDelta = (int)strtol(p->bufWoodCount, NULL, 10);
+                    else
+                        snprintf(p->bufWoodCount, sizeof(p->bufWoodCount), "%d", p->woodCountDelta);
+                }
                 p->editWoodCount = !p->editWoodCount;
-                if (!p->editWoodCount)
-                    p->woodCountDelta = (int)strtol(p->bufWoodCount, NULL, 10);
             }
             if (GuiButton((Rectangle){px + WT_DAPL_DX, rowY, WT_DAPL_W, WT_BTN_H}, "Add"))
                 agents_inject_goods(agents, agentCount, agentCount,
@@ -170,72 +186,62 @@ void wt_influence_panel_render(WtInfluencePanel *p, Agent *agents, int agentCoun
         rowY += WT_ROW_H + WT_SEP;
     }
 
-    // --- Leisure row (setter) ---
+    // --- Leisure row (setter): Enter applies, click-away reverts ---
     if (flags & WT_INF_LEISURE) {
-        // Sync only when the global changed externally since last frame
         if (agentCount > 0) {
             float cur = agents[0].econ.leisureUtility;
-            if (cur != p->lastLeisure) {
+            if (cur != p->lastLeisure && !p->editLeisure) {
                 p->leisureValue = cur;
                 p->lastLeisure  = cur;
                 snprintf(p->bufLeisure, sizeof(p->bufLeisure), "%.1f", cur);
             }
         }
         GuiLabel((Rectangle){px + WT_LBL_DX, rowY, WT_LBL_W, WT_ROW_H - 2}, "Leisure:");
-        if (GuiTextBox((Rectangle){px + WT_BOX_DX, rowY, WT_BOX_W, WT_ROW_H - 2},
+        bool was = p->editLeisure;
+        // Text box spans full remaining width (no Set button)
+        if (GuiTextBox((Rectangle){px + WT_BOX_DX, rowY, WT_W - WT_PAD - WT_BOX_DX, WT_ROW_H - 2},
                        p->bufLeisure, (int)sizeof(p->bufLeisure), p->editLeisure)) {
+            if (was) {
+                if (IsKeyPressed(KEY_ENTER)) {
+                    p->leisureValue = strtof(p->bufLeisure, NULL);
+                    agents_set_leisure(agents, agentCount, p->leisureValue);
+                    p->lastLeisure = p->leisureValue;
+                } else {
+                    snprintf(p->bufLeisure, sizeof(p->bufLeisure), "%.1f", p->leisureValue);
+                }
+            }
             p->editLeisure = !p->editLeisure;
-            if (!p->editLeisure)
-                p->leisureValue = strtof(p->bufLeisure, NULL);
         }
-        bool leisureMatch = (agentCount > 0 && p->leisureValue == agents[0].econ.leisureUtility);
-        if (leisureMatch) GuiSetState(STATE_DISABLED);
-        if (GuiButton((Rectangle){px + WT_APL_DX, rowY, WT_APL_W, WT_BTN_H}, "Set"))
-            agents_set_leisure(agents, agentCount, p->leisureValue);
-        if (leisureMatch) GuiSetState(STATE_NORMAL);
         rowY += WT_ROW_H + WT_SEP;
     }
 
-    // --- Diminishing returns toggle (checkbox + Set) ---
+    // --- Diminishing returns toggle (immediate) ---
     if (flags & WT_INF_DIM_RETURNS) {
-        if (p->lastDimReturns != g_diminishing_returns) {
-            p->pendingDimReturns = g_diminishing_returns;
-            p->lastDimReturns    = g_diminishing_returns;
-        }
         GuiCheckBox((Rectangle){px + WT_LBL_DX, rowY + 4, WT_ROW_H - 8, WT_ROW_H - 8},
-                    "Dim. Returns", &p->pendingDimReturns);
-        bool dimMatch = (p->pendingDimReturns == g_diminishing_returns);
-        if (dimMatch) GuiSetState(STATE_DISABLED);
-        if (GuiButton((Rectangle){px + WT_APL_DX, rowY, WT_APL_W, WT_BTN_H}, "Set"))
-            g_diminishing_returns = p->pendingDimReturns;
-        if (dimMatch) GuiSetState(STATE_NORMAL);
+                    "Dim. Returns", &g_diminishing_returns);
         rowY += WT_ROW_H + WT_SEP;
     }
 
-    // --- Inflation toggle (checkbox + Set) ---
+    // --- Inflation toggle (immediate) ---
     if (flags & WT_INF_INFLATION) {
-        if (p->lastInflation != g_inflation_enabled) {
-            p->pendingInflation = g_inflation_enabled;
-            p->lastInflation    = g_inflation_enabled;
-        }
         GuiCheckBox((Rectangle){px + WT_LBL_DX, rowY + 4, WT_ROW_H - 8, WT_ROW_H - 8},
-                    "Inflation", &p->pendingInflation);
-        bool inflMatch = (p->pendingInflation == g_inflation_enabled);
-        if (inflMatch) GuiSetState(STATE_DISABLED);
-        if (GuiButton((Rectangle){px + WT_APL_DX, rowY, WT_APL_W, WT_BTN_H}, "Set"))
-            g_inflation_enabled = p->pendingInflation;
-        if (inflMatch) GuiSetState(STATE_NORMAL);
+                    "Inflation", &g_inflation_enabled);
         rowY += WT_ROW_H + WT_SEP;
     }
 
     // --- Money row (delta) ---
     if (flags & WT_INF_MONEY) {
         GuiLabel((Rectangle){px + WT_DLBL_DX, rowY, WT_DLBL_W, WT_ROW_H - 2}, "Money:");
+        bool was = p->editMoney;
         if (GuiTextBox((Rectangle){px + WT_DBOX_DX, rowY, WT_DBOX_W, WT_ROW_H - 2},
                        p->bufMoney, (int)sizeof(p->bufMoney), p->editMoney)) {
+            if (was) {
+                if (IsKeyPressed(KEY_ENTER))
+                    p->moneyDelta = strtof(p->bufMoney, NULL);
+                else
+                    snprintf(p->bufMoney, sizeof(p->bufMoney), "%.1f", p->moneyDelta);
+            }
             p->editMoney = !p->editMoney;
-            if (!p->editMoney)
-                p->moneyDelta = strtof(p->bufMoney, NULL);
         }
         if (GuiButton((Rectangle){px + WT_DAPL_DX, rowY, WT_DAPL_W, WT_BTN_H}, "Add"))
             agents_inject_money(agents, agentCount, agentCount, p->moneyDelta);
@@ -315,21 +321,31 @@ void wt_environment_panel_render(WtEnvironmentPanel *p, int flags, int px) {
     // --- Decay rate row ---
     if (flags & WT_ENV_WOOD_DECAY) {
         if (flags & WT_ENV_DECAY_MARKET_SEL) {
-            // Market-selector style: Wood/Chair toggle button
+            // Market-selector style: Wood/Chair toggle; text box + market button (no Set)
             float curDecay = (p->decayMarket == MARKET_WOOD) ? g_wood_decay_rate : g_chair_decay_rate;
-            if (curDecay != p->lastDecayRate) {
+            if (!p->editDecay && curDecay != p->lastDecayRate) {
                 p->decayRate     = curDecay;
                 p->lastDecayRate = curDecay;
                 snprintf(p->bufDecay, sizeof(p->bufDecay), "%.4f", curDecay);
             }
             GuiLabel((Rectangle){px + WT_MSLBL_DX, rowY, WT_MSLBL_W, WT_ROW_H - 2}, "Decay:");
-            if (GuiTextBox((Rectangle){px + WT_MSBOX_DX, rowY, WT_MSBOX_W, WT_ROW_H - 2},
+            // Text box takes space previously shared with Set button
+            bool was = p->editDecay;
+            if (GuiTextBox((Rectangle){px + WT_MSBOX_DX, rowY, WT_MSBOX_W + 4 + WT_MSAPL_W, WT_ROW_H - 2},
                            p->bufDecay, (int)sizeof(p->bufDecay), p->editDecay)) {
+                if (was) {
+                    if (IsKeyPressed(KEY_ENTER)) {
+                        p->decayRate = strtof(p->bufDecay, NULL);
+                        if (p->decayMarket == MARKET_WOOD) g_wood_decay_rate  = p->decayRate;
+                        else                               g_chair_decay_rate = p->decayRate;
+                        p->lastDecayRate = p->decayRate;
+                    } else {
+                        snprintf(p->bufDecay, sizeof(p->bufDecay), "%.4f", p->decayRate);
+                    }
+                }
                 p->editDecay = !p->editDecay;
-                if (!p->editDecay)
-                    p->decayRate = strtof(p->bufDecay, NULL);
             }
-            if (GuiButton((Rectangle){px + WT_MSMKT_DX, rowY, WT_MSMKT_W, WT_BTN_H},
+            if (GuiButton((Rectangle){px + WT_MSMKT_DX + WT_MSAPL_W + 4, rowY, WT_MSMKT_W, WT_BTN_H},
                           p->decayMarket == MARKET_WOOD ? "Wood" : "Chair")) {
                 p->decayMarket = 1 - p->decayMarket;
                 float newDecay = (p->decayMarket == MARKET_WOOD) ? g_wood_decay_rate : g_chair_decay_rate;
@@ -337,40 +353,28 @@ void wt_environment_panel_render(WtEnvironmentPanel *p, int flags, int px) {
                 p->lastDecayRate = newDecay;
                 snprintf(p->bufDecay, sizeof(p->bufDecay), "%.4f", newDecay);
             }
-            {
-                float simDecay = (p->decayMarket == MARKET_WOOD) ? g_wood_decay_rate : g_chair_decay_rate;
-                bool decayMatch = (p->decayRate == simDecay);
-                if (decayMatch) GuiSetState(STATE_DISABLED);
-                if (GuiButton((Rectangle){px + WT_MSAPL_DX, rowY, WT_MSAPL_W, WT_BTN_H}, "Set")) {
-                    if (p->decayMarket == MARKET_WOOD) g_wood_decay_rate  = p->decayRate;
-                    else                               g_chair_decay_rate = p->decayRate;
-                    p->lastDecayRate = p->decayRate;
-                }
-                if (decayMatch) GuiSetState(STATE_NORMAL);
-            }
         } else {
-            // Setter style: wood only, no market selector; reset decayMarket for clean scene-3 entry
+            // Setter style: wood only, no market selector
             p->decayMarket = MARKET_WOOD;
-            if (g_wood_decay_rate != p->lastDecayRate) {
+            if (!p->editDecay && g_wood_decay_rate != p->lastDecayRate) {
                 p->decayRate     = g_wood_decay_rate;
                 p->lastDecayRate = g_wood_decay_rate;
                 snprintf(p->bufDecay, sizeof(p->bufDecay), "%.4f", g_wood_decay_rate);
             }
             GuiLabel((Rectangle){px + WT_LBL_DX, rowY, WT_LBL_W, WT_ROW_H - 2}, "Decay:");
-            if (GuiTextBox((Rectangle){px + WT_BOX_DX, rowY, WT_BOX_W, WT_ROW_H - 2},
+            bool was = p->editDecay;
+            if (GuiTextBox((Rectangle){px + WT_BOX_DX, rowY, WT_W - WT_PAD - WT_BOX_DX, WT_ROW_H - 2},
                            p->bufDecay, (int)sizeof(p->bufDecay), p->editDecay)) {
-                p->editDecay = !p->editDecay;
-                if (!p->editDecay)
-                    p->decayRate = strtof(p->bufDecay, NULL);
-            }
-            {
-                bool decayMatch = (p->decayRate == g_wood_decay_rate);
-                if (decayMatch) GuiSetState(STATE_DISABLED);
-                if (GuiButton((Rectangle){px + WT_APL_DX, rowY, WT_APL_W, WT_BTN_H}, "Set")) {
-                    g_wood_decay_rate = p->decayRate;
-                    p->lastDecayRate  = p->decayRate;
+                if (was) {
+                    if (IsKeyPressed(KEY_ENTER)) {
+                        p->decayRate      = strtof(p->bufDecay, NULL);
+                        g_wood_decay_rate = p->decayRate;
+                        p->lastDecayRate  = p->decayRate;
+                    } else {
+                        snprintf(p->bufDecay, sizeof(p->bufDecay), "%.4f", p->decayRate);
+                    }
                 }
-                if (decayMatch) GuiSetState(STATE_NORMAL);
+                p->editDecay = !p->editDecay;
             }
         }
         rowY += WT_ROW_H + WT_SEP;
@@ -378,55 +382,51 @@ void wt_environment_panel_render(WtEnvironmentPanel *p, int flags, int px) {
 
     // --- Chop yield row ---
     if (flags & WT_ENV_CHOP_YIELD) {
-        // Sync only when the global changed externally since last frame
-        if (g_chop_yield != p->lastChopYield) {
+        if (!p->editChopYield && g_chop_yield != p->lastChopYield) {
             p->chopYield     = g_chop_yield;
             p->lastChopYield = g_chop_yield;
             snprintf(p->bufChopYield, sizeof(p->bufChopYield), "%d", p->chopYield);
         }
-        GuiLabel((Rectangle){px + WT_LBL_DX, rowY, WT_LBL_W, WT_ROW_H - 2},
-                 "Yield:");
-        if (GuiTextBox((Rectangle){px + WT_BOX_DX, rowY, WT_BOX_W, WT_ROW_H - 2},
+        GuiLabel((Rectangle){px + WT_LBL_DX, rowY, WT_LBL_W, WT_ROW_H - 2}, "Yield:");
+        bool was = p->editChopYield;
+        if (GuiTextBox((Rectangle){px + WT_BOX_DX, rowY, WT_W - WT_PAD - WT_BOX_DX, WT_ROW_H - 2},
                        p->bufChopYield, (int)sizeof(p->bufChopYield), p->editChopYield)) {
+            if (was) {
+                if (IsKeyPressed(KEY_ENTER)) {
+                    p->chopYield     = (int)strtol(p->bufChopYield, NULL, 10);
+                    g_chop_yield     = p->chopYield;
+                    p->lastChopYield = p->chopYield;
+                } else {
+                    snprintf(p->bufChopYield, sizeof(p->bufChopYield), "%d", p->chopYield);
+                }
+            }
             p->editChopYield = !p->editChopYield;
-            if (!p->editChopYield)
-                p->chopYield = (int)strtol(p->bufChopYield, NULL, 10);
-        }
-        {
-            bool yieldMatch = (p->chopYield == g_chop_yield);
-            if (yieldMatch) GuiSetState(STATE_DISABLED);
-            if (GuiButton((Rectangle){px + WT_APL_DX, rowY, WT_APL_W, WT_BTN_H}, "Set"))
-                g_chop_yield = p->chopYield;
-            if (yieldMatch) GuiSetState(STATE_NORMAL);
         }
         rowY += WT_ROW_H + WT_SEP;
     }
 
     // --- Build cost row ---
     if (flags & WT_ENV_BUILD_COST) {
-        // Sync with current global
-        if (g_wood_per_chair != p->lastWoodPerChair) {
+        if (!p->editWoodPerChair && g_wood_per_chair != p->lastWoodPerChair) {
             p->woodPerChair     = g_wood_per_chair;
             p->lastWoodPerChair = g_wood_per_chair;
             snprintf(p->bufWoodPerChair, sizeof(p->bufWoodPerChair), "%d", p->woodPerChair);
         }
-        GuiLabel((Rectangle){px + WT_LBL_DX, rowY, WT_LBL_W, WT_ROW_H - 2},
-                 "Build:");
-        if (GuiTextBox((Rectangle){px + WT_BOX_DX, rowY, WT_BOX_W, WT_ROW_H - 2},
+        GuiLabel((Rectangle){px + WT_LBL_DX, rowY, WT_LBL_W, WT_ROW_H - 2}, "Build:");
+        bool was = p->editWoodPerChair;
+        if (GuiTextBox((Rectangle){px + WT_BOX_DX, rowY, WT_W - WT_PAD - WT_BOX_DX, WT_ROW_H - 2},
                        p->bufWoodPerChair, (int)sizeof(p->bufWoodPerChair), p->editWoodPerChair)) {
-            p->editWoodPerChair = !p->editWoodPerChair;
-            if (!p->editWoodPerChair)
-                p->woodPerChair = (int)strtol(p->bufWoodPerChair, NULL, 10);
-        }
-        {
-            bool buildMatch = (p->woodPerChair == g_wood_per_chair);
-            if (buildMatch) GuiSetState(STATE_DISABLED);
-            if (GuiButton((Rectangle){px + WT_APL_DX, rowY, WT_APL_W, WT_BTN_H}, "Set")) {
-                if (p->woodPerChair < 1) p->woodPerChair = 1;
-                g_wood_per_chair    = p->woodPerChair;
-                p->lastWoodPerChair = p->woodPerChair;
+            if (was) {
+                if (IsKeyPressed(KEY_ENTER)) {
+                    p->woodPerChair = (int)strtol(p->bufWoodPerChair, NULL, 10);
+                    if (p->woodPerChair < 1) p->woodPerChair = 1;
+                    g_wood_per_chair    = p->woodPerChair;
+                    p->lastWoodPerChair = p->woodPerChair;
+                } else {
+                    snprintf(p->bufWoodPerChair, sizeof(p->bufWoodPerChair), "%d", p->woodPerChair);
+                }
             }
-            if (buildMatch) GuiSetState(STATE_NORMAL);
+            p->editWoodPerChair = !p->editWoodPerChair;
         }
         rowY += WT_ROW_H + WT_SEP;
     }

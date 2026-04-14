@@ -36,12 +36,6 @@ typedef struct {
     bool    editLeisure;
     char    bufLeisure[16];
     Utility lastLeisure;  // last global value seen; used to detect external changes
-    // Inflation toggle
-    bool    pendingInflation;
-    bool    lastInflation;    // last global value seen; used to detect external changes
-    // Diminishing returns toggle
-    bool    pendingDimReturns;
-    bool    lastDimReturns;   // last global value seen; used to detect external changes
     // Money row (delta)
     Price   moneyDelta;
     bool    editMoney;
