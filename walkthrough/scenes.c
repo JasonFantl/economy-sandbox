@@ -366,9 +366,9 @@ static void init_s3(SimContext *ctx) {
         float t = (a + b) * 0.5f;
         float roll = (float)GetRandomValue(0, 10000) / 10000.0f;
         float value;
-        if      (roll < cp1) value = 10.0f + t * 30.0f;  // low cluster:  ~10–40, peak ~25
-        else if (roll < cp2) value = 40.0f + t * 30.0f;  // mid cluster:  ~40–70, peak ~55
-        else                 value = 70.0f + t * 30.0f;  // high cluster: ~70–100, peak ~85
+        if      (roll < cp1) value =  20.0f + t * 60.0f;  // low cluster:  ~20–80,  peak ~50
+        else if (roll < cp2) value =  80.0f + t * 60.0f;  // mid cluster:  ~80–140, peak ~110
+        else                 value = 140.0f + t * 60.0f;  // high cluster: ~140–200, peak ~170
         ctx->sim->agents[i].econ.markets[MARKET_CHAIR].maxUtility      = value;
         ctx->sim->agents[i].econ.markets[MARKET_CHAIR].priceExpectation = value;
     }

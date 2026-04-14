@@ -267,7 +267,7 @@ void wt_wealth_chair_config_init(WealthAxisConfig *c) {
     c->yAxis = WEALTH_AXIS_MONEY;
     c->axisMax[WEALTH_AXIS_MONEY]      = 2000.0f;
     c->axisMax[WEALTH_AXIS_WOOD_COUNT] = 20.0f;
-    c->axisMax[WEALTH_AXIS_WOOD_UTIL]  = 120.0f;
+    c->axisMax[WEALTH_AXIS_WOOD_UTIL]  = 240.0f;
     c->xEditMode = false;
     c->yEditMode = false;
     strncpy(c->dropdownText, "Money;Chair Count;Chair Utility", sizeof(c->dropdownText) - 1);
