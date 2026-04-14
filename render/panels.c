@@ -224,7 +224,7 @@ void panel_wealth(const Agent *agents, int count, int marketId,
 // ---------------------------------------------------------------------------
 
 void panel_valuation_dist(const Agent *agents, int count, int marketId,
-                           int px, int py, int pw, int ph) {
+                           int px, int py, int pw, int ph, YRangeBox *ybox) {
     PlotBounds *b=&g_bounds[PLOT_VALUATION_DISTRIBUTION][marketId];
     float rawMax=1.0f;
     for (int i=0;i<count;i++) {
@@ -244,6 +244,18 @@ void panel_valuation_dist(const Agent *agents, int count, int marketId,
     }
     float yMax=(b->yMax>0.0f)?b->yMax:compute_ymax(rawMax);
     draw_axes_y(px,py,pw,ph,yMax);
+    if (ybox) {
+        if (!ybox->editMode)
+            snprintf(ybox->buf, sizeof(ybox->buf), "%.0f", yMax);
+        if (GuiTextBox((Rectangle){(float)px,(float)py,52.0f,16.0f},
+                       ybox->buf, (int)sizeof(ybox->buf), ybox->editMode)) {
+            if (ybox->editMode) {
+                float v=(float)atof(ybox->buf);
+                if (v>0.0f) b->yMax=v;
+            }
+            ybox->editMode=!ybox->editMode;
+        }
+    }
 
     int indices[MAX_AGENTS];
     for (int i=0;i<count;i++) indices[i]=i;
@@ -347,7 +359,7 @@ void panel_valuation_dist(const Agent *agents, int count, int marketId,
 void panel_price_history(const AgentValueHistory *avh, const AgentValueHistory *pvh,
                          const Agent *agents, int count, int marketId,
                          int px, int py, int pw, int ph,
-                         bool showIndividualUtil) {
+                         bool showIndividualUtil, YRangeBox *ybox) {
     PlotBounds *b=&g_bounds[PLOT_PRICE_HISTORY][marketId];
     float rawMax=1.0f;
     for (int s=0;s<avh->count;s++) { float v=avh_avg(avh,s); if(v>rawMax) rawMax=v; }
@@ -357,6 +369,18 @@ void panel_price_history(const AgentValueHistory *avh, const AgentValueHistory *
     }
     float yMax=(b->yMax>0.0f)?b->yMax:compute_ymax(rawMax);
     draw_axes_y(px,py,pw,ph,yMax);
+    if (ybox) {
+        if (!ybox->editMode)
+            snprintf(ybox->buf, sizeof(ybox->buf), "%.0f", yMax);
+        if (GuiTextBox((Rectangle){(float)px,(float)py,52.0f,16.0f},
+                       ybox->buf, (int)sizeof(ybox->buf), ybox->editMode)) {
+            if (ybox->editMode) {
+                float v=(float)atof(ybox->buf);
+                if (v>0.0f) b->yMax=v;
+            }
+            ybox->editMode=!ybox->editMode;
+        }
+    }
     if (avh->count<2) return;
     float xScale=(float)pw/(float)(PRICE_HISTORY_SIZE-1);
 

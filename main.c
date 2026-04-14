@@ -42,7 +42,8 @@ int main(void) {
 
     SimContext ctx = { .sim = &g_simulation, .inf = &g_influence, .decay = &g_decay_rates,
                        .wt_inf = &g_wt_influence, .wt_env = &g_wt_environment,
-                       .wt_wealth = &g_wt_wealth, .wt_wealth_chair = &g_wt_wealth_chair };
+                       .wt_wealth = &g_wt_wealth, .wt_wealth_chair = &g_wt_wealth_chair,
+                       .wt_ybox_val = g_ybox_val, .wt_ybox_price = g_ybox_price };
     WalkthroughState wt;
     walkthrough_init(&wt, &ctx);
 

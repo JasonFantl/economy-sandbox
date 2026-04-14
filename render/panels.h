@@ -14,6 +14,14 @@ typedef struct { float xMax; float yMax; } PlotBounds;
 extern PlotBounds g_bounds[PLOT_COUNT][MARKET_COUNT];  // defined in panels.c
 
 // ---------------------------------------------------------------------------
+// Y-range input box (editable yMax overlay on top of a plot)
+// ---------------------------------------------------------------------------
+typedef struct {
+    bool editMode;
+    char buf[12];
+} YRangeBox;
+
+// ---------------------------------------------------------------------------
 // Wealth plot axis configuration (used by panel_wealth)
 // ---------------------------------------------------------------------------
 typedef enum {
@@ -38,10 +46,11 @@ typedef struct {
 
 // Price history: per-agent price expectations over time + average.
 // showIndividualUtil: draw per-agent marginal buy utility lines.
+// ybox: if non-NULL, draws an editable Y-max text box at the top-left of the plot.
 void panel_price_history(const AgentValueHistory *avh, const AgentValueHistory *pvh,
                          const Agent *agents, int count, int marketId,
                          int px, int py, int pw, int ph,
-                         bool showIndividualUtil);
+                         bool showIndividualUtil, YRangeBox *ybox);
 
 // Supply & demand step curves with equilibrium marker.
 void panel_supply_demand(const Agent *agents, int count, int marketId,
@@ -54,8 +63,9 @@ void panel_wealth(const Agent *agents, int count, int marketId,
                   int px, int py, int pw, int ph, WealthAxisConfig *cfg);
 
 // Agents sorted by max utility with buy/sell/price dots.
+// ybox: if non-NULL, draws an editable Y-max text box at the top-left of the plot.
 void panel_valuation_dist(const Agent *agents, int count, int marketId,
-                           int px, int py, int pw, int ph);
+                           int px, int py, int pw, int ph, YRangeBox *ybox);
 
 // Goods-count time series per agent + average.
 void panel_goods_history(const AgentValueHistory *gvh, int marketId,

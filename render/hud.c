@@ -30,6 +30,8 @@ WtInfluencePanel  g_wt_influence;
 WtEnvironmentPanel g_wt_environment;
 WealthAxisConfig  g_wt_wealth;
 WealthAxisConfig  g_wt_wealth_chair;
+YRangeBox         g_ybox_val[MARKET_COUNT];
+YRangeBox         g_ybox_price[MARKET_COUNT];
 Assets            g_assets;
 
 // ---------------------------------------------------------------------------
@@ -49,6 +51,12 @@ void hud_init(void) {
     wt_environment_panel_init(&g_wt_environment);
     wt_wealth_config_init(&g_wt_wealth);
     wt_wealth_chair_config_init(&g_wt_wealth_chair);
+    for (int i = 0; i < MARKET_COUNT; i++) {
+        g_ybox_val[i].editMode   = false;
+        g_ybox_val[i].buf[0]     = '\0';
+        g_ybox_price[i].editMode = false;
+        g_ybox_price[i].buf[0]   = '\0';
+    }
     assets_load(&g_assets);
 }
 

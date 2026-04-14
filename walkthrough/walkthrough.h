@@ -21,6 +21,8 @@ typedef struct {
     WtEnvironmentPanel *wt_env;
     WealthAxisConfig  *wt_wealth;
     WealthAxisConfig  *wt_wealth_chair;
+    YRangeBox         *wt_ybox_val;    // points to g_ybox_val[MARKET_COUNT]
+    YRangeBox         *wt_ybox_price;  // points to g_ybox_price[MARKET_COUNT]
 } SimContext;
 
 // ---------------------------------------------------------------------------
