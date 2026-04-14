@@ -27,6 +27,8 @@ typedef struct {
     WealthAxis xAxis;
     WealthAxis yAxis;
     float      axisMax[WEALTH_AXIS_COUNT];  // per-axis range max
+    bool       xEditMode;  // dropdown open state for X axis
+    bool       yEditMode;  // dropdown open state for Y axis
 } WealthAxisConfig;
 
 // ---------------------------------------------------------------------------

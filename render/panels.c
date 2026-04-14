@@ -89,12 +89,12 @@ static int cmp_by_max_utility(const void *a, const void *b) {
 // PLOT_WEALTH
 // ---------------------------------------------------------------------------
 
-// Labels and short names for each wealth axis
-static const char *WEALTH_AXIS_LABEL[WEALTH_AXIS_COUNT]  = { "$",      "goods",  "util"  };
-static const char *WEALTH_AXIS_ARROW[WEALTH_AXIS_COUNT]  = { "money →","goods →","util →"};
-static const char *WEALTH_AXIS_BTN[WEALTH_AXIS_COUNT]    = { "Money",  "Wood",   "Util"  };
+// Labels for each wealth axis
+static const char *WEALTH_AXIS_LABEL[WEALTH_AXIS_COUNT] = { "$",       "goods",  "util"  };
+static const char *WEALTH_AXIS_ARROW[WEALTH_AXIS_COUNT] = { "money →", "goods →","util →"};
+#define WEALTH_AXIS_DROPDOWN_TEXT "Money;Wood Count;Wood Utility"
 
-#define WEALTH_BTNS_H 38  // pixels reserved at plot bottom for axis selector buttons
+#define WEALTH_BTNS_H 24  // pixels reserved at plot bottom for axis selector row
 
 void panel_wealth(const Agent *agents, int count, int marketId,
                   int px, int py, int pw, int ph, WealthAxisConfig *cfg) {
@@ -179,32 +179,47 @@ void panel_wealth(const Agent *agents, int count, int marketId,
         }
     }
 
-    // Axis selector buttons — only when cfg is provided
+    // Axis selector dropdowns — only when cfg is provided
     if (!cfg) return;
 
-    int bw = (pw - 28) / 3;  // three buttons split across content width minus "Y:"/"X:" label
-    int bh = 16;
-    int by = py + eph + 2;   // 2px gap below plot content
-    int bx = px + 28;        // buttons start after "Y:" / "X:" label
+    // Single row: X: [dropdown]   Y: [dropdown]
+    // Layout: label(16) + dropdown + gap(8) + label(16) + dropdown, within pw
+    int by  = py + eph + 2;
+    int bh  = 20;
+    int lw  = 16;   // "X:" / "Y:" label width
+    int gap = 8;
+    int dw  = (pw - 2*lw - gap) / 2;  // each dropdown width
 
-    // Y-axis row
-    DrawTextF("Y:", px, by + 2, 11, LIGHTGRAY);
-    for (int a = 0; a < WEALTH_AXIS_COUNT; a++) {
-        Rectangle r = {(float)(bx + a*bw), (float)by, (float)bw - 2, (float)bh};
-        bool sel = (cfg->yAxis == (WealthAxis)a);
-        if (sel) GuiSetState(STATE_DISABLED);
-        if (GuiButton(r, WEALTH_AXIS_BTN[a])) cfg->yAxis = (WealthAxis)a;
-        if (sel) GuiSetState(STATE_NORMAL);
-    }
-    // X-axis row
-    by += bh + 2;
-    DrawTextF("X:", px, by + 2, 11, LIGHTGRAY);
-    for (int a = 0; a < WEALTH_AXIS_COUNT; a++) {
-        Rectangle r = {(float)(bx + a*bw), (float)by, (float)bw - 2, (float)bh};
-        bool sel = (cfg->xAxis == (WealthAxis)a);
-        if (sel) GuiSetState(STATE_DISABLED);
-        if (GuiButton(r, WEALTH_AXIS_BTN[a])) cfg->xAxis = (WealthAxis)a;
-        if (sel) GuiSetState(STATE_NORMAL);
+    int xa = (int)cfg->xAxis, ya = (int)cfg->yAxis;
+    Rectangle rx = {(float)(px + lw),          (float)by, (float)dw, (float)bh};
+    Rectangle ry = {(float)(px + lw + dw + gap + lw), (float)by, (float)dw, (float)bh};
+
+    DrawTextF("X:", px, by + 4, 11, LIGHTGRAY);
+    DrawTextF("Y:", px + lw + dw + gap, by + 4, 11, LIGHTGRAY);
+
+    // Draw the closed dropdown first, open one last so its list renders on top
+    if (cfg->xEditMode) {
+        if (GuiDropdownBox(ry, WEALTH_AXIS_DROPDOWN_TEXT, &ya, cfg->yEditMode)) {
+            cfg->yEditMode = !cfg->yEditMode;
+            if (cfg->yEditMode) cfg->xEditMode = false;
+        }
+        cfg->yAxis = (WealthAxis)ya;
+        if (GuiDropdownBox(rx, WEALTH_AXIS_DROPDOWN_TEXT, &xa, cfg->xEditMode)) {
+            cfg->xEditMode = !cfg->xEditMode;
+            if (cfg->xEditMode) cfg->yEditMode = false;
+        }
+        cfg->xAxis = (WealthAxis)xa;
+    } else {
+        if (GuiDropdownBox(rx, WEALTH_AXIS_DROPDOWN_TEXT, &xa, cfg->xEditMode)) {
+            cfg->xEditMode = !cfg->xEditMode;
+            if (cfg->xEditMode) cfg->yEditMode = false;
+        }
+        cfg->xAxis = (WealthAxis)xa;
+        if (GuiDropdownBox(ry, WEALTH_AXIS_DROPDOWN_TEXT, &ya, cfg->yEditMode)) {
+            cfg->yEditMode = !cfg->yEditMode;
+            if (cfg->yEditMode) cfg->xEditMode = false;
+        }
+        cfg->yAxis = (WealthAxis)ya;
     }
 }
 

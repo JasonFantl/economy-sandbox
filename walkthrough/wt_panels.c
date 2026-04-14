@@ -255,6 +255,8 @@ void wt_wealth_config_init(WealthAxisConfig *c) {
     c->axisMax[WEALTH_AXIS_MONEY]      = 2000.0f;
     c->axisMax[WEALTH_AXIS_WOOD_COUNT] = 100.0f;
     c->axisMax[WEALTH_AXIS_WOOD_UTIL]  = 80.0f;
+    c->xEditMode = false;
+    c->yEditMode = false;
 }
 
 void wt_environment_panel_render(WtEnvironmentPanel *p, int flags, int px) {
