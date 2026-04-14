@@ -148,7 +148,7 @@ void panel_wealth(const Agent *agents, int count, int marketId,
         float xvals[WEALTH_AXIS_COUNT] = {
             agents[i].econ.money,
             (float)m->goods,
-            marginal_buy_utility(m)
+            m->maxUtility
         };
         float gx = xvals[xAx] / maxX;
         float gy = xvals[yAx] / maxY;
