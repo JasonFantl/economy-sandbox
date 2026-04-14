@@ -18,6 +18,7 @@
 #define WT_INF_MARKET_SEL  (1 << 3)   // show market selector button on delta rows
 #define WT_INF_INFLATION   (1 << 4)   // checkbox + Set: toggle g_inflation_enabled
 #define WT_INF_MONEY       (1 << 5)   // delta: give / take money from every agent
+#define WT_INF_DIM_RETURNS (1 << 6)   // checkbox + Set: toggle g_diminishing_returns
 
 typedef struct {
     bool  expanded;
@@ -37,7 +38,10 @@ typedef struct {
     Utility lastLeisure;  // last global value seen; used to detect external changes
     // Inflation toggle
     bool    pendingInflation;
-    bool    lastInflation;  // last global value seen; used to detect external changes
+    bool    lastInflation;    // last global value seen; used to detect external changes
+    // Diminishing returns toggle
+    bool    pendingDimReturns;
+    bool    lastDimReturns;   // last global value seen; used to detect external changes
     // Money row (delta)
     Price   moneyDelta;
     bool    editMoney;

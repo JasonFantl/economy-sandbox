@@ -74,8 +74,10 @@ void wt_influence_panel_init(WtInfluencePanel *p) {
     snprintf(p->bufWoodValue, sizeof(p->bufWoodValue), "%.1f", p->woodUtilityDelta);
     snprintf(p->bufWoodCount, sizeof(p->bufWoodCount), "%d",   p->woodCountDelta);
     snprintf(p->bufLeisure,   sizeof(p->bufLeisure),   "%.1f", p->leisureValue);
-    p->pendingInflation = g_inflation_enabled;
-    p->lastInflation    = g_inflation_enabled;
+    p->pendingInflation   = g_inflation_enabled;
+    p->lastInflation      = g_inflation_enabled;
+    p->pendingDimReturns  = g_diminishing_returns;
+    p->lastDimReturns     = g_diminishing_returns;
     p->moneyDelta       = 100.0f;
     p->editMoney        = false;
     snprintf(p->bufMoney, sizeof(p->bufMoney), "%.1f", p->moneyDelta);
@@ -92,11 +94,12 @@ void wt_influence_panel_render(WtInfluencePanel *p, Agent *agents, int agentCoun
 
     // Count visible rows to size the background (restart button always present)
     int rows = 0;
-    if (flags & WT_INF_WOOD_VALUE) rows++;
-    if (flags & WT_INF_WOOD_COUNT) rows++;
-    if (flags & WT_INF_LEISURE)    rows++;
-    if (flags & WT_INF_INFLATION)  rows++;
-    if (flags & WT_INF_MONEY)      rows++;
+    if (flags & WT_INF_WOOD_VALUE)  rows++;
+    if (flags & WT_INF_WOOD_COUNT)  rows++;
+    if (flags & WT_INF_LEISURE)     rows++;
+    if (flags & WT_INF_DIM_RETURNS) rows++;
+    if (flags & WT_INF_INFLATION)   rows++;
+    if (flags & WT_INF_MONEY)       rows++;
 
     int contentH = rows * (WT_ROW_H + WT_SEP) + WT_SEP + WT_BTN_H + WT_PAD;
     int contentY = WT_Y + WT_HDR_H;
@@ -190,6 +193,22 @@ void wt_influence_panel_render(WtInfluencePanel *p, Agent *agents, int agentCoun
         if (GuiButton((Rectangle){px + WT_APL_DX, rowY, WT_APL_W, WT_BTN_H}, "Set"))
             agents_set_leisure(agents, agentCount, p->leisureValue);
         if (leisureMatch) GuiSetState(STATE_NORMAL);
+        rowY += WT_ROW_H + WT_SEP;
+    }
+
+    // --- Diminishing returns toggle (checkbox + Set) ---
+    if (flags & WT_INF_DIM_RETURNS) {
+        if (p->lastDimReturns != g_diminishing_returns) {
+            p->pendingDimReturns = g_diminishing_returns;
+            p->lastDimReturns    = g_diminishing_returns;
+        }
+        GuiCheckBox((Rectangle){px + WT_LBL_DX, rowY + 4, WT_ROW_H - 8, WT_ROW_H - 8},
+                    "Dim. Returns", &p->pendingDimReturns);
+        bool dimMatch = (p->pendingDimReturns == g_diminishing_returns);
+        if (dimMatch) GuiSetState(STATE_DISABLED);
+        if (GuiButton((Rectangle){px + WT_APL_DX, rowY, WT_APL_W, WT_BTN_H}, "Set"))
+            g_diminishing_returns = p->pendingDimReturns;
+        if (dimMatch) GuiSetState(STATE_NORMAL);
         rowY += WT_ROW_H + WT_SEP;
     }
 
