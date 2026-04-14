@@ -136,11 +136,6 @@ bool walkthrough_prev_step(WalkthroughState *wt, SimContext *ctx) {
 
 void walkthrough_restart(WalkthroughState *wt, SimContext *ctx) {
     apply_scene(wt, ctx);
-    // Replay step inits from 0 up to current step so flags arrive at the right state
-    for (int s = 0; s <= wt->step; s++) {
-        const StepDef *sd = &SCENES[wt->scene].steps[s];
-        if (sd->init) sd->init();
-    }
     open_popup(wt);
 }
 
