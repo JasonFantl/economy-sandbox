@@ -1,6 +1,7 @@
 #include "render/panels.h"
 #include "econ/market.h"
 #include "econ/econ.h"
+#include "raygui.h"
 #include "raylib.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -88,74 +89,122 @@ static int cmp_by_max_utility(const void *a, const void *b) {
 // PLOT_WEALTH
 // ---------------------------------------------------------------------------
 
+// Labels and short names for each wealth axis
+static const char *WEALTH_AXIS_LABEL[WEALTH_AXIS_COUNT]  = { "$",      "goods",  "util"  };
+static const char *WEALTH_AXIS_ARROW[WEALTH_AXIS_COUNT]  = { "money →","goods →","util →"};
+static const char *WEALTH_AXIS_BTN[WEALTH_AXIS_COUNT]    = { "Money",  "Wood",   "Util"  };
+
+#define WEALTH_BTNS_H 38  // pixels reserved at plot bottom for axis selector buttons
+
 void panel_wealth(const Agent *agents, int count, int marketId,
-                  int px, int py, int pw, int ph) {
+                  int px, int py, int pw, int ph, WealthAxisConfig *cfg) {
     PlotBounds *b = &g_bounds[PLOT_WEALTH][marketId];
 
-    float dynMoney=1.0f; int dynGoods=1;
-    for (int i=0;i<count;i++) {
-        if (agents[i].econ.money>dynMoney) dynMoney=agents[i].econ.money;
-        if (agents[i].econ.markets[marketId].goods>dynGoods) dynGoods=agents[i].econ.markets[marketId].goods;
+    // Effective plot height shrinks when axis buttons are shown
+    int eph = ph - (cfg ? WEALTH_BTNS_H : 0);
+
+    WealthAxis xAx = cfg ? cfg->xAxis : WEALTH_AXIS_WOOD_COUNT;
+    WealthAxis yAx = cfg ? cfg->yAxis : WEALTH_AXIS_MONEY;
+
+    float maxX, maxY;
+    if (cfg) {
+        maxX = cfg->axisMax[xAx];
+        maxY = cfg->axisMax[yAx];
+    } else {
+        float dynMoney=1.0f; int dynGoods=1;
+        for (int i=0;i<count;i++) {
+            if (agents[i].econ.money>dynMoney) dynMoney=agents[i].econ.money;
+            if (agents[i].econ.markets[marketId].goods>dynGoods) dynGoods=agents[i].econ.markets[marketId].goods;
+        }
+        dynMoney=(float)(((int)(dynMoney/50)+1)*50);
+        if (dynGoods%5!=0) dynGoods=(dynGoods/5+1)*5;
+        maxY=(b->yMax>0.0f)?b->yMax:dynMoney;
+        maxX=(b->xMax>0.0f)?(float)(int)b->xMax:(float)dynGoods;
     }
-    dynMoney=(float)(((int)(dynMoney/50)+1)*50);
-    if (dynGoods%5!=0) dynGoods=(dynGoods/5+1)*5;
 
-    float maxMoney=(b->yMax>0.0f)?b->yMax:dynMoney;
-    int   maxGoods=(b->xMax>0.0f)?(int)b->xMax:dynGoods;
-
-    DrawLine(px,py,px,py+ph,LIGHTGRAY);
-    DrawLine(px,py+ph,px+pw,py+ph,LIGHTGRAY);
+    DrawLine(px,py,px,py+eph,LIGHTGRAY);
+    DrawLine(px,py+eph,px+pw,py+eph,LIGHTGRAY);
     for (int step=0;step<=4;step++) {
-        float v=maxMoney*(float)step/4.0f;
-        int y=py+ph-(int)((float)step/4.0f*(float)ph);
+        float v=maxY*(float)step/4.0f;
+        int y=py+eph-(int)((float)step/4.0f*(float)eph);
         DrawLine(px-4,y,px,y,LIGHTGRAY);
         char buf[12]; snprintf(buf,sizeof(buf),"%.0f",v);
         DrawTextF(buf,px-28,y-7,11,LIGHTGRAY);
         DrawLine(px,y,px+pw,y,(Color){50,50,60,255});
     }
     for (int step=0;step<=4;step++) {
-        int gv=maxGoods*step/4;
+        float xv=maxX*(float)step/4.0f;
         int x=px+(int)((float)step/4.0f*(float)pw);
-        DrawLine(x,py+ph,x,py+ph+4,LIGHTGRAY);
-        char buf[16]; snprintf(buf,sizeof(buf),"%d",gv);
-        DrawTextF(buf,x-5,py+ph+6,11,LIGHTGRAY);
-        DrawLine(x,py,x,py+ph,(Color){50,50,60,255});
+        DrawLine(x,py+eph,x,py+eph+4,LIGHTGRAY);
+        char buf[16]; snprintf(buf,sizeof(buf),"%.0f",xv);
+        DrawTextF(buf,x-5,py+eph+6,11,LIGHTGRAY);
+        DrawLine(x,py,x,py+eph,(Color){50,50,60,255});
     }
-    DrawTextF("$",px-12,py-2,13,LIGHTGRAY);
-    DrawTextF("goods →",px+pw-52,py+ph+6,11,LIGHTGRAY);
+    DrawTextF(WEALTH_AXIS_LABEL[yAx],px-12,py-2,13,LIGHTGRAY);
+    if (!cfg) DrawTextF(WEALTH_AXIS_ARROW[xAx],px+pw-52,py+eph+6,11,LIGHTGRAY);
 
     for (int i=0;i<count;i++) {
-        float gx=(float)agents[i].econ.markets[marketId].goods/(float)maxGoods;
-        float gy=agents[i].econ.money/maxMoney;
+        const AgentMarket *m = &agents[i].econ.markets[marketId];
+        float xvals[WEALTH_AXIS_COUNT] = {
+            agents[i].econ.money,
+            (float)m->goods,
+            marginal_buy_utility(m)
+        };
+        float gx = xvals[xAx] / maxX;
+        float gy = xvals[yAx] / maxY;
+
         AgentAction act=agents[i].econ.lastAction;
         Color col;
         if      (agents[i].sprite.tradeFlashTick>0) col=YELLOW;
-        else if (act==ACTION_CHOP)          col=(Color){160,100, 40,220};
-        else if (act==ACTION_BUILD)         col=(Color){220,140, 60,220};
-        else                                col=(Color){150,150,150,180};
+        else if (act==ACTION_CHOP)                  col=(Color){160,100, 40,220};
+        else if (act==ACTION_BUILD)                 col=(Color){220,140, 60,220};
+        else                                        col=(Color){150,150,150,180};
 
         if (gx >= 0.0f && gx <= 1.0f && gy >= 0.0f && gy <= 1.0f) {
-            int sx=px+(int)(gx*(float)pw), sy=py+ph-(int)(gy*(float)ph);
+            int sx=px+(int)(gx*(float)pw), sy=py+eph-(int)(gy*(float)eph);
             DrawCircle(sx,sy,3,col);
         } else {
-            // Compute actual pixel position (may be outside plot)
             float ax = (float)px + gx*(float)pw;
-            float ay = (float)(py+ph) - gy*(float)ph;
-            // Clamp to plot border
+            float ay = (float)(py+eph) - gy*(float)eph;
             float ex = ax < (float)px ? (float)px : (ax > (float)(px+pw) ? (float)(px+pw) : ax);
-            float ey = ay < (float)py ? (float)py : (ay > (float)(py+ph) ? (float)(py+ph) : ay);
-            // Direction from clamped point toward actual point (screen coords, y-down)
+            float ey = ay < (float)py ? (float)py : (ay > (float)(py+eph) ? (float)(py+eph) : ay);
             float ddx = ax - ex, ddy = ay - ey;
             float len = sqrtf(ddx*ddx + ddy*ddy);
             if (len < 0.5f) continue;
             ddx /= len; ddy /= len;
-            // Triangle pointing in direction (ddx,ddy), tip 6px out, base 4px wide
-            // Winding: DrawTriangle(tip, v_right, v_left) is CCW in screen y-down
-            Vector2 tip = {ex + ddx*6.0f,          ey + ddy*6.0f         };
-            Vector2 vr  = {ex - ddx + ddy*4.0f,    ey - ddy - ddx*4.0f  };
-            Vector2 vl  = {ex - ddx - ddy*4.0f,    ey - ddy + ddx*4.0f  };
+            Vector2 tip = {ex + ddx*6.0f,       ey + ddy*6.0f      };
+            Vector2 vr  = {ex - ddx + ddy*4.0f, ey - ddy - ddx*4.0f};
+            Vector2 vl  = {ex - ddx - ddy*4.0f, ey - ddy + ddx*4.0f};
             DrawTriangle(tip, vr, vl, col);
         }
+    }
+
+    // Axis selector buttons — only when cfg is provided
+    if (!cfg) return;
+
+    int bw = (pw - 28) / 3;  // three buttons split across content width minus "Y:"/"X:" label
+    int bh = 16;
+    int by = py + eph + 2;   // 2px gap below plot content
+    int bx = px + 28;        // buttons start after "Y:" / "X:" label
+
+    // Y-axis row
+    DrawTextF("Y:", px, by + 2, 11, LIGHTGRAY);
+    for (int a = 0; a < WEALTH_AXIS_COUNT; a++) {
+        Rectangle r = {(float)(bx + a*bw), (float)by, (float)bw - 2, (float)bh};
+        bool sel = (cfg->yAxis == (WealthAxis)a);
+        if (sel) GuiSetState(STATE_DISABLED);
+        if (GuiButton(r, WEALTH_AXIS_BTN[a])) cfg->yAxis = (WealthAxis)a;
+        if (sel) GuiSetState(STATE_NORMAL);
+    }
+    // X-axis row
+    by += bh + 2;
+    DrawTextF("X:", px, by + 2, 11, LIGHTGRAY);
+    for (int a = 0; a < WEALTH_AXIS_COUNT; a++) {
+        Rectangle r = {(float)(bx + a*bw), (float)by, (float)bw - 2, (float)bh};
+        bool sel = (cfg->xAxis == (WealthAxis)a);
+        if (sel) GuiSetState(STATE_DISABLED);
+        if (GuiButton(r, WEALTH_AXIS_BTN[a])) cfg->xAxis = (WealthAxis)a;
+        if (sel) GuiSetState(STATE_NORMAL);
     }
 }
 

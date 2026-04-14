@@ -41,7 +41,8 @@ int main(void) {
     agents_init(g_simulation.agents, g_simulation.count, g_simulation.worldW, g_simulation.worldH);
 
     SimContext ctx = { .sim = &g_simulation, .inf = &g_influence, .decay = &g_decay_rates,
-                       .wt_inf = &g_wt_influence, .wt_env = &g_wt_environment };
+                       .wt_inf = &g_wt_influence, .wt_env = &g_wt_environment,
+                       .wt_wealth = &g_wt_wealth };
     WalkthroughState wt;
     walkthrough_init(&wt, &ctx);
 

@@ -14,6 +14,22 @@ typedef struct { float xMax; float yMax; } PlotBounds;
 extern PlotBounds g_bounds[PLOT_COUNT][MARKET_COUNT];  // defined in panels.c
 
 // ---------------------------------------------------------------------------
+// Wealth plot axis configuration (used by panel_wealth)
+// ---------------------------------------------------------------------------
+typedef enum {
+    WEALTH_AXIS_MONEY      = 0,
+    WEALTH_AXIS_WOOD_COUNT = 1,
+    WEALTH_AXIS_WOOD_UTIL  = 2,
+    WEALTH_AXIS_COUNT      = 3
+} WealthAxis;
+
+typedef struct {
+    WealthAxis xAxis;
+    WealthAxis yAxis;
+    float      axisMax[WEALTH_AXIS_COUNT];  // per-axis range max
+} WealthAxisConfig;
+
+// ---------------------------------------------------------------------------
 // Plot panels
 // ---------------------------------------------------------------------------
 
@@ -29,8 +45,10 @@ void panel_supply_demand(const Agent *agents, int count, int marketId,
                          int px, int py, int pw, int ph);
 
 // Money vs goods scatter plot.
+// cfg: if non-NULL, axis selector buttons are drawn and cfg controls which
+//      values map to X/Y; if NULL, defaults to Wood Count (x) vs Money (y).
 void panel_wealth(const Agent *agents, int count, int marketId,
-                  int px, int py, int pw, int ph);
+                  int px, int py, int pw, int ph, WealthAxisConfig *cfg);
 
 // Agents sorted by max utility with buy/sell/price dots.
 void panel_valuation_dist(const Agent *agents, int count, int marketId,

@@ -19,6 +19,7 @@ typedef struct {
     DecayRatePanel    *decay;
     WtInfluencePanel  *wt_inf;
     WtEnvironmentPanel *wt_env;
+    WealthAxisConfig  *wt_wealth;
 } SimContext;
 
 // ---------------------------------------------------------------------------

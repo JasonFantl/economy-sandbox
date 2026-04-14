@@ -14,6 +14,7 @@ extern InfluencePanel g_influence;
 extern DecayRatePanel g_decay_rates;
 extern WtInfluencePanel  g_wt_influence;
 extern WtEnvironmentPanel g_wt_environment;
+extern WealthAxisConfig  g_wt_wealth;
 
 // Sprite/worker assets — exposed so main can pass to render_world
 extern Assets g_assets;

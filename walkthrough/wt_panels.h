@@ -2,6 +2,7 @@
 #define WT_PANELS_H
 
 #include "econ/agent.h"
+#include "render/panels.h"
 #include <stdbool.h>
 
 // ---------------------------------------------------------------------------
@@ -83,5 +84,12 @@ void wt_environment_panel_init(WtEnvironmentPanel *p);
 
 // Render at screen position (px, py=32).  flags selects which rows to show.
 void wt_environment_panel_render(WtEnvironmentPanel *p, int flags, int px);
+
+// ---------------------------------------------------------------------------
+// Wealth plot axis configuration init
+// ---------------------------------------------------------------------------
+
+// Initialise with defaults: X = Wood Count, Y = Money
+void wt_wealth_config_init(WealthAxisConfig *c);
 
 #endif

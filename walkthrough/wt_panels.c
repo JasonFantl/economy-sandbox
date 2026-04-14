@@ -249,6 +249,14 @@ void wt_environment_panel_init(WtEnvironmentPanel *p) {
     snprintf(p->bufWoodPerChair, sizeof(p->bufWoodPerChair), "%d",   p->woodPerChair);
 }
 
+void wt_wealth_config_init(WealthAxisConfig *c) {
+    c->xAxis = WEALTH_AXIS_WOOD_COUNT;
+    c->yAxis = WEALTH_AXIS_MONEY;
+    c->axisMax[WEALTH_AXIS_MONEY]      = 2000.0f;
+    c->axisMax[WEALTH_AXIS_WOOD_COUNT] = 100.0f;
+    c->axisMax[WEALTH_AXIS_WOOD_UTIL]  = 80.0f;
+}
+
 void wt_environment_panel_render(WtEnvironmentPanel *p, int flags, int px) {
     if (GuiButton((Rectangle){px, WT_Y, WT_W, WT_HDR_H},
                   p->expanded ? "v  Environment" : ">  Environment"))

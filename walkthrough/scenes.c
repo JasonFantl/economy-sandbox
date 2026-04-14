@@ -1,5 +1,6 @@
 #include "walkthrough/scenes.h"
 #include "econ/agent.h"
+#include <stddef.h>
 #include "econ/econ.h"
 #include "econ/market.h"
 #include "render/panels.h"
@@ -78,12 +79,13 @@ static void render_s2p2(const SimContext *ctx, int x, int y, int w, int h) {
 }
 
 // 3-in-a-row shared by s2p3–s2p8: Wealth | Val Dist | Price History
+// cfg: if non-NULL, axis selector buttons appear on the wealth plot (from s2p6 onward)
 static void render_three_panels(const SimContext *ctx, int x, int y, int w, int h,
-                                 Price eq, bool showUtil) {
+                                 Price eq, bool showUtil, WealthAxisConfig *cfg) {
     int gap = 8, w3 = (w - 2*gap) / 3;
     draw_plot_frame(x, y, w3, h);
     panel_wealth(ctx->sim->agents, ctx->sim->count, MARKET_WOOD,
-                 CX(x), CY(y), CW(w3), CH(h));
+                 CX(x), CY(y), CW(w3), CH(h), cfg);
     draw_plot_frame(x + w3+gap, y, w3, h);
     panel_valuation_dist(ctx->sim->agents, ctx->sim->count, MARKET_WOOD,
                          CX(x+w3+gap), CY(y), CW(w3), CH(h), eq);
@@ -93,7 +95,7 @@ static void render_three_panels(const SimContext *ctx, int x, int y, int w, int 
 }
 
 static void render_s2p3(const SimContext *ctx, int x, int y, int w, int h) {
-    render_three_panels(ctx, x, y, w, h, 0.0f, false);
+    render_three_panels(ctx, x, y, w, h, 0.0f, false, NULL);
     WT_INF(ctx, WT_INF_WOOD_VALUE, 10);
 }
 
@@ -107,30 +109,30 @@ static Price avg_eq(const SimContext *ctx, int mid) {
 }
 
 static void render_s2p4(const SimContext *ctx, int x, int y, int w, int h) {
-    render_three_panels(ctx, x, y, w, h, avg_eq(ctx, MARKET_WOOD), true);
+    render_three_panels(ctx, x, y, w, h, avg_eq(ctx, MARKET_WOOD), true, NULL);
     WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT, 10);
 }
 
 static void render_s2p5(const SimContext *ctx, int x, int y, int w, int h) {
-    render_three_panels(ctx, x, y, w, h, avg_eq(ctx, MARKET_WOOD), true);
+    render_three_panels(ctx, x, y, w, h, avg_eq(ctx, MARKET_WOOD), true, NULL);
     WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT, 10);
     WT_ENV(ctx, WT_ENV_WOOD_DECAY, 258);
 }
 
 static void render_s2p6(const SimContext *ctx, int x, int y, int w, int h) {
-    render_three_panels(ctx, x, y, w, h, avg_eq(ctx, MARKET_WOOD), true);
+    render_three_panels(ctx, x, y, w, h, avg_eq(ctx, MARKET_WOOD), true, ctx->wt_wealth);
     WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT, 10);
     WT_ENV(ctx, WT_ENV_WOOD_DECAY | WT_ENV_CHOP_YIELD, 258);
 }
 
 static void render_s2p7(const SimContext *ctx, int x, int y, int w, int h) {
-    render_three_panels(ctx, x, y, w, h, avg_eq(ctx, MARKET_WOOD), true);
+    render_three_panels(ctx, x, y, w, h, avg_eq(ctx, MARKET_WOOD), true, ctx->wt_wealth);
     WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT | WT_INF_INFLATION | WT_INF_MONEY, 10);
     WT_ENV(ctx, WT_ENV_WOOD_DECAY | WT_ENV_CHOP_YIELD, 258);
 }
 
 static void render_s2p8(const SimContext *ctx, int x, int y, int w, int h) {
-    render_three_panels(ctx, x, y, w, h, avg_eq(ctx, MARKET_WOOD), true);
+    render_three_panels(ctx, x, y, w, h, avg_eq(ctx, MARKET_WOOD), true, ctx->wt_wealth);
     WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT | WT_INF_LEISURE | WT_INF_INFLATION | WT_INF_MONEY, 10);
     WT_ENV(ctx, WT_ENV_WOOD_DECAY | WT_ENV_CHOP_YIELD, 258);
 }
@@ -143,7 +145,7 @@ static void render_s3_plots(const SimContext *ctx, int x, int y, int w, int h, b
     // Top row: Wood
     draw_plot_frame(x,            y, w3, hh);
     panel_wealth(ctx->sim->agents, ctx->sim->count, MARKET_WOOD,
-                 CX(x), CY(y), CW(w3), CH(hh));
+                 CX(x), CY(y), CW(w3), CH(hh), NULL);
     draw_plot_frame(x + w3+gap,   y, w3, hh);
     panel_valuation_dist(ctx->sim->agents, ctx->sim->count, MARKET_WOOD,
                          CX(x+w3+gap), CY(y), CW(w3), CH(hh), eq_wood);
@@ -154,7 +156,7 @@ static void render_s3_plots(const SimContext *ctx, int x, int y, int w, int h, b
     // Bottom row: Chair
     draw_plot_frame(x,            y+hh+gap, w3, hh);
     panel_wealth(ctx->sim->agents, ctx->sim->count, MARKET_CHAIR,
-                 CX(x), CY(y+hh+gap), CW(w3), CH(hh));
+                 CX(x), CY(y+hh+gap), CW(w3), CH(hh), NULL);
     draw_plot_frame(x + w3+gap,   y+hh+gap, w3, hh);
     panel_valuation_dist(ctx->sim->agents, ctx->sim->count, MARKET_CHAIR,
                          CX(x+w3+gap), CY(y+hh+gap), CW(w3), CH(hh), eq_chair);
@@ -403,12 +405,9 @@ const SceneDef SCENES[] = {
         {
             {
                 "Two Agents",
-                "Every time two agents try to trade, they update their expected market price. "
-                "Take control of one agent and try trading with the other, watch how their price "
-                "changes when you buy or refuse to buy from them. If a buyer is unable to buy, "
-                "they will offer more next time, and if a seller is unable to sell, they will "
-                "offer it for less next time. If a trade is successful, each agent will try to "
-                "get a better deal the next time: buyers offer less, sellers ask for more.\n"
+                "Every agent has a Utility for a good, which is the blue dot. They also have an expected Market Price for a good. Every time two agents try to trade, they update their expected market price. "
+                "If a trade is successful, each agent will try to "
+                "get a better deal the next time: buyers offer less (lower expected Market Price), sellers ask for more (higher expected Market Price). But if a deal fails, then agents update in the other direction, offering a better deal next time.\n"
                 "Hit F to speed up the simulation, Shift+F to slow down, and Space to pause.",
                 step_s1p1, render_s1p1
             }
@@ -420,26 +419,25 @@ const SceneDef SCENES[] = {
             {
                 "Many Agents",
                 "Now we have 100 agents all randomly interacting with each other. Even though "
-                "they all have different values for the good and start with different beliefs of "
-                "what the market price is, they eventually all converge on a shared price.\n"
-                "Try resetting the agents and adjusting their values in the top left corner - "
-                "see how the price they settle on changes when they start with different values.",
+                "they all have different Utility for the good and start with a different expected Market Price, they eventually all converge on a shared Market Price.\n"
+                "A green Market Price indicates the agent is a Buyer, while red indicates the agent is a Seller.\n"
+                "Try resetting the agents in the top left corner to see how a different distribution of utility values leads to a different Market Price.",
                 step_s2p1, render_s2p1
             },
             {
                 "Supply & Demand",
                 "Notice that if we add a Supply & Demand curve, our market has converged to the "
-                "equilibrium price. There is a button to add or subtract value from every agent - "
-                "try moving it and see how the price slowly changes.\n"
-                "Also try clicking on an agent and changing their base value, and see how it "
-                "affects the price.",
+                "equilibrium price.\n"
+                "There is a button to add or subtract value from every agent in the Agents panel, "
+                "try updating it and watch how the market slowly updates.",
                 step_s2p2, render_s2p2
             },
             {
                 "Market Collapse",
-                "But we need to give agents money and goods to trade with. We see that everyone "
+                "But we need to give agents money and goods to actually trade with. We see that everyone "
                 "either sells all their goods or spends all their money buying goods. "
-                "Why don't people actually do this in real life?",
+                "Why don't people actually do this in real life?\n"
+                "A Seller without any goods is now colored grey, since they can no longer sell.",
                 step_s2p3, render_s2p3
             },
             {
@@ -448,24 +446,24 @@ const SceneDef SCENES[] = {
                 "they value it. On the value plot we now see the buy and sell utility calculated "
                 "from how many goods the agent holds (buying utility is lower than selling since "
                 "the next unit you buy is not as valuable as the one you would give up).\n"
-                "Try adding goods to agents' inventories and see that they value the good less.",
+                "An agent will be colored grey if they are no longer a Buyer or Seller.\n"
+                "Try adding goods to agents' inventories in the panel and see that they value the good less.",
                 step_s2p4, render_s2p4
             },
             {
                 "Goods Decay",
-                "But now wood will decay over time. You can control the rate of decay in the "
-                "Environment panel. As a reminder, you can reset agents to see how they act "
-                "under different conditions.",
+                "But now our good will decay over time. Let's say that the good is wood logs, which are rotting over time. This causes the price to increase until all the wood in the market eventually disappears.\n"
+                "You can control the rate of decay in the Environment panel. As a reminder, you can reset agents in the Agents panel.",
                 step_s2p5, render_s2p5
             },
             {
                 "Production",
-                "Now agents can chop down new wood. At some point the rate of wood being chopped "
-                "equals the rate it decays. Play with the Decay rate and Yield to find where they "
+                "Now agents can chop down new wood, which we indicate with a brown color in the Goods V Wealth plot. At some point there is enough wood that the rate of decay is equal to rate of new wood and they balance. "
+                "Play with the Decay rate and Yield to find where they "
                 "balance.\n"
                 "If you speed up the simulation you will notice that some agents keep getting "
-                "richer while others get poorer. Agents who value wood highly accumulate more of "
-                "it, which means more decays - so money flows from high-value agents to low-value ones.",
+                "richer while others get poorer. Why might this be?\n"
+                "Play with changing the axis in the Goods V Wealth plot to identify patterns.",
                 step_s2p6, render_s2p6
             },
             {

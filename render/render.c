@@ -233,7 +233,7 @@ static void draw_panel(const PanelState *ps,
     int mid=ps->marketId;
     switch (ps->plotType) {
         case PLOT_WEALTH:
-            panel_wealth(agents, agentCount, mid, px, py, pw, ph); break;
+            panel_wealth(agents, agentCount, mid, px, py, pw, ph, NULL); break;
         case PLOT_VALUATION_DISTRIBUTION:
             panel_valuation_dist(agents, agentCount, mid, px, py, pw, ph, equilibrium); break;
         case PLOT_PRICE_HISTORY:
