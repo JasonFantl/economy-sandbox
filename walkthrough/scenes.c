@@ -46,10 +46,10 @@ static void render_s1p1(const SimContext *ctx, int x, int y, int w, int h) {
     int gap = 8, hw = (w - gap) / 2;
     draw_plot_frame(x, y, hw, h);
     panel_valuation_dist(ctx->sim->agents, ctx->sim->count, MARKET_WOOD,
-                         CX(x), CY(y), CW(hw), CH(h), 0.0f);
+                         CX(x), CY(y), CW(hw), CH(h));
     draw_plot_frame(x + hw + gap, y, hw, h);
     panel_price_history(ctx->sim->avh, ctx->sim->pvh, ctx->sim->agents, ctx->sim->count,
-                        MARKET_WOOD, CX(x+hw+gap), CY(y), CW(hw), CH(h), 0.0f, false);
+                        MARKET_WOOD, CX(x+hw+gap), CY(y), CW(hw), CH(h), false);
     WT_INF(ctx, 0, 10);
 }
 
@@ -57,10 +57,10 @@ static void render_s2p1(const SimContext *ctx, int x, int y, int w, int h) {
     int gap = 8, hw = (w - gap) / 2;
     draw_plot_frame(x, y, hw, h);
     panel_valuation_dist(ctx->sim->agents, ctx->sim->count, MARKET_WOOD,
-                         CX(x), CY(y), CW(hw), CH(h), 0.0f);
+                         CX(x), CY(y), CW(hw), CH(h));
     draw_plot_frame(x + hw + gap, y, hw, h);
     panel_price_history(ctx->sim->avh, ctx->sim->pvh, ctx->sim->agents, ctx->sim->count,
-                        MARKET_WOOD, CX(x+hw+gap), CY(y), CW(hw), CH(h), 0.0f, false);
+                        MARKET_WOOD, CX(x+hw+gap), CY(y), CW(hw), CH(h), false);
     WT_INF(ctx, 0, 10);
 }
 
@@ -71,68 +71,59 @@ static void render_s2p2(const SimContext *ctx, int x, int y, int w, int h) {
                         CX(x), CY(y), CW(w3), CH(h));
     draw_plot_frame(x + w3+gap, y, w3, h);
     panel_valuation_dist(ctx->sim->agents, ctx->sim->count, MARKET_WOOD,
-                         CX(x+w3+gap), CY(y), CW(w3), CH(h), 0.0f);
+                         CX(x+w3+gap), CY(y), CW(w3), CH(h));
     draw_plot_frame(x + 2*(w3+gap), y, w3, h);
     panel_price_history(ctx->sim->avh, ctx->sim->pvh, ctx->sim->agents, ctx->sim->count,
-                        MARKET_WOOD, CX(x+2*(w3+gap)), CY(y), CW(w3), CH(h), 0.0f, false);
+                        MARKET_WOOD, CX(x+2*(w3+gap)), CY(y), CW(w3), CH(h), false);
     WT_INF(ctx, WT_INF_WOOD_VALUE, 10);
 }
 
 // 3-in-a-row shared by s2p3–s2p8: Wealth | Val Dist | Price History
 // cfg: if non-NULL, axis selector buttons appear on the wealth plot (from s2p6 onward)
 static void render_three_panels(const SimContext *ctx, int x, int y, int w, int h,
-                                 Price eq, bool showUtil, WealthAxisConfig *cfg) {
+                                 bool showUtil, WealthAxisConfig *cfg) {
     int gap = 8, w3 = (w - 2*gap) / 3;
     draw_plot_frame(x, y, w3, h);
     panel_wealth(ctx->sim->agents, ctx->sim->count, MARKET_WOOD,
                  CX(x), CY(y), CW(w3), CH(h), cfg);
     draw_plot_frame(x + w3+gap, y, w3, h);
     panel_valuation_dist(ctx->sim->agents, ctx->sim->count, MARKET_WOOD,
-                         CX(x+w3+gap), CY(y), CW(w3), CH(h), eq);
+                         CX(x+w3+gap), CY(y), CW(w3), CH(h));
     draw_plot_frame(x + 2*(w3+gap), y, w3, h);
     panel_price_history(ctx->sim->avh, ctx->sim->pvh, ctx->sim->agents, ctx->sim->count,
-                        MARKET_WOOD, CX(x+2*(w3+gap)), CY(y), CW(w3), CH(h), eq, showUtil);
+                        MARKET_WOOD, CX(x+2*(w3+gap)), CY(y), CW(w3), CH(h), showUtil);
 }
 
 static void render_s2p3(const SimContext *ctx, int x, int y, int w, int h) {
-    render_three_panels(ctx, x, y, w, h, 0.0f, false, NULL);
+    render_three_panels(ctx, x, y, w, h, false, NULL);
     WT_INF(ctx, WT_INF_WOOD_VALUE, 10);
 }
 
-// Returns the average max utility as an equilibrium price reference line.
-// At equilibrium the market price equals the average agent valuation.
-static Price avg_eq(const SimContext *ctx, int mid) {
-    Price sum = 0.0f;
-    for (int i = 0; i < ctx->sim->count; i++)
-        sum += ctx->sim->agents[i].econ.markets[mid].maxUtility;
-    return ctx->sim->count > 0 ? sum / (float)ctx->sim->count : 0.0f;
-}
-
 static void render_s2p4(const SimContext *ctx, int x, int y, int w, int h) {
-    render_three_panels(ctx, x, y, w, h, avg_eq(ctx, MARKET_WOOD), true, NULL);
+    render_three_panels(ctx, x, y, w, h, true, NULL);
     WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT, 10);
 }
 
 static void render_s2p5(const SimContext *ctx, int x, int y, int w, int h) {
-    render_three_panels(ctx, x, y, w, h, avg_eq(ctx, MARKET_WOOD), true, NULL);
+    render_three_panels(ctx, x, y, w, h, true, NULL);
     WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT, 10);
     WT_ENV(ctx, WT_ENV_WOOD_DECAY, 258);
 }
 
 static void render_s2p6(const SimContext *ctx, int x, int y, int w, int h) {
-    render_three_panels(ctx, x, y, w, h, avg_eq(ctx, MARKET_WOOD), true, ctx->wt_wealth);
+    render_three_panels(ctx, x, y, w, h, true, ctx->wt_wealth);
     WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT, 10);
     WT_ENV(ctx, WT_ENV_WOOD_DECAY | WT_ENV_CHOP_YIELD, 258);
 }
 
 static void render_s2p7(const SimContext *ctx, int x, int y, int w, int h) {
-    render_three_panels(ctx, x, y, w, h, avg_eq(ctx, MARKET_WOOD), true, ctx->wt_wealth);
+    render_three_panels(ctx, x, y, w, h, true, ctx->wt_wealth);
     WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT | WT_INF_INFLATION | WT_INF_MONEY, 10);
     WT_ENV(ctx, WT_ENV_WOOD_DECAY | WT_ENV_CHOP_YIELD, 258);
 }
 
 static void render_s2p8(const SimContext *ctx, int x, int y, int w, int h) {
-    render_three_panels(ctx, x, y, w, h, avg_eq(ctx, MARKET_WOOD), true, ctx->wt_wealth);
+    render_three_panels(ctx, x, y, w, h, true, ctx->wt_wealth);
     WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT | WT_INF_LEISURE | WT_INF_INFLATION | WT_INF_MONEY, 10);
     WT_ENV(ctx, WT_ENV_WOOD_DECAY | WT_ENV_CHOP_YIELD, 258);
 }
@@ -140,8 +131,6 @@ static void render_s2p8(const SimContext *ctx, int x, int y, int w, int h) {
 // 3×2 grid for scene 3: top row = wood, bottom row = chair
 static void render_s3_plots(const SimContext *ctx, int x, int y, int w, int h, bool showUtil,
                              WealthAxisConfig *cfgWood, WealthAxisConfig *cfgChair) {
-    Price eq_wood  = avg_eq(ctx, MARKET_WOOD);
-    Price eq_chair = avg_eq(ctx, MARKET_CHAIR);
     int gap = 8, w3 = (w - 2*gap) / 3, hh = (h - gap) / 2;
     // Top row: Wood
     draw_plot_frame(x,            y, w3, hh);
@@ -149,31 +138,23 @@ static void render_s3_plots(const SimContext *ctx, int x, int y, int w, int h, b
                  CX(x), CY(y), CW(w3), CH(hh), cfgWood);
     draw_plot_frame(x + w3+gap,   y, w3, hh);
     panel_valuation_dist(ctx->sim->agents, ctx->sim->count, MARKET_WOOD,
-                         CX(x+w3+gap), CY(y), CW(w3), CH(hh), eq_wood);
+                         CX(x+w3+gap), CY(y), CW(w3), CH(hh));
     draw_plot_frame(x + 2*(w3+gap), y, w3, hh);
     panel_price_history(ctx->sim->avh, ctx->sim->pvh, ctx->sim->agents, ctx->sim->count,
-                        MARKET_WOOD, CX(x+2*(w3+gap)), CY(y), CW(w3), CH(hh),
-                        eq_wood, showUtil);
+                        MARKET_WOOD, CX(x+2*(w3+gap)), CY(y), CW(w3), CH(hh), showUtil);
     // Bottom row: Chair
     draw_plot_frame(x,            y+hh+gap, w3, hh);
     panel_wealth(ctx->sim->agents, ctx->sim->count, MARKET_CHAIR,
                  CX(x), CY(y+hh+gap), CW(w3), CH(hh), cfgChair);
     draw_plot_frame(x + w3+gap,   y+hh+gap, w3, hh);
     panel_valuation_dist(ctx->sim->agents, ctx->sim->count, MARKET_CHAIR,
-                         CX(x+w3+gap), CY(y+hh+gap), CW(w3), CH(hh), eq_chair);
+                         CX(x+w3+gap), CY(y+hh+gap), CW(w3), CH(hh));
     draw_plot_frame(x + 2*(w3+gap), y+hh+gap, w3, hh);
     panel_price_history(ctx->sim->avh, ctx->sim->pvh, ctx->sim->agents, ctx->sim->count,
-                        MARKET_CHAIR, CX(x+2*(w3+gap)), CY(y+hh+gap), CW(w3), CH(hh),
-                        eq_chair, showUtil);
+                        MARKET_CHAIR, CX(x+2*(w3+gap)), CY(y+hh+gap), CW(w3), CH(hh), showUtil);
 }
 
 static void render_s3p1(const SimContext *ctx, int x, int y, int w, int h) {
-    render_s3_plots(ctx, x, y, w, h, true, ctx->wt_wealth, ctx->wt_wealth_chair);
-    WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT | WT_INF_LEISURE | WT_INF_MARKET_SEL | WT_INF_INFLATION | WT_INF_MONEY, 10);
-    WT_ENV(ctx, WT_ENV_WOOD_DECAY | WT_ENV_DECAY_MARKET_SEL | WT_ENV_CHOP_YIELD, 258);
-}
-
-static void render_s3p2(const SimContext *ctx, int x, int y, int w, int h) {
     render_s3_plots(ctx, x, y, w, h, true, ctx->wt_wealth, ctx->wt_wealth_chair);
     WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT | WT_INF_LEISURE | WT_INF_MARKET_SEL | WT_INF_INFLATION | WT_INF_MONEY, 10);
     WT_ENV(ctx, WT_ENV_WOOD_DECAY | WT_ENV_DECAY_MARKET_SEL | WT_ENV_CHOP_YIELD | WT_ENV_BUILD_COST, 258);
@@ -283,17 +264,6 @@ static void step_s2p8(void) {
 }
 
 static void step_s3p1(void) {
-    g_diminishing_returns    = true;
-    g_chop_wood_enabled      = true;
-    g_leisure_enabled        = true;
-    g_build_chairs_enabled   = false;
-    g_disable_executing_trade = false;
-    g_wood_decay_rate        = 0.003f;
-    g_chair_decay_rate       = 0.003f;
-    g_inflation_enabled      = true;
-}
-
-static void step_s3p2(void) {
     g_diminishing_returns    = true;
     g_chop_wood_enabled      = true;
     g_leisure_enabled        = true;
@@ -469,17 +439,8 @@ const SceneDef SCENES[] = {
         }
     },
     {
-        "Two Goods", init_s3, 2,
+        "Two Goods", init_s3, 1,
         {
-            {
-                "Two Goods",
-                "Now we have two independent markets: wood and chairs. Each has its own "
-                "valuation distribution and price. Watch both markets converge to their "
-                "own equilibrium prices independently.\n"
-                "Use the Agents panel to adjust valuations or goods for either market "
-                "using the Wood/Chair toggle.",
-                step_s3p1, render_s3p1
-            },
             {
                 "Production",
                 "Agents can now build chairs from wood. It costs a certain amount of wood "
@@ -487,7 +448,7 @@ const SceneDef SCENES[] = {
                 "build chairs, the wood supply shrinks and the chair supply grows.\n"
                 "Use the Build cost setter in the Environment panel to change how much wood "
                 "a chair costs, and watch how it shifts both markets.",
-                step_s3p2, render_s3p2
+                step_s3p1, render_s3p1
             }
         }
     }

@@ -229,15 +229,15 @@ static void draw_panel(const PanelState *ps,
                        const AgentValueHistory gvh[MARKET_COUNT],
                        const AgentValueHistory *mvh,
                        const Agent *agents, int agentCount,
-                       int px, int py, int pw, int ph, float equilibrium) {
+                       int px, int py, int pw, int ph) {
     int mid=ps->marketId;
     switch (ps->plotType) {
         case PLOT_WEALTH:
             panel_wealth(agents, agentCount, mid, px, py, pw, ph, NULL); break;
         case PLOT_VALUATION_DISTRIBUTION:
-            panel_valuation_dist(agents, agentCount, mid, px, py, pw, ph, equilibrium); break;
+            panel_valuation_dist(agents, agentCount, mid, px, py, pw, ph); break;
         case PLOT_PRICE_HISTORY:
-            panel_price_history(&avh[mid], &pvh[mid], agents, agentCount, mid, px, py, pw, ph, equilibrium, true); break;
+            panel_price_history(&avh[mid], &pvh[mid], agents, agentCount, mid, px, py, pw, ph, true); break;
         case PLOT_GOODS_HISTORY:
             panel_goods_history(&gvh[mid], mid, px, py, pw, ph); break;
         case PLOT_SUPPLY_DEMAND:
@@ -291,16 +291,11 @@ void render_panels_freeplay(const AgentValueHistory avh[MARKET_COUNT],
         int ppx, strip_y, py, ph;
         panel_geom(pi, &ppx, &strip_y, &py, &ph);
 
-        float eq=0.0f;
-        for (int i=0;i<agentCount;i++)
-            eq+=agents[i].econ.markets[panels[pi].marketId].maxUtility;
-        eq/=(float)agentCount;
-
         draw_plot_strip  (ppx, strip_y,          half, panels[pi].plotType);
         draw_market_strip(ppx, strip_y+STRIP_H,  half, panels[pi].marketId);
         draw_bounds_strip(ppx, strip_y+2*STRIP_H,half, pi, panels[pi].plotType, panels[pi].marketId);
 
-        draw_panel(&panels[pi], avh, pvh, gvh, mvh, agents, agentCount, ppx, py, half, ph, eq);
+        draw_panel(&panels[pi], avh, pvh, gvh, mvh, agents, agentCount, ppx, py, half, ph);
     }
 }
 

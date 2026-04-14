@@ -25,7 +25,7 @@ static Color emv_color(float maxUtility, unsigned char alpha) {
     return (Color){(unsigned char)(55+t*200),30,(unsigned char)(255-t*200),alpha};
 }
 
-static void draw_axes_y(int px, int py, int pw, int ph, float yMax, float refLine) {
+static void draw_axes_y(int px, int py, int pw, int ph, float yMax) {
     DrawLine(px,py,px,py+ph,LIGHTGRAY);
     DrawLine(px,py+ph,px+pw,py+ph,LIGHTGRAY);
     for (int step=0;step<=4;step++) {
@@ -35,11 +35,6 @@ static void draw_axes_y(int px, int py, int pw, int ph, float yMax, float refLin
         char buf[12]; snprintf(buf,sizeof(buf),"%.0f",v);
         DrawTextF(buf,px-28,y-7,11,LIGHTGRAY);
         DrawLine(px,y,px+pw,y,(Color){50,50,60,255});
-    }
-    if (refLine>0.0f && refLine<=yMax) {
-        int ry=py+ph-(int)(refLine/yMax*(float)ph);
-        DrawLine(px,ry,px+pw,ry,(Color){255,200,0,110});
-        DrawTextF("equil.",px+pw-46,ry-13,11,(Color){255,200,0,180});
     }
 }
 
@@ -229,7 +224,7 @@ void panel_wealth(const Agent *agents, int count, int marketId,
 // ---------------------------------------------------------------------------
 
 void panel_valuation_dist(const Agent *agents, int count, int marketId,
-                           int px, int py, int pw, int ph, Price equilibrium) {
+                           int px, int py, int pw, int ph) {
     PlotBounds *b=&g_bounds[PLOT_VALUATION_DISTRIBUTION][marketId];
     float rawMax=1.0f;
     for (int i=0;i<count;i++) {
@@ -248,7 +243,7 @@ void panel_valuation_dist(const Agent *agents, int count, int marketId,
         }
     }
     float yMax=(b->yMax>0.0f)?b->yMax:compute_ymax(rawMax);
-    draw_axes_y(px,py,pw,ph,yMax,equilibrium);
+    draw_axes_y(px,py,pw,ph,yMax);
 
     int indices[MAX_AGENTS];
     for (int i=0;i<count;i++) indices[i]=i;
@@ -352,7 +347,7 @@ void panel_valuation_dist(const Agent *agents, int count, int marketId,
 void panel_price_history(const AgentValueHistory *avh, const AgentValueHistory *pvh,
                          const Agent *agents, int count, int marketId,
                          int px, int py, int pw, int ph,
-                         Price equilibrium, bool showIndividualUtil) {
+                         bool showIndividualUtil) {
     PlotBounds *b=&g_bounds[PLOT_PRICE_HISTORY][marketId];
     float rawMax=1.0f;
     for (int s=0;s<avh->count;s++) { float v=avh_avg(avh,s); if(v>rawMax) rawMax=v; }
@@ -361,7 +356,7 @@ void panel_price_history(const AgentValueHistory *avh, const AgentValueHistory *
         if (v>rawMax) rawMax=v;
     }
     float yMax=(b->yMax>0.0f)?b->yMax:compute_ymax(rawMax);
-    draw_axes_y(px,py,pw,ph,yMax,equilibrium);
+    draw_axes_y(px,py,pw,ph,yMax);
     if (avh->count<2) return;
     float xScale=(float)pw/(float)(PRICE_HISTORY_SIZE-1);
 
@@ -428,7 +423,7 @@ void panel_goods_history(const AgentValueHistory *gvh, int marketId,
         }
     }
     float yMax = (b->yMax > 0.0f) ? b->yMax : compute_ymax(rawMax);
-    draw_axes_y(px, py, pw, ph, yMax, 0.0f);
+    draw_axes_y(px, py, pw, ph, yMax);
     if (gvh->count < 2) return;
 
     float xScale = (float)pw / (float)(PRICE_HISTORY_SIZE - 1);
@@ -484,19 +479,16 @@ void panel_supply_demand(const Agent *agents, int count, int marketId,
     for (int i = 0; i < nSupply; i++) if (supply[i] > rawMax) rawMax = supply[i];
     float yMax = (b->yMax > 0.0f) ? b->yMax : compute_ymax(rawMax);
 
-    float eqPrice = 0.0f;
-    int   eqQty   = 0;
+    int eqQty = 0;
     {
         int n = nDemand < nSupply ? nDemand : nSupply;
         for (int i = 0; i < n; i++) {
-            if (demand[i] >= supply[i]) {
-                eqPrice = (demand[i] + supply[i]) * 0.5f;
-                eqQty   = i + 1;
-            } else break;
+            if (demand[i] >= supply[i]) eqQty = i + 1;
+            else break;
         }
     }
 
-    draw_axes_y(px, py, pw, ph, yMax, eqPrice);
+    draw_axes_y(px, py, pw, ph, yMax);
 
     for (int step = 0; step <= 4; step++) {
         int gv = count * step / 4;
@@ -571,7 +563,7 @@ void panel_money_history(const AgentValueHistory *mvh, int marketId,
         }
     }
     float yMax = (b->yMax > 0.0f) ? b->yMax : compute_ymax(rawMax);
-    draw_axes_y(px, py, pw, ph, yMax, 0.0f);
+    draw_axes_y(px, py, pw, ph, yMax);
     if (mvh->count < 2) return;
 
     float xScale = (float)pw / (float)(PRICE_HISTORY_SIZE - 1);
