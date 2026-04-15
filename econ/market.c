@@ -79,7 +79,9 @@ void avh_record_personal_valuations(AgentValueHistory *h, const Agent *agents, i
     for (int i = 0; i < count; i++) {
         float mmu = money_marginal_utility(agents[i].econ.money);
         if (mmu < 1e-6f) mmu = 1e-6f;
-        h->data[i][h->head] = marginal_buy_utility(&agents[i].econ.markets[mid]) / mmu;
+        float buy  = marginal_buy_utility(&agents[i].econ.markets[mid]);
+        float sell = marginal_sell_utility(&agents[i].econ.markets[mid]);
+        h->data[i][h->head] = (buy + sell) / (2.0f * mmu);
     }
     h->head = (h->head + 1) % PRICE_HISTORY_SIZE;
     if (h->count < PRICE_HISTORY_SIZE) h->count++;
