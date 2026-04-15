@@ -8,6 +8,7 @@
 #include "raylib.h"
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 #define FONT_PATH "assets/fonts/romulus.png"
 
@@ -82,9 +83,26 @@ static void render_world_hud(void) {
     if      (g_simulation.paused)                 { snprintf(speedBuf,sizeof(speedBuf),"PAUSED");                          speedCol=RED;    }
     else if (g_simulation.ticks_per_frame > 1)    { snprintf(speedBuf,sizeof(speedBuf),"Speed: %dx",g_simulation.ticks_per_frame); speedCol=ORANGE; }
     else                                          { snprintf(speedBuf,sizeof(speedBuf),"Speed: 1x");                       speedCol=WHITE;  }
-    DrawRectangle(GetScreenWidth()-200, g_world_view_y, 200, 40, (Color){0,0,0,100});
+    DrawRectangle(GetScreenWidth()-240, g_world_view_y, 240, 40, (Color){0,0,0,100});
     DrawTextF(speedBuf,     GetScreenWidth()-108, g_world_view_y+4,  16, speedCol);
     DrawTextF("[SPACE]/[F]",GetScreenWidth()-186, g_world_view_y+24, 11, (Color){200,200,200,255});
+
+    // Concentric clock rings: dot on each ring completes one cycle per period sim steps.
+    // Innermost = fastest (300 steps/cycle), each outer ring 4x slower.
+    {
+        int cx = GetScreenWidth() - 222, cy = g_world_view_y + 20;
+        static const int radii[4]   = { 4,  8, 12, 16 };
+        static const int periods[4] = { 300, 1200, 4800, 19200 };
+        int total_sim = g_simulation.speedHistory.total_sim_steps;
+        DrawCircle(cx, cy, 2, (Color){80, 80, 80, 180});
+        for (int k = 0; k < 4; k++) {
+            DrawCircleLines((float)cx, (float)cy, (float)radii[k], (Color){70, 70, 70, 160});
+            float angle = (float)(total_sim % periods[k]) / (float)periods[k] * 2.0f * (float)M_PI - (float)M_PI * 0.5f;
+            int dx = (int)(cosf(angle) * (float)radii[k] + 0.5f);
+            int dy = (int)(sinf(angle) * (float)radii[k] + 0.5f);
+            DrawCircle(cx + dx, cy + dy, 2, speedCol);
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
