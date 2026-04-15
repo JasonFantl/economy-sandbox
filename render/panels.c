@@ -372,19 +372,26 @@ void panel_price_history(const AgentValueHistory *avh, const AgentValueHistory *
 
     // Speed overlay: tinted background (lighter = faster) + change markers.
     // Drawn before axes and data so everything renders on top.
+    // Batched into runs of equal speed to avoid per-sample rounding gaps.
     if (speedh && speedh->count > 0) {
         float xs = (float)pw / (float)(PRICE_HISTORY_SIZE - 1);
         int n = speedh->count;
-        for (int s = 0; s < n; s++) {
-            int spd = speed_history_get(speedh, s);
-            if (spd < 1) spd = 1;
-            int tx = px + (int)((float)s * xs);
-            int tw = (s < n-1) ? (int)((float)(s+1)*xs) - (int)((float)s*xs) + 1 : px+pw-tx;
-            int alpha = (int)(3.0f * log2f((float)spd));
+        int run_start = 0;
+        for (int s = 1; s <= n; s++) {
+            int cur = (s < n) ? speed_history_get(speedh, s) : -1;
+            int run_spd = speed_history_get(speedh, run_start);
+            if (run_spd < 1) run_spd = 1;
+            if (cur == run_spd) continue;
+            // Flush run [run_start, s)
+            int tx0 = px + (int)((float)run_start * xs);
+            int tx1 = (s < n) ? px + (int)((float)s * xs) : px + pw;
+            int alpha = (int)(10.0f * log2f((float)run_spd));
+            if (alpha > 255) alpha = 255;
             if (alpha > 0)
-                DrawRectangle(tx, py, tw, ph, (Color){220, 220, 255, (unsigned char)alpha});
-            if (s > 0 && spd != speed_history_get(speedh, s - 1))
-                DrawLine(tx, py, tx, py + ph, (Color){120, 100, 60, 80});
+                DrawRectangle(tx0, py, tx1 - tx0, ph, (Color){220, 220, 255, (unsigned char)alpha});
+            if (run_start > 0)
+                DrawLine(tx0, py, tx0, py + ph, (Color){160, 130, 60, 120});
+            run_start = s;
         }
     }
     draw_axes_y(px, py, pw, ph, yMax);
