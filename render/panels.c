@@ -411,7 +411,7 @@ void panel_price_history(const AgentValueHistory *avh, const AgentValueHistory *
     if (avh->count<2) return;
     float xScale=(float)pw/(float)(PRICE_HISTORY_SIZE-1);
 
-    if (showIndividualUtil && pvh->count>=2) {
+    if (pvh->count>=2) {
         for (int ag=0;ag<pvh->agentCount;ag++) {
             Color col={50,180,100,30};
             for (int s=1;s<pvh->count;s++) {
@@ -446,13 +446,9 @@ void panel_price_history(const AgentValueHistory *avh, const AgentValueHistory *
 
     int lx=px+pw-200,ly=py+4;
     DrawLine(lx,   ly+4, lx+12, ly+4, emv_color(50.0f,200));     DrawTextF("Market Price/agent",   lx+16,ly-1, 10,(Color){200,200,200,255});
-    if (showIndividualUtil) {
-        DrawLine(lx+100,ly+4, lx+112,ly+4, (Color){50,180,100,200}); DrawTextF("Indiffer. Price/agent", lx+116,ly-1, 10,(Color){80,210,130,255});
-    }
+    DrawLine(lx+100,ly+4, lx+112,ly+4, (Color){50,180,100,200}); DrawTextF("Indiffer. Price/agent", lx+116,ly-1, 10,(Color){80,210,130,255});
     DrawLine(lx,   ly+15,lx+12, ly+15,WHITE);                    DrawTextF("Market Price avg",     lx+16, ly+10,10,WHITE);
-    if (showIndividualUtil) {
-        DrawLine(lx+100,ly+15,lx+112,ly+15,(Color){80,230,130,230}); DrawTextF("Indiffer. Price avg",   lx+116,ly+10,10,(Color){80,230,130,255});
-    }
+    DrawLine(lx+100,ly+15,lx+112,ly+15,(Color){80,230,130,230}); DrawTextF("Indiffer. Price avg",   lx+116,ly+10,10,(Color){80,230,130,255});
 
 }
 
