@@ -380,7 +380,7 @@ void panel_price_history(const AgentValueHistory *avh, const AgentValueHistory *
         for (int s = 0; s < n; s++) {
             int spd = speed_history_get(speedh, s);
             if (spd < 1) spd = 1;
-            int alpha = (int)(6.0f * log2f((float)spd));
+            int alpha = (int)(3.0f * log2f((float)spd));
             if (alpha > 0) {
                 int tx   = px + (int)((float)s * xs);
                 int tw   = (s < n - 1) ? (int)((float)(s+1)*xs) - (int)((float)s*xs) + 1 : px+pw-tx;
