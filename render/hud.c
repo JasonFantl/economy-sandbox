@@ -78,30 +78,38 @@ static void render_world_hud(void) {
     DrawCircle(190, g_world_view_y+13, 4,(Color){220,140, 60,255}); DrawTextF("Building",198, g_world_view_y+6, 13, WHITE);
     DrawCircle(285, g_world_view_y+13, 4, YELLOW);                  DrawTextF("Trading", 293, g_world_view_y+6, 13, WHITE);
 
-    // Speed indicator
-    char speedBuf[32]; Color speedCol;
-    if      (g_simulation.paused)                 { snprintf(speedBuf,sizeof(speedBuf),"PAUSED");                          speedCol=RED;    }
-    else if (g_simulation.ticks_per_frame > 1)    { snprintf(speedBuf,sizeof(speedBuf),"Speed: %dx",g_simulation.ticks_per_frame); speedCol=ORANGE; }
-    else                                          { snprintf(speedBuf,sizeof(speedBuf),"Speed: 1x");                       speedCol=WHITE;  }
-    DrawRectangle(GetScreenWidth()-240, g_world_view_y, 240, 40, (Color){0,0,0,100});
-    DrawTextF(speedBuf,     GetScreenWidth()-108, g_world_view_y+4,  16, speedCol);
-    DrawTextF("[SPACE]/[F]",GetScreenWidth()-186, g_world_view_y+24, 11, (Color){200,200,200,255});
-
-    // Concentric clock rings: dot on each ring completes one cycle per period sim steps.
-    // Innermost = fastest (300 steps/cycle), each outer ring 4x slower.
+    // Speed indicator: concentric clock with speed text centred inside.
+    // 6 rings; innermost dot = 300 sim steps/cycle, each outer ring 4x slower.
     {
-        int cx = GetScreenWidth() - 222, cy = g_world_view_y + 20;
-        static const int radii[4]   = { 4,  8, 12, 16 };
-        static const int periods[4] = { 300, 1200, 4800, 19200 };
+        char speedBuf[16]; Color speedCol;
+        if      (g_simulation.paused)              { snprintf(speedBuf,sizeof(speedBuf),"PAUSED"); speedCol=RED;    }
+        else if (g_simulation.ticks_per_frame > 1) { snprintf(speedBuf,sizeof(speedBuf),"%dx",g_simulation.ticks_per_frame); speedCol=ORANGE; }
+        else                                       { snprintf(speedBuf,sizeof(speedBuf),"1x");    speedCol=WHITE;  }
+
+        static const int radii[6]   = { 22, 29, 36, 43, 50, 57 };
+        static const int periods[6] = { 300, 1200, 4800, 19200, 76800, 307200 };
+        int boxW = (radii[5] + 8) * 2;
+        int boxH = boxW + 14;  // extra room for hint at bottom
+        int bx = GetScreenWidth() - boxW - 4, by = g_world_view_y;
+        int cx = bx + boxW / 2, cy = by + (radii[5] + 8);
         int total_sim = g_simulation.speedHistory.total_sim_steps;
-        DrawCircle(cx, cy, 2, (Color){80, 80, 80, 180});
-        for (int k = 0; k < 4; k++) {
+
+        DrawRectangle(bx, by, boxW + 4, boxH, (Color){0, 0, 0, 120});
+
+        for (int k = 0; k < 6; k++) {
             DrawCircleLines((float)cx, (float)cy, (float)radii[k], (Color){70, 70, 70, 160});
-            float angle = (float)(total_sim % periods[k]) / (float)periods[k] * 2.0f * (float)M_PI - (float)M_PI * 0.5f;
+            float angle = (float)(total_sim % periods[k]) / (float)periods[k]
+                          * 2.0f * (float)M_PI - (float)M_PI * 0.5f;
             int dx = (int)(cosf(angle) * (float)radii[k] + 0.5f);
             int dy = (int)(sinf(angle) * (float)radii[k] + 0.5f);
             DrawCircle(cx + dx, cy + dy, 2, speedCol);
         }
+
+        int fontSize = 12;
+        int tw = MeasureTextF(speedBuf, fontSize);
+        DrawTextF(speedBuf, cx - tw / 2, cy - fontSize / 2, fontSize, speedCol);
+        int hw = MeasureTextF("[F]/[Shift+F]", 9);
+        DrawTextF("[F]/[Shift+F]", cx - hw / 2, by + boxH - 12, 9, (Color){160,160,160,255});
     }
 }
 
