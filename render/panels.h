@@ -44,15 +44,13 @@ typedef struct {
 // Plot panels
 // ---------------------------------------------------------------------------
 
-// Price history: per-agent price expectations over time + average.
-// showIndividualUtil: draw per-agent marginal buy utility lines.
+// Price history: per-agent price expectations + indifference prices over time.
 // ybox: if non-NULL, draws an editable Y-max text box at the top-left of the plot.
-// speedh: if non-NULL, draws speed-indicating tick marks below the bottom axis.
+// speedh: if non-NULL, draws speed-tinted background and change markers.
 void panel_price_history(const AgentValueHistory *avh, const AgentValueHistory *pvh,
                          const Agent *agents, int count, int marketId,
                          int px, int py, int pw, int ph,
-                         bool showIndividualUtil, YRangeBox *ybox,
-                         const SpeedHistory *speedh);
+                         YRangeBox *ybox, const SpeedHistory *speedh);
 
 // Supply & demand step curves with equilibrium marker.
 void panel_supply_demand(const Agent *agents, int count, int marketId,

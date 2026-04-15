@@ -359,8 +359,7 @@ void panel_valuation_dist(const Agent *agents, int count, int marketId,
 void panel_price_history(const AgentValueHistory *avh, const AgentValueHistory *pvh,
                          const Agent *agents, int count, int marketId,
                          int px, int py, int pw, int ph,
-                         bool showIndividualUtil, YRangeBox *ybox,
-                         const SpeedHistory *speedh) {
+                         YRangeBox *ybox, const SpeedHistory *speedh) {
     PlotBounds *b=&g_bounds[PLOT_PRICE_HISTORY][marketId];
     float rawMax=1.0f;
     for (int s=0;s<avh->count;s++) { float v=avh_avg(avh,s); if(v>rawMax) rawMax=v; }

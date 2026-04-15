@@ -50,7 +50,7 @@ static void render_s1p1(const SimContext *ctx, int x, int y, int w, int h) {
     draw_plot_frame(x + hw + gap, y, hw, h);
     panel_price_history(&ctx->sim->avh[MARKET_WOOD], &ctx->sim->pvh[MARKET_WOOD],
                         ctx->sim->agents, ctx->sim->count,
-                        MARKET_WOOD, CX(x+hw+gap), CY(y), CW(hw), CH(h), false, NULL,
+                        MARKET_WOOD, CX(x+hw+gap), CY(y), CW(hw), CH(h), NULL,
                         &ctx->sim->speedHistory);
     WT_INF(ctx, 0, 10);
 }
@@ -63,7 +63,7 @@ static void render_s2p1(const SimContext *ctx, int x, int y, int w, int h) {
     draw_plot_frame(x + hw + gap, y, hw, h);
     panel_price_history(&ctx->sim->avh[MARKET_WOOD], &ctx->sim->pvh[MARKET_WOOD],
                         ctx->sim->agents, ctx->sim->count,
-                        MARKET_WOOD, CX(x+hw+gap), CY(y), CW(hw), CH(h), false, NULL,
+                        MARKET_WOOD, CX(x+hw+gap), CY(y), CW(hw), CH(h), NULL,
                         &ctx->sim->speedHistory);
     WT_INF(ctx, 0, 10);
 }
@@ -79,7 +79,7 @@ static void render_s2p2(const SimContext *ctx, int x, int y, int w, int h) {
     draw_plot_frame(x + 2*(w3+gap), y, w3, h);
     panel_price_history(&ctx->sim->avh[MARKET_WOOD], &ctx->sim->pvh[MARKET_WOOD],
                         ctx->sim->agents, ctx->sim->count,
-                        MARKET_WOOD, CX(x+2*(w3+gap)), CY(y), CW(w3), CH(h), false, NULL,
+                        MARKET_WOOD, CX(x+2*(w3+gap)), CY(y), CW(w3), CH(h), NULL,
                         &ctx->sim->speedHistory);
     WT_INF(ctx, WT_INF_WOOD_VALUE, 10);
 }
@@ -88,7 +88,7 @@ static void render_s2p2(const SimContext *ctx, int x, int y, int w, int h) {
 // cfg: if non-NULL, axis selector buttons appear on the wealth plot (from s2p6 onward)
 // yboxVal/yboxPrice: if non-NULL, editable Y-max boxes appear on those plots (from s2p7 onward)
 static void render_three_panels(const SimContext *ctx, int x, int y, int w, int h,
-                                 bool showUtil, WealthAxisConfig *cfg,
+                                 WealthAxisConfig *cfg,
                                  YRangeBox *yboxVal, YRangeBox *yboxPrice) {
     int gap = 8, w3 = (w - 2*gap) / 3;
     draw_plot_frame(x, y, w3, h);
@@ -100,48 +100,48 @@ static void render_three_panels(const SimContext *ctx, int x, int y, int w, int 
     draw_plot_frame(x + 2*(w3+gap), y, w3, h);
     panel_price_history(&ctx->sim->avh[MARKET_WOOD], &ctx->sim->pvh[MARKET_WOOD],
                         ctx->sim->agents, ctx->sim->count,
-                        MARKET_WOOD, CX(x+2*(w3+gap)), CY(y), CW(w3), CH(h), showUtil, yboxPrice,
+                        MARKET_WOOD, CX(x+2*(w3+gap)), CY(y), CW(w3), CH(h), yboxPrice,
                         &ctx->sim->speedHistory);
 }
 
 static void render_s2p3(const SimContext *ctx, int x, int y, int w, int h) {
-    render_three_panels(ctx, x, y, w, h, false, NULL, NULL, NULL);
+    render_three_panels(ctx, x, y, w, h, NULL, NULL, NULL);
     WT_INF(ctx, WT_INF_WOOD_VALUE, 10);
 }
 
 static void render_s2p4(const SimContext *ctx, int x, int y, int w, int h) {
-    render_three_panels(ctx, x, y, w, h, true, NULL, NULL, NULL);
+    render_three_panels(ctx, x, y, w, h, NULL, NULL, NULL);
     WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT | WT_INF_DIM_RETURNS, 10);
 }
 
 static void render_s2p5(const SimContext *ctx, int x, int y, int w, int h) {
-    render_three_panels(ctx, x, y, w, h, true, NULL, NULL, NULL);
+    render_three_panels(ctx, x, y, w, h, NULL, NULL, NULL);
     WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT | WT_INF_DIM_RETURNS, 10);
     WT_ENV(ctx, WT_ENV_WOOD_DECAY, 258);
 }
 
 static void render_s2p6(const SimContext *ctx, int x, int y, int w, int h) {
-    render_three_panels(ctx, x, y, w, h, true, ctx->wt_wealth, NULL, NULL);
+    render_three_panels(ctx, x, y, w, h, ctx->wt_wealth, NULL, NULL);
     WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT | WT_INF_DIM_RETURNS, 10);
     WT_ENV(ctx, WT_ENV_WOOD_DECAY | WT_ENV_CHOP_YIELD, 258);
 }
 
 static void render_s2p7(const SimContext *ctx, int x, int y, int w, int h) {
-    render_three_panels(ctx, x, y, w, h, true, ctx->wt_wealth,
+    render_three_panels(ctx, x, y, w, h, ctx->wt_wealth,
                         &ctx->wt_ybox_val[MARKET_WOOD], &ctx->wt_ybox_price[MARKET_WOOD]);
     WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT | WT_INF_DIM_RETURNS | WT_INF_INFLATION | WT_INF_MONEY, 10);
     WT_ENV(ctx, WT_ENV_WOOD_DECAY | WT_ENV_CHOP_YIELD, 258);
 }
 
 static void render_s2p8(const SimContext *ctx, int x, int y, int w, int h) {
-    render_three_panels(ctx, x, y, w, h, true, ctx->wt_wealth,
+    render_three_panels(ctx, x, y, w, h, ctx->wt_wealth,
                         &ctx->wt_ybox_val[MARKET_WOOD], &ctx->wt_ybox_price[MARKET_WOOD]);
     WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT | WT_INF_DIM_RETURNS | WT_INF_LEISURE | WT_INF_INFLATION | WT_INF_MONEY, 10);
     WT_ENV(ctx, WT_ENV_WOOD_DECAY | WT_ENV_CHOP_YIELD, 258);
 }
 
 // 3×2 grid for scene 3: top row = wood, bottom row = chair
-static void render_s3_plots(const SimContext *ctx, int x, int y, int w, int h, bool showUtil,
+static void render_s3_plots(const SimContext *ctx, int x, int y, int w, int h,
                              WealthAxisConfig *cfgWood, WealthAxisConfig *cfgChair,
                              YRangeBox *yboxVal, YRangeBox *yboxPrice) {
     int gap = 8, w3 = (w - 2*gap) / 3, hh = (h - gap) / 2;
@@ -156,7 +156,7 @@ static void render_s3_plots(const SimContext *ctx, int x, int y, int w, int h, b
     draw_plot_frame(x + 2*(w3+gap), y, w3, hh);
     panel_price_history(&ctx->sim->avh[MARKET_WOOD], &ctx->sim->pvh[MARKET_WOOD],
                         ctx->sim->agents, ctx->sim->count,
-                        MARKET_WOOD, CX(x+2*(w3+gap)), CY(y), CW(w3), CH(hh), showUtil,
+                        MARKET_WOOD, CX(x+2*(w3+gap)), CY(y), CW(w3), CH(hh),
                         yboxPrice ? &yboxPrice[MARKET_WOOD] : NULL, &ctx->sim->speedHistory);
     // Bottom row: Chair
     draw_plot_frame(x,            y+hh+gap, w3, hh);
@@ -169,12 +169,12 @@ static void render_s3_plots(const SimContext *ctx, int x, int y, int w, int h, b
     draw_plot_frame(x + 2*(w3+gap), y+hh+gap, w3, hh);
     panel_price_history(&ctx->sim->avh[MARKET_CHAIR], &ctx->sim->pvh[MARKET_CHAIR],
                         ctx->sim->agents, ctx->sim->count,
-                        MARKET_CHAIR, CX(x+2*(w3+gap)), CY(y+hh+gap), CW(w3), CH(hh), showUtil,
+                        MARKET_CHAIR, CX(x+2*(w3+gap)), CY(y+hh+gap), CW(w3), CH(hh),
                         yboxPrice ? &yboxPrice[MARKET_CHAIR] : NULL, &ctx->sim->speedHistory);
 }
 
 static void render_s3p1(const SimContext *ctx, int x, int y, int w, int h) {
-    render_s3_plots(ctx, x, y, w, h, true, ctx->wt_wealth, ctx->wt_wealth_chair,
+    render_s3_plots(ctx, x, y, w, h, ctx->wt_wealth, ctx->wt_wealth_chair,
                     ctx->wt_ybox_val, ctx->wt_ybox_price);
     WT_INF(ctx, WT_INF_WOOD_VALUE | WT_INF_WOOD_COUNT | WT_INF_DIM_RETURNS | WT_INF_LEISURE | WT_INF_MARKET_SEL | WT_INF_INFLATION | WT_INF_MONEY, 10);
     WT_ENV(ctx, WT_ENV_WOOD_DECAY | WT_ENV_DECAY_MARKET_SEL | WT_ENV_CHOP_YIELD | WT_ENV_BUILD_COST, 258);
