@@ -369,20 +369,32 @@ void panel_price_history(const AgentValueHistory *avh, const AgentValueHistory *
         if (v>rawMax) rawMax=v;
     }
     float yMax=(b->yMax>0.0f)?b->yMax:compute_ymax(rawMax);
-    draw_axes_y(px,py,pw,ph,yMax);
 
-    // Speed indicator vertical lines drawn first so data renders on top.
-    // Faster sections get denser lines; speed-change boundaries get a subtle warm tint.
+    // Speed-tinted background + indicator lines.
+    // Background drawn before draw_axes_y so grid sits on top; lines drawn after.
     if (speedh && speedh->count > 0) {
-        float xScaleEarly = (float)pw / (float)(PRICE_HISTORY_SIZE - 1);
+        float xs = (float)pw / (float)(PRICE_HISTORY_SIZE - 1);
         int n    = speedh->count;
         int base = speedh->total_frames - n + 1;
+        // Pass 1: background tint (lighter = faster).
+        for (int s = 0; s < n; s++) {
+            int spd = speed_history_get(speedh, s);
+            if (spd < 1) spd = 1;
+            int alpha = (int)(6.0f * log2f((float)spd));
+            if (alpha > 0) {
+                int tx   = px + (int)((float)s * xs);
+                int tw   = (s < n - 1) ? (int)((float)(s+1)*xs) - (int)((float)s*xs) + 1 : px+pw-tx;
+                DrawRectangle(tx, py, tw, ph, (Color){220, 220, 255, (unsigned char)alpha});
+            }
+        }
+        draw_axes_y(px,py,pw,ph,yMax);
+        // Pass 2: speed indicator lines.
         for (int s = 0; s < n; s++) {
             int spd      = speed_history_get(speedh, s);
             if (spd < 1) spd = 1;
             int prev_spd = (s > 0) ? speed_history_get(speedh, s - 1) : spd;
             if (prev_spd < 1) prev_spd = 1;
-            int tx = px + (int)((float)s * xScaleEarly);
+            int tx = px + (int)((float)s * xs);
             if (spd != prev_spd) {
                 DrawLine(tx, py, tx, py + ph, (Color){120, 100, 60, 80});
             } else {
@@ -392,6 +404,8 @@ void panel_price_history(const AgentValueHistory *avh, const AgentValueHistory *
                     DrawLine(tx, py, tx, py + ph, (Color){50, 50, 70, 200});
             }
         }
+    } else {
+        draw_axes_y(px,py,pw,ph,yMax);
     }
 
     if (ybox) {
