@@ -428,35 +428,22 @@ void panel_price_history(const AgentValueHistory *avh, const AgentValueHistory *
         DrawLine(lx+100,ly+15,lx+112,ly+15,(Color){80,230,130,230}); DrawTextF("Util avg",   lx+116,ly+10,10,(Color){80,230,130,255});
     }
 
-    // Speed indicator vertical lines — same style as horizontal grid lines.
-    // Each sample covers exactly 1 frame, so its absolute frame number is:
-    //   abs_frame(s) = total_frames - count + 1 + s
-    // A line is drawn at s when abs_frame(s) % interval == 0.
-    // interval shrinks linearly with log2(speed): BASE - doublings*STEP frames,
-    // so faster sections get proportionally more lines.
-    // As total_frames advances by 1 each frame, every line's s shifts left by 1 — they scroll.
-#define SPD_LINE_BASE 100   // frame interval at 1x  (~100 samples between lines)
-#define SPD_LINE_STEP   7   // frames closer per speed doubling  (~10px at default zoom)
-#define SPD_LINE_MIN    7   // minimum interval (densest at highest speed)
+    // Speed indicator vertical lines: spacing = 20 * log2(speed+1) frames.
+    // Faster sections have wider spacing; lines scroll left as total_frames advances.
     if (speedh && speedh->count > 0) {
-        int n           = speedh->count;
-        int base_offset = speedh->total_frames - n + 1;  // abs_frame when s=0
+        int n    = speedh->count;
+        int base = speedh->total_frames - n + 1;
         for (int s = 0; s < n; s++) {
-            int spd = speed_history_get(speedh, s);
+            int spd      = speed_history_get(speedh, s);
             if (spd < 1) spd = 1;
-            int d = 0, s2 = spd; while (s2 > 1) { s2 >>= 1; d++; }
-            int interval = SPD_LINE_BASE - d * SPD_LINE_STEP;
-            if (interval < SPD_LINE_MIN) interval = SPD_LINE_MIN;
-            int abs_frame = base_offset + s;
-            if (abs_frame % interval == 0) {
+            int interval = (int)(20.0f * log2f((float)(spd + 1)));
+            if (interval < 1) interval = 1;
+            if ((base + s) % interval == 0) {
                 int tx = px + (int)((float)s * xScale);
-                DrawLine(tx, py, tx, py+ph, (Color){50,50,70,200});
+                DrawLine(tx, py, tx, py + ph, (Color){50, 50, 70, 200});
             }
         }
     }
-#undef SPD_LINE_BASE
-#undef SPD_LINE_STEP
-#undef SPD_LINE_MIN
 }
 
 // ---------------------------------------------------------------------------
