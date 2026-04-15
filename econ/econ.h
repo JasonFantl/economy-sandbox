@@ -61,6 +61,7 @@ void agent_execute_build(Agent *a);  // spends WOOD_PER_CHAIR wood, gains 1 chai
 void agents_adjust_valuations(Agent *agents, int count, int numAgents, Utility delta, MarketId mid);
 void agents_adjust_leisure(Agent *agents, int count, int numAgents, Utility delta);
 void agents_set_leisure(Agent *agents, int count, Utility value);
+void agents_set_belief_rate(Agent *agents, int count, float value);
 void agents_inject_money(Agent *agents, int count, int numAgents, Price delta);
 void agents_inject_goods(Agent *agents, int count, int numAgents, int delta, MarketId mid);
 

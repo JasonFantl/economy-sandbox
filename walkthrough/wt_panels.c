@@ -77,6 +77,10 @@ void wt_influence_panel_init(WtInfluencePanel *p) {
     p->moneyDelta       = 100.0f;
     p->editMoney        = false;
     snprintf(p->bufMoney, sizeof(p->bufMoney), "%.1f", p->moneyDelta);
+    p->beliefRateValue  = 0.1f;
+    p->editBeliefRate   = false;
+    p->lastBeliefRate   = p->beliefRateValue;
+    snprintf(p->bufBeliefRate, sizeof(p->bufBeliefRate), "%.3f", p->beliefRateValue);
 }
 
 void wt_influence_panel_render(WtInfluencePanel *p, Agent *agents, int agentCount,
@@ -96,6 +100,7 @@ void wt_influence_panel_render(WtInfluencePanel *p, Agent *agents, int agentCoun
     if (flags & WT_INF_DIM_RETURNS) rows++;
     if (flags & WT_INF_INFLATION)   rows++;
     if (flags & WT_INF_MONEY)       rows++;
+    if (flags & WT_INF_BELIEF_RATE) rows++;
 
     int contentH = rows * (WT_ROW_H + WT_SEP) + WT_SEP + WT_BTN_H + WT_PAD;
     int contentY = WT_Y + WT_HDR_H;
@@ -245,6 +250,34 @@ void wt_influence_panel_render(WtInfluencePanel *p, Agent *agents, int agentCoun
         }
         if (GuiButton((Rectangle){px + WT_DAPL_DX, rowY, WT_DAPL_W, WT_BTN_H}, "Add"))
             agents_inject_money(agents, agentCount, agentCount, p->moneyDelta);
+        rowY += WT_ROW_H + WT_SEP;
+    }
+
+    // --- Belief update rate row (setter) ---
+    if (flags & WT_INF_BELIEF_RATE) {
+        if (agentCount > 0) {
+            float cur = agents[0].econ.beliefUpdateRate;
+            if (cur != p->lastBeliefRate && !p->editBeliefRate) {
+                p->beliefRateValue = cur;
+                p->lastBeliefRate  = cur;
+                snprintf(p->bufBeliefRate, sizeof(p->bufBeliefRate), "%.3f", cur);
+            }
+        }
+        GuiLabel((Rectangle){px + WT_LBL_DX, rowY, WT_LBL_W, WT_ROW_H - 2}, "Belief rate:");
+        bool was = p->editBeliefRate;
+        if (GuiTextBox((Rectangle){px + WT_BOX_DX, rowY, WT_W - WT_PAD - WT_BOX_DX, WT_ROW_H - 2},
+                       p->bufBeliefRate, (int)sizeof(p->bufBeliefRate), p->editBeliefRate)) {
+            if (was) {
+                if (IsKeyPressed(KEY_ENTER)) {
+                    p->beliefRateValue = strtof(p->bufBeliefRate, NULL);
+                    agents_set_belief_rate(agents, agentCount, p->beliefRateValue);
+                    p->lastBeliefRate = p->beliefRateValue;
+                } else {
+                    snprintf(p->bufBeliefRate, sizeof(p->bufBeliefRate), "%.3f", p->beliefRateValue);
+                }
+            }
+            p->editBeliefRate = !p->editBeliefRate;
+        }
         rowY += WT_ROW_H + WT_SEP;
     }
 

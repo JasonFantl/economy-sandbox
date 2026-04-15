@@ -154,6 +154,13 @@ void agents_set_leisure(Agent *agents, int count, Utility value) {
         agents[i].econ.leisureUtility = value;
 }
 
+void agents_set_belief_rate(Agent *agents, int count, float value) {
+    if (value < 0.001f) value = 0.001f;
+    if (value > 1.0f)   value = 1.0f;
+    for (int i = 0; i < count; i++)
+        agents[i].econ.beliefUpdateRate = value;
+}
+
 void agents_adjust_leisure(Agent *agents, int count, int numAgents, Utility delta) {
     if (numAgents > count) numAgents = count;
     int indices[MAX_AGENTS];

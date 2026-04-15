@@ -18,7 +18,8 @@
 #define WT_INF_MARKET_SEL  (1 << 3)   // show market selector button on delta rows
 #define WT_INF_INFLATION   (1 << 4)   // checkbox + Set: toggle g_inflation_enabled
 #define WT_INF_MONEY       (1 << 5)   // delta: give / take money from every agent
-#define WT_INF_DIM_RETURNS (1 << 6)   // checkbox + Set: toggle g_diminishing_returns
+#define WT_INF_DIM_RETURNS  (1 << 6)   // checkbox: toggle g_diminishing_returns
+#define WT_INF_BELIEF_RATE  (1 << 7)   // setter: set every agent's beliefUpdateRate
 
 typedef struct {
     bool  expanded;
@@ -40,6 +41,11 @@ typedef struct {
     Price   moneyDelta;
     bool    editMoney;
     char    bufMoney[16];
+    // Belief update rate row (setter)
+    float beliefRateValue;
+    bool  editBeliefRate;
+    char  bufBeliefRate[16];
+    float lastBeliefRate;
     // Market selector state (used when WT_INF_MARKET_SEL is set)
     int     valueMarket;  // 0=Wood, 1=Chair
     int     goodsMarket;  // 0=Wood, 1=Chair
