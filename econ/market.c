@@ -102,6 +102,7 @@ void speed_history_record(SpeedHistory *h, int speed) {
     h->data[h->head] = (uint8_t)(speed > 255 ? 255 : speed < 1 ? 1 : speed);
     h->head = (h->head + 1) % PRICE_HISTORY_SIZE;
     if (h->count < PRICE_HISTORY_SIZE) h->count++;
+    h->total++;
 }
 
 int speed_history_get(const SpeedHistory *h, int sampleIdx) {

@@ -13,6 +13,7 @@ typedef struct {
     uint8_t data[PRICE_HISTORY_SIZE];
     int     count;
     int     head;
+    int     total;  // total frames ever recorded (monotonically increasing; reset on clear)
 } SpeedHistory;
 
 void speed_history_record(SpeedHistory *h, int speed);

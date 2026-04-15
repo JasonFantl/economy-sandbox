@@ -429,27 +429,25 @@ void panel_price_history(const AgentValueHistory *avh, const AgentValueHistory *
     }
 
     // Speed tick marks below bottom axis.
-    // A tick is placed every 100 accumulated sim steps (each sample = ticks_per_frame at that frame).
-    // Tick height: 8px at 1x, -2px per speed doubling, min 2px.
+    // Ticks fall at every 60-frame boundary in absolute time, so they scroll left
+    // as new data arrives. Tick height: 14px at 1x, -3px per speed doubling, min 3px.
+#define TICK_INTERVAL 60
     if (speedh && speedh->count > 0) {
-        int total = avh->count < speedh->count ? avh->count : speedh->count;
-        int acc = 0;
-        for (int s = 0; s < total; s++) {
-            int spd = speed_history_get(speedh, s);
+        int oldest_frame = speedh->total - speedh->count;
+        int newest_frame = speedh->total - 1;
+        // First tick at or after oldest_frame that is a multiple of TICK_INTERVAL
+        int first_tick = ((oldest_frame + TICK_INTERVAL - 1) / TICK_INTERVAL) * TICK_INTERVAL;
+        for (int tf = first_tick; tf <= newest_frame; tf += TICK_INTERVAL) {
+            int li = tf - oldest_frame;          // logical index within current buffer
+            int tx = px + (int)((float)li * xScale);
+            int spd = speed_history_get(speedh, li);
             if (spd < 1) spd = 1;
-            int prev = acc;
-            acc += spd;
-            // Place a tick for each multiple of 100 sim steps crossed in this sample
-            int first_cross = (prev / 100 + 1) * 100;
-            for (int cross = first_cross; cross <= acc; cross += 100) {
-                int tx = px + (int)((float)s * xScale);
-                // Height: 8 at 1x, subtract 2 per doubling
-                int d = 0, s2 = spd; while (s2 > 1) { s2 >>= 1; d++; }
-                int th = 8 - d * 2; if (th < 2) th = 2;
-                DrawLine(tx, py+ph+1, tx, py+ph+1+th, (Color){160,160,160,180});
-            }
+            int d = 0, s2 = spd; while (s2 > 1) { s2 >>= 1; d++; }
+            int th = 14 - d * 3; if (th < 3) th = 3;
+            DrawRectangle(tx, py+ph+1, 2, th, (Color){160,160,160,200});
         }
     }
+#undef TICK_INTERVAL
 }
 
 // ---------------------------------------------------------------------------
