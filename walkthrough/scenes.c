@@ -49,7 +49,8 @@ static void render_s1p1(const SimContext *ctx, int x, int y, int w, int h) {
                          CX(x), CY(y), CW(hw), CH(h), NULL);
     draw_plot_frame(x + hw + gap, y, hw, h);
     panel_price_history(ctx->sim->avh, ctx->sim->pvh, ctx->sim->agents, ctx->sim->count,
-                        MARKET_WOOD, CX(x+hw+gap), CY(y), CW(hw), CH(h), false, NULL);
+                        MARKET_WOOD, CX(x+hw+gap), CY(y), CW(hw), CH(h), false, NULL,
+                        &ctx->sim->speedHistory);
     WT_INF(ctx, 0, 10);
 }
 
@@ -60,7 +61,8 @@ static void render_s2p1(const SimContext *ctx, int x, int y, int w, int h) {
                          CX(x), CY(y), CW(hw), CH(h), NULL);
     draw_plot_frame(x + hw + gap, y, hw, h);
     panel_price_history(ctx->sim->avh, ctx->sim->pvh, ctx->sim->agents, ctx->sim->count,
-                        MARKET_WOOD, CX(x+hw+gap), CY(y), CW(hw), CH(h), false, NULL);
+                        MARKET_WOOD, CX(x+hw+gap), CY(y), CW(hw), CH(h), false, NULL,
+                        &ctx->sim->speedHistory);
     WT_INF(ctx, 0, 10);
 }
 
@@ -74,7 +76,8 @@ static void render_s2p2(const SimContext *ctx, int x, int y, int w, int h) {
                          CX(x+w3+gap), CY(y), CW(w3), CH(h), NULL);
     draw_plot_frame(x + 2*(w3+gap), y, w3, h);
     panel_price_history(ctx->sim->avh, ctx->sim->pvh, ctx->sim->agents, ctx->sim->count,
-                        MARKET_WOOD, CX(x+2*(w3+gap)), CY(y), CW(w3), CH(h), false, NULL);
+                        MARKET_WOOD, CX(x+2*(w3+gap)), CY(y), CW(w3), CH(h), false, NULL,
+                        &ctx->sim->speedHistory);
     WT_INF(ctx, WT_INF_WOOD_VALUE, 10);
 }
 
@@ -93,7 +96,8 @@ static void render_three_panels(const SimContext *ctx, int x, int y, int w, int 
                          CX(x+w3+gap), CY(y), CW(w3), CH(h), yboxVal);
     draw_plot_frame(x + 2*(w3+gap), y, w3, h);
     panel_price_history(ctx->sim->avh, ctx->sim->pvh, ctx->sim->agents, ctx->sim->count,
-                        MARKET_WOOD, CX(x+2*(w3+gap)), CY(y), CW(w3), CH(h), showUtil, yboxPrice);
+                        MARKET_WOOD, CX(x+2*(w3+gap)), CY(y), CW(w3), CH(h), showUtil, yboxPrice,
+                        &ctx->sim->speedHistory);
 }
 
 static void render_s2p3(const SimContext *ctx, int x, int y, int w, int h) {
@@ -148,7 +152,7 @@ static void render_s3_plots(const SimContext *ctx, int x, int y, int w, int h, b
     draw_plot_frame(x + 2*(w3+gap), y, w3, hh);
     panel_price_history(ctx->sim->avh, ctx->sim->pvh, ctx->sim->agents, ctx->sim->count,
                         MARKET_WOOD, CX(x+2*(w3+gap)), CY(y), CW(w3), CH(hh), showUtil,
-                        yboxPrice ? &yboxPrice[MARKET_WOOD] : NULL);
+                        yboxPrice ? &yboxPrice[MARKET_WOOD] : NULL, &ctx->sim->speedHistory);
     // Bottom row: Chair
     draw_plot_frame(x,            y+hh+gap, w3, hh);
     panel_wealth(ctx->sim->agents, ctx->sim->count, MARKET_CHAIR,
@@ -160,7 +164,7 @@ static void render_s3_plots(const SimContext *ctx, int x, int y, int w, int h, b
     draw_plot_frame(x + 2*(w3+gap), y+hh+gap, w3, hh);
     panel_price_history(ctx->sim->avh, ctx->sim->pvh, ctx->sim->agents, ctx->sim->count,
                         MARKET_CHAIR, CX(x+2*(w3+gap)), CY(y+hh+gap), CW(w3), CH(hh), showUtil,
-                        yboxPrice ? &yboxPrice[MARKET_CHAIR] : NULL);
+                        yboxPrice ? &yboxPrice[MARKET_CHAIR] : NULL, &ctx->sim->speedHistory);
 }
 
 static void render_s3p1(const SimContext *ctx, int x, int y, int w, int h) {

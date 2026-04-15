@@ -123,7 +123,7 @@ void hud_walkthrough_frame(WalkthroughState *wt, SimContext *ctx) {
         memset(g_simulation.pvh, 0, sizeof(g_simulation.pvh));
         memset(g_simulation.gvh, 0, sizeof(g_simulation.gvh));
         memset(&g_simulation.mvh, 0, sizeof(g_simulation.mvh));
-        g_simulation.priceTick = 0;
+        memset(&g_simulation.speedHistory, 0, sizeof(g_simulation.speedHistory));
     }
 
     render_world_hud();
@@ -144,7 +144,7 @@ void hud_walkthrough_frame(WalkthroughState *wt, SimContext *ctx) {
         memset(g_simulation.pvh, 0, sizeof(g_simulation.pvh));
         memset(g_simulation.gvh, 0, sizeof(g_simulation.gvh));
         memset(&g_simulation.mvh, 0, sizeof(g_simulation.mvh));
-        g_simulation.priceTick = 0;
+        memset(&g_simulation.speedHistory, 0, sizeof(g_simulation.speedHistory));
     }
 
     walkthrough_render_overlay(wt, ctx);

@@ -359,7 +359,8 @@ void panel_valuation_dist(const Agent *agents, int count, int marketId,
 void panel_price_history(const AgentValueHistory *avh, const AgentValueHistory *pvh,
                          const Agent *agents, int count, int marketId,
                          int px, int py, int pw, int ph,
-                         bool showIndividualUtil, YRangeBox *ybox) {
+                         bool showIndividualUtil, YRangeBox *ybox,
+                         const SpeedHistory *speedh) {
     PlotBounds *b=&g_bounds[PLOT_PRICE_HISTORY][marketId];
     float rawMax=1.0f;
     for (int s=0;s<avh->count;s++) { float v=avh_avg(avh,s); if(v>rawMax) rawMax=v; }
@@ -425,6 +426,29 @@ void panel_price_history(const AgentValueHistory *avh, const AgentValueHistory *
     DrawLine(lx,   ly+15,lx+12, ly+15,WHITE);                    DrawTextF("Price avg",  lx+16, ly+10,10,WHITE);
     if (showIndividualUtil) {
         DrawLine(lx+100,ly+15,lx+112,ly+15,(Color){80,230,130,230}); DrawTextF("Util avg",   lx+116,ly+10,10,(Color){80,230,130,255});
+    }
+
+    // Speed tick marks below bottom axis.
+    // A tick is placed every 100 accumulated sim steps (each sample = ticks_per_frame at that frame).
+    // Tick height: 8px at 1x, -2px per speed doubling, min 2px.
+    if (speedh && speedh->count > 0) {
+        int total = avh->count < speedh->count ? avh->count : speedh->count;
+        int acc = 0;
+        for (int s = 0; s < total; s++) {
+            int spd = speed_history_get(speedh, s);
+            if (spd < 1) spd = 1;
+            int prev = acc;
+            acc += spd;
+            // Place a tick for each multiple of 100 sim steps crossed in this sample
+            int first_cross = (prev / 100 + 1) * 100;
+            for (int cross = first_cross; cross <= acc; cross += 100) {
+                int tx = px + (int)((float)s * xScale);
+                // Height: 8 at 1x, subtract 2 per doubling
+                int d = 0, s2 = spd; while (s2 > 1) { s2 >>= 1; d++; }
+                int th = 8 - d * 2; if (th < 2) th = 2;
+                DrawLine(tx, py+ph+1, tx, py+ph+1+th, (Color){160,160,160,180});
+            }
+        }
     }
 }
 

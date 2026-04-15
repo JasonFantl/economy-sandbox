@@ -1,6 +1,7 @@
 #include "render/render.h"
 #include "render/panels.h"
 #include "econ/agent.h"
+#include "sim.h"
 #include "raylib.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -237,7 +238,7 @@ static void draw_panel(const PanelState *ps,
         case PLOT_VALUATION_DISTRIBUTION:
             panel_valuation_dist(agents, agentCount, mid, px, py, pw, ph, NULL); break;
         case PLOT_PRICE_HISTORY:
-            panel_price_history(&avh[mid], &pvh[mid], agents, agentCount, mid, px, py, pw, ph, true, NULL); break;
+            panel_price_history(&avh[mid], &pvh[mid], agents, agentCount, mid, px, py, pw, ph, true, NULL, &g_simulation.speedHistory); break;
         case PLOT_GOODS_HISTORY:
             panel_goods_history(&gvh[mid], mid, px, py, pw, ph); break;
         case PLOT_SUPPLY_DEMAND:

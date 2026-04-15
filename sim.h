@@ -12,7 +12,7 @@ typedef struct {
     int   ticks_per_frame;     // sim steps per frame (speed multiplier)
     int   count;     // active agent count
     float worldW, worldH;
-    int   priceTick;
+    SpeedHistory      speedHistory;
     Agent             agents[NUM_AGENTS];
     AgentValueHistory avh[MARKET_COUNT];
     AgentValueHistory pvh[MARKET_COUNT];

@@ -5,6 +5,19 @@
 
 #define PRICE_HISTORY_SIZE  400
 
+#include <stdint.h>
+
+// Circular buffer tracking sim speed (ticks_per_frame) at each recorded sample,
+// so price-history plots can overlay tick marks showing relative simulation speed.
+typedef struct {
+    uint8_t data[PRICE_HISTORY_SIZE];
+    int     count;
+    int     head;
+} SpeedHistory;
+
+void speed_history_record(SpeedHistory *h, int speed);
+int  speed_history_get(const SpeedHistory *h, int sampleIdx);
+
 extern bool g_disable_executing_trade;  // true = price beliefs update but money/goods are not exchanged
 
 // Nerlove adaptive expectation: price_new = price_old^(1-rate) * signal^rate
