@@ -429,22 +429,32 @@ void panel_price_history(const AgentValueHistory *avh, const AgentValueHistory *
     }
 
     // Speed tick marks below bottom axis.
-    // Ticks fall at every 60-frame boundary in absolute time, so they scroll left
-    // as new data arrives. Tick height: 14px at 1x, -3px per speed doubling, min 3px.
+    // Ticks are placed at every TICK_INTERVAL sim steps in absolute simulation time.
+    // Scanning backwards from newest to oldest ensures ticks are anchored to the
+    // right edge and scroll left as data advances.  Faster sections get more ticks.
+    // Height: 14px at 1x, -3px per speed doubling, min 3px.
 #define TICK_INTERVAL 60
     if (speedh && speedh->count > 0) {
-        int oldest_frame = speedh->total - speedh->count;
-        int newest_frame = speedh->total - 1;
-        // First tick at or after oldest_frame that is a multiple of TICK_INTERVAL
-        int first_tick = ((oldest_frame + TICK_INTERVAL - 1) / TICK_INTERVAL) * TICK_INTERVAL;
-        for (int tf = first_tick; tf <= newest_frame; tf += TICK_INTERVAL) {
-            int li = tf - oldest_frame;          // logical index within current buffer
-            int tx = px + (int)((float)li * xScale);
-            int spd = speed_history_get(speedh, li);
+        int n   = speedh->count;
+        int acc = 0;   // sim steps accumulated from s+1 to n-1 (i.e., right of current s)
+        for (int s = n - 1; s >= 0; s--) {
+            int spd = speed_history_get(speedh, s);
             if (spd < 1) spd = 1;
-            int d = 0, s2 = spd; while (s2 > 1) { s2 >>= 1; d++; }
-            int th = 14 - d * 3; if (th < 3) th = 3;
-            DrawRectangle(tx, py+ph+1, 2, th, (Color){160,160,160,200});
+            // Absolute sim-step range covered by sample s:
+            //   abs_end   = total_sim_steps - acc
+            //   abs_start = abs_end - spd
+            int abs_end   = speedh->total_sim_steps - acc;
+            int abs_start = abs_end - spd;
+            acc += spd;
+
+            // Draw a tick for every multiple of TICK_INTERVAL in [abs_start, abs_end)
+            int first = (abs_start / TICK_INTERVAL + 1) * TICK_INTERVAL;
+            for (int T = first; T < abs_end; T += TICK_INTERVAL) {
+                int tx = px + (int)((float)s * xScale);
+                int d = 0, s2 = spd; while (s2 > 1) { s2 >>= 1; d++; }
+                int th = 14 - d * 3; if (th < 3) th = 3;
+                DrawRectangle(tx, py+ph+1, 2, th, (Color){160,160,160,200});
+            }
         }
     }
 #undef TICK_INTERVAL
