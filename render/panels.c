@@ -399,8 +399,8 @@ void panel_price_history(const AgentValueHistory *avh, const AgentValueHistory *
         // Alpha fades linearly to 0 as pixel spacing falls below SPD_FADE_HI.
 #define SPD_UNIT     60
 #define SPD_LEVELS   14
-#define SPD_FADE_LO   8.0f
-#define SPD_FADE_HI  25.0f
+#define SPD_FADE_LO   5.0f
+#define SPD_FADE_HI  70.0f
         int cum = cum0;
         for (int s = 0; s < n; s++) {
             int spd = speed_history_get(speedh, s);
@@ -419,7 +419,7 @@ void panel_price_history(const AgentValueHistory *avh, const AgentValueHistory *
                 int alpha = (int)(t * (float)((k & 1) ? 160 : 90));
                 if (alpha < 4) continue;
                 if (k & 1)
-                    DrawRectangle(tx - 1, py, 2, ph, (Color){180, 180, 220, (unsigned char)alpha});
+                    DrawLine(tx, py, tx, py + ph, (Color){180, 180, 220, (unsigned char)alpha});
                 else
                     DrawLine(tx, py, tx, py + ph, (Color){180, 180, 220, (unsigned char)alpha});
             }
