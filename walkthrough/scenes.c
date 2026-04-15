@@ -48,7 +48,8 @@ static void render_s1p1(const SimContext *ctx, int x, int y, int w, int h) {
     panel_valuation_dist(ctx->sim->agents, ctx->sim->count, MARKET_WOOD,
                          CX(x), CY(y), CW(hw), CH(h), NULL);
     draw_plot_frame(x + hw + gap, y, hw, h);
-    panel_price_history(ctx->sim->avh, ctx->sim->pvh, ctx->sim->agents, ctx->sim->count,
+    panel_price_history(&ctx->sim->avh[MARKET_WOOD], &ctx->sim->pvh[MARKET_WOOD],
+                        ctx->sim->agents, ctx->sim->count,
                         MARKET_WOOD, CX(x+hw+gap), CY(y), CW(hw), CH(h), false, NULL,
                         &ctx->sim->speedHistory);
     WT_INF(ctx, 0, 10);
@@ -60,7 +61,8 @@ static void render_s2p1(const SimContext *ctx, int x, int y, int w, int h) {
     panel_valuation_dist(ctx->sim->agents, ctx->sim->count, MARKET_WOOD,
                          CX(x), CY(y), CW(hw), CH(h), NULL);
     draw_plot_frame(x + hw + gap, y, hw, h);
-    panel_price_history(ctx->sim->avh, ctx->sim->pvh, ctx->sim->agents, ctx->sim->count,
+    panel_price_history(&ctx->sim->avh[MARKET_WOOD], &ctx->sim->pvh[MARKET_WOOD],
+                        ctx->sim->agents, ctx->sim->count,
                         MARKET_WOOD, CX(x+hw+gap), CY(y), CW(hw), CH(h), false, NULL,
                         &ctx->sim->speedHistory);
     WT_INF(ctx, 0, 10);
@@ -75,7 +77,8 @@ static void render_s2p2(const SimContext *ctx, int x, int y, int w, int h) {
     panel_valuation_dist(ctx->sim->agents, ctx->sim->count, MARKET_WOOD,
                          CX(x+w3+gap), CY(y), CW(w3), CH(h), NULL);
     draw_plot_frame(x + 2*(w3+gap), y, w3, h);
-    panel_price_history(ctx->sim->avh, ctx->sim->pvh, ctx->sim->agents, ctx->sim->count,
+    panel_price_history(&ctx->sim->avh[MARKET_WOOD], &ctx->sim->pvh[MARKET_WOOD],
+                        ctx->sim->agents, ctx->sim->count,
                         MARKET_WOOD, CX(x+2*(w3+gap)), CY(y), CW(w3), CH(h), false, NULL,
                         &ctx->sim->speedHistory);
     WT_INF(ctx, WT_INF_WOOD_VALUE, 10);
@@ -95,7 +98,8 @@ static void render_three_panels(const SimContext *ctx, int x, int y, int w, int 
     panel_valuation_dist(ctx->sim->agents, ctx->sim->count, MARKET_WOOD,
                          CX(x+w3+gap), CY(y), CW(w3), CH(h), yboxVal);
     draw_plot_frame(x + 2*(w3+gap), y, w3, h);
-    panel_price_history(ctx->sim->avh, ctx->sim->pvh, ctx->sim->agents, ctx->sim->count,
+    panel_price_history(&ctx->sim->avh[MARKET_WOOD], &ctx->sim->pvh[MARKET_WOOD],
+                        ctx->sim->agents, ctx->sim->count,
                         MARKET_WOOD, CX(x+2*(w3+gap)), CY(y), CW(w3), CH(h), showUtil, yboxPrice,
                         &ctx->sim->speedHistory);
 }
@@ -150,7 +154,8 @@ static void render_s3_plots(const SimContext *ctx, int x, int y, int w, int h, b
                          CX(x+w3+gap), CY(y), CW(w3), CH(hh),
                          yboxVal ? &yboxVal[MARKET_WOOD] : NULL);
     draw_plot_frame(x + 2*(w3+gap), y, w3, hh);
-    panel_price_history(ctx->sim->avh, ctx->sim->pvh, ctx->sim->agents, ctx->sim->count,
+    panel_price_history(&ctx->sim->avh[MARKET_WOOD], &ctx->sim->pvh[MARKET_WOOD],
+                        ctx->sim->agents, ctx->sim->count,
                         MARKET_WOOD, CX(x+2*(w3+gap)), CY(y), CW(w3), CH(hh), showUtil,
                         yboxPrice ? &yboxPrice[MARKET_WOOD] : NULL, &ctx->sim->speedHistory);
     // Bottom row: Chair
@@ -162,7 +167,8 @@ static void render_s3_plots(const SimContext *ctx, int x, int y, int w, int h, b
                          CX(x+w3+gap), CY(y+hh+gap), CW(w3), CH(hh),
                          yboxVal ? &yboxVal[MARKET_CHAIR] : NULL);
     draw_plot_frame(x + 2*(w3+gap), y+hh+gap, w3, hh);
-    panel_price_history(ctx->sim->avh, ctx->sim->pvh, ctx->sim->agents, ctx->sim->count,
+    panel_price_history(&ctx->sim->avh[MARKET_CHAIR], &ctx->sim->pvh[MARKET_CHAIR],
+                        ctx->sim->agents, ctx->sim->count,
                         MARKET_CHAIR, CX(x+2*(w3+gap)), CY(y+hh+gap), CW(w3), CH(hh), showUtil,
                         yboxPrice ? &yboxPrice[MARKET_CHAIR] : NULL, &ctx->sim->speedHistory);
 }
