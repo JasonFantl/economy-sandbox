@@ -10,7 +10,7 @@
 // Circular buffer tracking sim speed (ticks_per_frame) at each recorded sample,
 // so price-history plots can overlay tick marks showing relative simulation speed.
 typedef struct {
-    uint8_t data[PRICE_HISTORY_SIZE];
+    uint16_t data[PRICE_HISTORY_SIZE];
     int     count;
     int     head;
     int     total_frames;     // total frames ever recorded (monotonically increasing; reset on clear)

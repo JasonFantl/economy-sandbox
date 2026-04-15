@@ -385,7 +385,7 @@ void panel_price_history(const AgentValueHistory *avh, const AgentValueHistory *
             // Flush run [run_start, s)
             int tx0 = px + (int)((float)run_start * xs);
             int tx1 = (s < n) ? px + (int)((float)s * xs) : px + pw;
-            int alpha = (int)(10.0f * log2f((float)run_spd));
+            int alpha = (int)(4.0f * log2f((float)run_spd));
             if (alpha > 255) alpha = 255;
             if (alpha > 0)
                 DrawRectangle(tx0, py, tx1 - tx0, ph, (Color){220, 220, 255, (unsigned char)alpha});

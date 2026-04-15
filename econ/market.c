@@ -99,7 +99,7 @@ void avh_record_money(AgentValueHistory *h, const Agent *agents, int count) {
 }
 
 void speed_history_record(SpeedHistory *h, int speed) {
-    h->data[h->head] = (uint8_t)(speed > 255 ? 255 : speed < 1 ? 1 : speed);
+    h->data[h->head] = (uint16_t)(speed > 65535 ? 65535 : speed < 1 ? 1 : speed);
     h->head = (h->head + 1) % PRICE_HISTORY_SIZE;
     if (h->count < PRICE_HISTORY_SIZE) h->count++;
     h->total_frames++;
