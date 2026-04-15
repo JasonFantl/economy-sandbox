@@ -370,42 +370,75 @@ void panel_price_history(const AgentValueHistory *avh, const AgentValueHistory *
     }
     float yMax=(b->yMax>0.0f)?b->yMax:compute_ymax(rawMax);
 
-    // Speed-tinted background + indicator lines.
-    // Background drawn before draw_axes_y so grid sits on top; lines drawn after.
+    // Speed overlay: tinted background + hierarchical ruler lines + change markers.
+    // Everything drawn before data so it renders underneath.
     if (speedh && speedh->count > 0) {
         float xs = (float)pw / (float)(PRICE_HISTORY_SIZE - 1);
-        int n    = speedh->count;
-        int base = speedh->total_frames - n + 1;
-        // Pass 1: background tint (lighter = faster).
+        int n = speedh->count;
+
+        // Cumulative sim steps at the start of the oldest sample in the buffer.
+        int cum0 = speedh->total_sim_steps;
+        for (int i = 0; i < n; i++) cum0 -= speed_history_get(speedh, i);
+
+        // Pass 1: background tint before axes (lighter = faster).
         for (int s = 0; s < n; s++) {
             int spd = speed_history_get(speedh, s);
             if (spd < 1) spd = 1;
             int alpha = (int)(3.0f * log2f((float)spd));
             if (alpha > 0) {
-                int tx   = px + (int)((float)s * xs);
-                int tw   = (s < n - 1) ? (int)((float)(s+1)*xs) - (int)((float)s*xs) + 1 : px+pw-tx;
+                int tx = px + (int)((float)s * xs);
+                int tw = (s < n-1) ? (int)((float)(s+1)*xs) - (int)((float)s*xs) + 1 : px+pw-tx;
                 DrawRectangle(tx, py, tw, ph, (Color){220, 220, 255, (unsigned char)alpha});
             }
         }
-        draw_axes_y(px,py,pw,ph,yMax);
-        // Pass 2: speed indicator lines.
+        draw_axes_y(px, py, pw, ph, yMax);
+
+        // Pass 2: hierarchical ruler lines.
+        // Level k fires every SPD_UNIT*2^k sim steps.
+        // Odd k = thick (2 px, max alpha 160); even k = thin (1 px, max alpha 90).
+        // Alpha fades linearly to 0 as pixel spacing falls below SPD_FADE_HI.
+#define SPD_UNIT     60
+#define SPD_LEVELS   14
+#define SPD_FADE_LO   8.0f
+#define SPD_FADE_HI  25.0f
+        int cum = cum0;
         for (int s = 0; s < n; s++) {
-            int spd      = speed_history_get(speedh, s);
+            int spd = speed_history_get(speedh, s);
             if (spd < 1) spd = 1;
-            int prev_spd = (s > 0) ? speed_history_get(speedh, s - 1) : spd;
-            if (prev_spd < 1) prev_spd = 1;
             int tx = px + (int)((float)s * xs);
-            if (spd != prev_spd) {
+            for (int k = 0; k < SPD_LEVELS; k++) {
+                int interval = SPD_UNIT << k;
+                // Does a multiple of interval fall in [cum, cum+spd)?
+                int r = cum % interval;
+                if (r != 0 && r + spd <= interval) continue;
+                // Pixel spacing this level would occupy at the current speed.
+                float pix = ((float)interval / (float)spd) * xs;
+                if (pix < SPD_FADE_LO) continue;
+                float t = (pix - SPD_FADE_LO) / (SPD_FADE_HI - SPD_FADE_LO);
+                if (t > 1.0f) t = 1.0f;
+                int alpha = (int)(t * (float)((k & 1) ? 160 : 90));
+                if (alpha < 4) continue;
+                if (k & 1)
+                    DrawRectangle(tx - 1, py, 2, ph, (Color){180, 180, 220, (unsigned char)alpha});
+                else
+                    DrawLine(tx, py, tx, py + ph, (Color){180, 180, 220, (unsigned char)alpha});
+            }
+            cum += spd;
+        }
+#undef SPD_UNIT
+#undef SPD_LEVELS
+#undef SPD_FADE_LO
+#undef SPD_FADE_HI
+
+        // Pass 3: speed-change boundary markers (subtle amber).
+        for (int s = 1; s < n; s++) {
+            if (speed_history_get(speedh, s) != speed_history_get(speedh, s - 1)) {
+                int tx = px + (int)((float)s * xs);
                 DrawLine(tx, py, tx, py + ph, (Color){120, 100, 60, 80});
-            } else {
-                int interval = (int)(60.0f / log2f((float)(spd + 1)));
-                if (interval < 1) interval = 1;
-                if ((base + s) % interval == 0)
-                    DrawLine(tx, py, tx, py + ph, (Color){50, 50, 70, 200});
             }
         }
     } else {
-        draw_axes_y(px,py,pw,ph,yMax);
+        draw_axes_y(px, py, pw, ph, yMax);
     }
 
     if (ybox) {
