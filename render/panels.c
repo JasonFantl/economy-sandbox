@@ -370,6 +370,30 @@ void panel_price_history(const AgentValueHistory *avh, const AgentValueHistory *
     }
     float yMax=(b->yMax>0.0f)?b->yMax:compute_ymax(rawMax);
     draw_axes_y(px,py,pw,ph,yMax);
+
+    // Speed indicator vertical lines drawn first so data renders on top.
+    // Faster sections get denser lines; speed-change boundaries get a subtle warm tint.
+    if (speedh && speedh->count > 0) {
+        float xScaleEarly = (float)pw / (float)(PRICE_HISTORY_SIZE - 1);
+        int n    = speedh->count;
+        int base = speedh->total_frames - n + 1;
+        for (int s = 0; s < n; s++) {
+            int spd      = speed_history_get(speedh, s);
+            if (spd < 1) spd = 1;
+            int prev_spd = (s > 0) ? speed_history_get(speedh, s - 1) : spd;
+            if (prev_spd < 1) prev_spd = 1;
+            int tx = px + (int)((float)s * xScaleEarly);
+            if (spd != prev_spd) {
+                DrawLine(tx, py, tx, py + ph, (Color){120, 100, 60, 80});
+            } else {
+                int interval = (int)(60.0f / log2f((float)(spd + 1)));
+                if (interval < 1) interval = 1;
+                if ((base + s) % interval == 0)
+                    DrawLine(tx, py, tx, py + ph, (Color){50, 50, 70, 200});
+            }
+        }
+    }
+
     if (ybox) {
         if (!ybox->editMode)
             snprintf(ybox->buf, sizeof(ybox->buf), "%.0f", yMax);
@@ -428,28 +452,6 @@ void panel_price_history(const AgentValueHistory *avh, const AgentValueHistory *
         DrawLine(lx+100,ly+15,lx+112,ly+15,(Color){80,230,130,230}); DrawTextF("Util avg",   lx+116,ly+10,10,(Color){80,230,130,255});
     }
 
-    // Speed indicator vertical lines: spacing = 60/log2(speed+1) frames.
-    // Faster sections get denser lines; lines scroll left as total_frames advances.
-    // Speed-change boundaries are drawn in a distinct colour.
-    if (speedh && speedh->count > 0) {
-        int n    = speedh->count;
-        int base = speedh->total_frames - n + 1;
-        for (int s = 0; s < n; s++) {
-            int spd      = speed_history_get(speedh, s);
-            if (spd < 1) spd = 1;
-            int prev_spd = (s > 0) ? speed_history_get(speedh, s - 1) : spd;
-            if (prev_spd < 1) prev_spd = 1;
-            int tx = px + (int)((float)s * xScale);
-            if (spd != prev_spd) {
-                DrawLine(tx, py, tx, py + ph, (Color){200, 160, 60, 220});
-            } else {
-                int interval = (int)(60.0f / log2f((float)(spd + 1)));
-                if (interval < 1) interval = 1;
-                if ((base + s) % interval == 0)
-                    DrawLine(tx, py, tx, py + ph, (Color){50, 50, 70, 200});
-            }
-        }
-    }
 }
 
 // ---------------------------------------------------------------------------
