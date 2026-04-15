@@ -289,8 +289,9 @@ static void step_s3p1(void) {
     g_leisure_enabled        = true;
     g_build_chairs_enabled   = true;
     g_disable_executing_trade = false;
-    g_wood_decay_rate        = 0.003f;
-    g_chair_decay_rate       = 0.003f;
+    g_wood_decay_rate        = 0.0f;
+    g_chair_decay_rate       = 0.0005f;
+    g_wood_per_chair         = 8;
     g_inflation_enabled      = true;
 }
 
