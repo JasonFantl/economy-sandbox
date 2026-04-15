@@ -47,7 +47,7 @@ void agents_init(Agent *agents, int count, float worldWidth, float worldHeight) 
 
         agents[i].econ.lastAction            = ACTION_LEISURE;
         agents[i].econ.pendingWork           = ACTION_LEISURE;
-        agents[i].econ.beliefUpdateRate      = 0.05f + (float)GetRandomValue(0, 30) * 0.01f;
+        agents[i].econ.beliefUpdateRate      = 0.1f;
         agents[i].econ.productionPeriodTicks = 60 + GetRandomValue(0, 20) * 6;
         agents[i].econ.productionTick        = agents[i].econ.productionPeriodTicks;
 
@@ -130,8 +130,8 @@ void agent_attempt_trade(Agent *agents, int i, int count, float worldW, float wo
         if (dx*dx + dy*dy < (AGENT_RADIUS * 2.0f) * (AGENT_RADIUS * 2.0f)) {
             for (int mid = 0; mid < MARKET_COUNT; mid++) {
                 MarketId m = (MarketId)mid;
-                market_gossip(a, b, m);
                 market_trade(a, b, m);
+                market_gossip(a, b, m);
             }
             agents_pick_new_target(agents, i,  count, worldW, worldH);
             agents_pick_new_target(agents, bi, count, worldW, worldH);
